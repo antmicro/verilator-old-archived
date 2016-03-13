@@ -130,6 +130,38 @@ void V3Options::addDefine(const string& defline, bool allowPlus) {
 	V3PreShell::defineCmdLine(def,value);
     }
 }
+void V3Options::addParameter(const string& paramline, bool allowPlus) {
+    // Split +define+foo=value into the appropriate parts and parse
+    // Optional + says to allow multiple defines on the line
+    // + is not quotable, as other simulators do not allow that
+    string left = paramline;
+    while (left != "") {
+        string param = left;
+        string::size_type pos;
+        if (allowPlus && ((pos=left.find("+")) != string::npos)) {
+            left = left.substr(pos+1);
+            param.erase(pos);
+        } else {
+            left = "";
+        }
+        string value;
+        if ((pos=param.find("=")) != string::npos) {
+            value = param.substr(pos+1);
+            param.erase(pos);
+        }
+        UINFO(4,"Add parameter"<<param<<"="<<value<<endl);
+        (void)m_parameters.erase(param);
+        m_parameters[param] = value;
+    }
+}
+
+bool V3Options::hasParameter(string name) {
+    return m_parameters.find(name) != m_parameters.end();
+}
+
+string V3Options::parameter(string name) {
+    return (m_parameters.find(name)->second);
+}
 
 void V3Options::addCppFile(const string& filename) {
     if (m_cppFiles.find(filename) == m_cppFiles.end()) {
@@ -585,6 +617,9 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
 	    }
 	    else if ( !strncmp (sw, "+incdir+", 8)) {
 		addIncDirUser (parseFileArg(optdir, string (sw+strlen("+incdir+"))));
+	    }
+	    else if ( !strncmp (sw, "+parameter+", 11)) {
+                addParameter (string (sw+strlen("+parameter+")), true);
 	    }
 	    else if (parseLangExt(sw, "+systemverilogext+", V3LangCode::L1800_2012)
 		     || parseLangExt(sw, "+verilog1995ext+", V3LangCode::L1364_1995)

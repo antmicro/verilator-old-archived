@@ -874,6 +874,14 @@ class LinkDotFindVisitor : public AstNVisitor {
 	    if (ins) {
 		VSymEnt* insp = m_statep->insertSym(m_curSymp, nodep->name(), nodep, m_packagep);
 		if (m_statep->forPrimary() && nodep->isGParam()) {
+                    if (m_statep->rootEntp()->nodep() == m_modSymp->parentp()->nodep()) {
+                        // This is the toplevel module. Check for command line overwrites of parameters
+                        if (v3Global.opt.hasParameter(nodep->name())) {
+                            AstNode* v = nodep->valuep();
+                            string value = v3Global.opt.parameter(nodep->name());
+                            // TODO: What do we want to do here?
+                        }
+                    }
 		    m_paramNum++;
 		    VSymEnt* symp = m_statep->insertSym(m_curSymp, "__paramNumber" + cvtToStr(m_paramNum),
 							nodep, m_packagep);
