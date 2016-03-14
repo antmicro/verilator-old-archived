@@ -872,16 +872,26 @@ class LinkDotFindVisitor : public AstNVisitor {
 		}
 	    }
 	    if (ins) {
-		VSymEnt* insp = m_statep->insertSym(m_curSymp, nodep->name(), nodep, m_packagep);
-		if (m_statep->forPrimary() && nodep->isGParam()) {
+                if (m_statep->forPrimary() && nodep->isGParam()) {
                     if (m_statep->rootEntp()->nodep() == m_modSymp->parentp()->nodep()) {
                         // This is the toplevel module. Check for command line overwrites of parameters
                         if (v3Global.opt.hasParameter(nodep->name())) {
                             AstNode* v = nodep->valuep();
+                            AstVar* newp = new AstVar(nodep->fileline(), AstVarType(AstVarType::GPARAM), nodep->name(), nodep);
+
                             string value = v3Global.opt.parameter(nodep->name());
-                            // TODO: What do we want to do here?
+
+                            newp->valuep(new AstConst(nodep->fileline(), AstConst::Signed32(), atoi(value.c_str())));
+
+                            UINFO(4,"       replace parameter "<<nodep<<endl);
+                            UINFO(4,"       with "<<newp<<endl);
+                            nodep->replaceWith(newp); pushDeletep(nodep); VL_DANGLING(nodep);
+                            nodep = (AstVar*) newp;
                         }
                     }
+                }
+                VSymEnt* insp = m_statep->insertSym(m_curSymp, nodep->name(), nodep, m_packagep);
+		if (m_statep->forPrimary() && nodep->isGParam()) {
 		    m_paramNum++;
 		    VSymEnt* symp = m_statep->insertSym(m_curSymp, "__paramNumber" + cvtToStr(m_paramNum),
 							nodep, m_packagep);
