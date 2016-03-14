@@ -783,6 +783,10 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
 		shift;
 		V3Error::errorLimit(atoi(argv[i]));
 	    }
+	    else if ( !strncmp (sw, "-G", 2)) {
+	         addParameter (string (sw+strlen("-G")), true);
+	    }
+
 	    else if ( !strncmp (sw, "-I", 2)) {
 		addIncDirUser (parseFileArg(optdir, string (sw+strlen("-I"))));
 	    }

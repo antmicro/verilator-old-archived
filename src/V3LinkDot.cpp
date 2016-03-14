@@ -77,6 +77,7 @@
 #include "V3SymTable.h"
 #include "V3Graph.h"
 #include "V3Ast.h"
+#include "V3ParseImp.h"
 
 //######################################################################
 // LinkDot state, as a visitor of each AstNode
@@ -876,12 +877,36 @@ class LinkDotFindVisitor : public AstNVisitor {
                     if (m_statep->rootEntp()->nodep() == m_modSymp->parentp()->nodep()) {
                         // This is the toplevel module. Check for command line overwrites of parameters
                         if (v3Global.opt.hasParameter(nodep->name())) {
-                            AstNode* v = nodep->valuep();
-                            AstVar* newp = new AstVar(nodep->fileline(), AstVarType(AstVarType::GPARAM), nodep->name(), nodep);
+                            FileLine *fl = nodep->fileline();
+                            AstVar* newp = new AstVar(fl, AstVarType(AstVarType::GPARAM), nodep->name(), nodep);
 
-                            string value = v3Global.opt.parameter(nodep->name());
+                            string svalue = v3Global.opt.parameter(nodep->name());
+                            AstConst *value;
 
-                            newp->valuep(new AstConst(nodep->fileline(), AstConst::Signed32(), atoi(value.c_str())));
+                            if (svalue[0] == '"') {
+                                // This is a string
+                                string v = svalue.substr(1, svalue.find('"', 1) - 1);
+
+                                V3Number n(V3Number::VerilogStringLiteral(),nodep->fileline(),v);
+                                value = new AstConst(nodep->fileline(),n);
+                            } else if ((svalue.find(".") != string::npos) ||
+                                    (svalue.find("e") != string::npos)) {
+                                double v = V3ParseImp::parseDouble(svalue.c_str(), svalue.length());
+                                value = new AstConst(nodep->fileline(),AstConst::RealDouble(),v);
+                            } else {
+                                int v = strtol(svalue.c_str(), NULL, 0);
+
+                                if (v != 0) {
+                                    V3Number n(fl, 32, v);
+                                    value = new AstConst(nodep->fileline(),n);
+                                    UINFO(4,value<<endl);
+                                } else {
+                                    V3Number n(fl, svalue.c_str());
+                                    value = new AstConst(nodep->fileline(),n);
+                                }
+                            }
+
+                            newp->valuep(value);
 
                             UINFO(4,"       replace parameter "<<nodep<<endl);
                             UINFO(4,"       with "<<newp<<endl);
