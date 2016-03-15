@@ -280,6 +280,7 @@ descriptions in the next sections for more information.
     --exe                       Link to create executable
      -F <file>                  Parse options from a file, relatively
      -f <file>                  Parse options from a file
+     -G<name>=<value>           Overwrite toplevel parameter
     --gdb                       Run Verilator under GDB interactively
     --gdbbt                     Run Verilator under GDB for backtrace
     --help                      Display this help
@@ -310,6 +311,7 @@ descriptions in the next sections for more information.
     --output-split-cfuncs <statements>   Split .cpp functions
     --output-split-ctrace <statements>   Split tracing functions
      -P                         Disable line numbers and blanks with -E
+     +parameter+<name>=<value>  Overwrite toplevel parameter
     --pins-bv <bits>            Specify types for top level ports
     --pins-sc-uint              Specify types for top level ports
     --pins-sc-biguint           Specify types for top level ports
@@ -699,6 +701,35 @@ The file may contain // comments which are ignored to the end of the line.
 Any $VAR, $(VAR), or ${VAR} will be replaced with the specified environment
 variable.
 
+=item -GI<name>=I<value>
+
+Overwrites the given parameter of the toplevel module. The value is limited
+to basic data literals:
+
+=over 4
+
+=item Verilog integer literals
+
+The standard verilog integer literals are supported, so values like 32'h8,
+2'b00, 4 etc. are allowed. Care must be taken that the single quote (I') is
+properly escaped in an interactive shell, e.g., as -GWIDTH=8\'hx. 
+
+=item C integer literals
+
+It is also possible to use C integer notation, including hexadecimal (0x..),
+octal (0..) or binary (0b..) notation.
+
+=item Double literals
+
+Double literals must contain a dot (.) and/or an exponent (e). 
+
+=item Strings
+
+String must in double quotes ("). On the command line it is required to escape
+them properly, e.g. as -GSTR="\"My String\"" or -GSTR='"My String"'.
+
+=back
+
 =item --gdb
 
 Run Verilator underneath an interactive GDB (or VERILATOR_GDB environment
@@ -875,6 +906,13 @@ multiple functions.  Defaults to same setting as --output-split-cfuncs.
 
 With -E, disable generation of `line markers and blank lines, similar to
 GCC -P flag.
+
+=item +parameter+I<name>=I<value>
+
+=item +parameter+I<name>=I<value>+I<name2>=I<value2>...
+
+Overwrites the given parameter(s) of the toplevel module. See -G for a
+detailed description.
 
 =item --pins64
 
