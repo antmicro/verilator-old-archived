@@ -54,7 +54,18 @@ push @ARGV, (split ' ',$ENV{VERILATOR_TEST_FLAGS}||"");
 # We sneak a look at the flags so we can do some pre-environment checks
 # All flags will hit verilator...
 foreach my $sw (@ARGV) {
-    $sw = "'$sw'" if $sw =~ m![^---a-zA-Z0-9_/\\:.+]!;
+    # Some special treatment for parameters to allow verilog literals for numbers
+    if ((substr($sw, 0, 2) eq "-G") || (substr($sw, 0, 11) eq "+parameter+")) {
+        # If there is a single quote in the parameter put it double quotes ,
+        # else just put it in double quotes
+        if ($sw =~ m![\']!) {
+            $sw = "\"$sw\"";
+        } else {
+            $sw = "'$sw'";
+        }
+    } else {
+        $sw = "'$sw'" if $sw =~ m![^---a-zA-Z0-9_/\\:.+]!;
+    }
     push @Opt_Verilator_Sw, $sw;
 }
 
