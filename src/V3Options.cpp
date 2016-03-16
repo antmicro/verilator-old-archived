@@ -160,7 +160,21 @@ bool V3Options::hasParameter(string name) {
 }
 
 string V3Options::parameter(string name) {
-    return (m_parameters.find(name)->second);
+    string value = m_parameters.find(name)->second;
+    m_parameters.erase(m_parameters.find(name));
+    return value;
+}
+
+void V3Options::checkParameters() {
+    if (!m_parameters.empty()) {
+        stringstream msg;
+        msg << "Parameters from the command line were not found in the design:";
+        for (map<string,string>::iterator it = m_parameters.begin();
+                it != m_parameters.end(); ++it) {
+            msg << " " << it->first;
+        }
+        v3fatal(msg.str()<<endl);
+    }
 }
 
 void V3Options::addCppFile(const string& filename) {

@@ -284,6 +284,7 @@ class V3Options {
 
     bool hasParameter(string name);
     string parameter(string name);
+    void checkParameters();
 
     bool isFuture(const string& flag) const;
     bool isLibraryFile(const string& filename) const;
