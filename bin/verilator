@@ -55,7 +55,7 @@ push @ARGV, (split ' ',$ENV{VERILATOR_TEST_FLAGS}||"");
 # All flags will hit verilator...
 foreach my $sw (@ARGV) {
     # Some special treatment for parameters to allow verilog literals for numbers
-    if ((substr($sw, 0, 2) eq "-G") || (substr($sw, 0, 11) eq "+parameter+")) {
+    if ((substr($sw, 0, 2) eq "-G") || (substr($sw, 0, 8) eq "-pvalue+")) {
         # If there is a single quote in the parameter put it double quotes ,
         # else just put it in double quotes
         if ($sw =~ m![\']!) {
@@ -311,7 +311,6 @@ descriptions in the next sections for more information.
     --output-split-cfuncs <statements>   Split .cpp functions
     --output-split-ctrace <statements>   Split tracing functions
      -P                         Disable line numbers and blanks with -E
-     +parameter+<name>=<value>  Overwrite toplevel parameter
     --pins-bv <bits>            Specify types for top level ports
     --pins-sc-uint              Specify types for top level ports
     --pins-sc-biguint           Specify types for top level ports
@@ -321,6 +320,7 @@ descriptions in the next sections for more information.
     --profile-cfuncs            Name functions for profiling
     --private                   Debugging; see docs
     --public                    Debugging; see docs
+     -pvalue+<name>=<value>     Overwrite toplevel parameter
     --report-unoptflat          Extra diagnostics for UNOPTFLAT
     --savable			Enable model save-restore
     --sc                        Create SystemC output
@@ -907,13 +907,6 @@ multiple functions.  Defaults to same setting as --output-split-cfuncs.
 With -E, disable generation of `line markers and blank lines, similar to
 GCC -P flag.
 
-=item +parameter+I<name>=I<value>
-
-=item +parameter+I<name>=I<value>+I<name2>=I<value2>...
-
-Overwrites the given parameter(s) of the toplevel module. See -G for a
-detailed description.
-
 =item --pins64
 
 Backward compatible alias for "--pins-bv 65".  Note that's a 65, not a 64.
@@ -994,6 +987,11 @@ optimizations as if all signals had a /*verilator public*/ comments and
 inlining.  This will also turn off inlining as if all modules had a
 /*verilator public_module*/, unless the module specifically enabled it with
 /*verilator inline_module*/.
+
+=item -pvalue+I<name>=I<value>
+
+Overwrites the given parameter(s) of the toplevel module. See -G for a
+detailed description.
 
 =item --report-unoptflat
 

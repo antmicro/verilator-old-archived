@@ -632,9 +632,6 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
 	    else if ( !strncmp (sw, "+incdir+", 8)) {
 		addIncDirUser (parseFileArg(optdir, string (sw+strlen("+incdir+"))));
 	    }
-	    else if ( !strncmp (sw, "+parameter+", 11)) {
-                addParameter (string (sw+strlen("+parameter+")), true);
-	    }
 	    else if (parseLangExt(sw, "+systemverilogext+", V3LangCode::L1800_2012)
 		     || parseLangExt(sw, "+verilog1995ext+", V3LangCode::L1364_1995)
 		     || parseLangExt(sw, "+verilog2001ext+", V3LangCode::L1364_2001)
@@ -707,6 +704,9 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
 	    else if ( !strcmp (sw, "-private") )		{ m_public = false; }
 	    else if ( onoff   (sw, "-profile-cfuncs", flag/*ref*/) )	{ m_profileCFuncs = flag; }
 	    else if ( onoff   (sw, "-public", flag/*ref*/) )		{ m_public = flag; }
+            else if ( !strncmp (sw, "-pvalue+", strlen("-pvalue+"))) {
+                addParameter (string (sw+strlen("-pvalue+")), false);
+            }
 	    else if ( onoff   (sw, "-report-unoptflat", flag/*ref*/) )	{ m_reportUnoptflat = flag; }
 	    else if ( onoff   (sw, "-savable", flag/*ref*/) )		{ m_savable = flag; }
 	    else if ( !strcmp (sw, "-sc") )				{ m_outFormatOk = true; m_systemC = true; m_systemPerl = false; }
@@ -797,8 +797,8 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
 		shift;
 		V3Error::errorLimit(atoi(argv[i]));
 	    }
-	    else if ( !strncmp (sw, "-G", 2)) {
-	         addParameter (string (sw+strlen("-G")), true);
+	    else if ( !strncmp (sw, "-G", strlen("-G"))) {
+	         addParameter (string (sw+strlen("-G")), false);
 	    }
 
 	    else if ( !strncmp (sw, "-I", 2)) {
