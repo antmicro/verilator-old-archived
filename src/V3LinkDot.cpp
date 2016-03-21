@@ -586,6 +586,30 @@ class LinkDotFindVisitor : public AstNVisitor {
     // METHODS
     int debug() { return LinkDotState::debug(); }
 
+    virtual AstConst* parseParamLiteral(FileLine *fl, string literal) {
+        if (literal[0] == '"') {
+            // This is a string
+            string v = literal.substr(1, literal.find('"', 1) - 1);
+
+            V3Number n(V3Number::VerilogStringLiteral(), fl, v);
+            return new AstConst(fl,n);
+        } else if ((literal.find(".") != string::npos) ||
+                (literal.find("e") != string::npos)) {
+            double v = V3ParseImp::parseDouble(literal.c_str(), literal.length());
+            return new AstConst(fl, AstConst::RealDouble(), v);
+        } else {
+            int v = strtol(literal.c_str(), NULL, 0);
+
+            if (v != 0) {
+                V3Number n(fl, 32, v);
+                return new AstConst(fl, n);
+            } else {
+                V3Number n(fl, literal.c_str());
+                return new AstConst(fl, n);
+            }
+        }
+    }
+
     // VISITs
     virtual void visit(AstNetlist* nodep, AstNUser*) {
 	// Process $unit or other packages
@@ -881,29 +905,7 @@ class LinkDotFindVisitor : public AstNVisitor {
                             AstVar* newp = new AstVar(fl, AstVarType(AstVarType::GPARAM), nodep->name(), nodep);
 
                             string svalue = v3Global.opt.parameter(nodep->name());
-                            AstConst *value;
-
-                            if (svalue[0] == '"') {
-                                // This is a string
-                                string v = svalue.substr(1, svalue.find('"', 1) - 1);
-
-                                V3Number n(V3Number::VerilogStringLiteral(),nodep->fileline(),v);
-                                value = new AstConst(nodep->fileline(),n);
-                            } else if ((svalue.find(".") != string::npos) ||
-                                    (svalue.find("e") != string::npos)) {
-                                double v = V3ParseImp::parseDouble(svalue.c_str(), svalue.length());
-                                value = new AstConst(nodep->fileline(),AstConst::RealDouble(),v);
-                            } else {
-                                int v = strtol(svalue.c_str(), NULL, 0);
-
-                                if (v != 0) {
-                                    V3Number n(fl, 32, v);
-                                    value = new AstConst(nodep->fileline(),n);
-                                } else {
-                                    V3Number n(fl, svalue.c_str());
-                                    value = new AstConst(nodep->fileline(),n);
-                                }
-                            }
+                            AstConst *value = parseParamLiteral(fl, svalue);
 
                             newp->valuep(value);
 
