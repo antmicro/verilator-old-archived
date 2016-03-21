@@ -899,7 +899,6 @@ class LinkDotFindVisitor : public AstNVisitor {
                                 if (v != 0) {
                                     V3Number n(fl, 32, v);
                                     value = new AstConst(nodep->fileline(),n);
-                                    UINFO(4,value<<endl);
                                 } else {
                                     V3Number n(fl, svalue.c_str());
                                     value = new AstConst(nodep->fileline(),n);
