@@ -587,23 +587,41 @@ class LinkDotFindVisitor : public AstNVisitor {
     int debug() { return LinkDotState::debug(); }
 
     virtual AstConst* parseParamLiteral(FileLine *fl, string literal) {
+        bool success = false;
         if (literal[0] == '"') {
             // This is a string
             string v = literal.substr(1, literal.find('"', 1) - 1);
 
             V3Number n(V3Number::VerilogStringLiteral(), fl, v);
+            success = true;
             return new AstConst(fl,n);
         } else if ((literal.find(".") != string::npos) ||
                 (literal.find("e") != string::npos)) {
-            double v = V3ParseImp::parseDouble(literal.c_str(), literal.length());
-            return new AstConst(fl, AstConst::RealDouble(), v);
-        } else {
-            int v = strtol(literal.c_str(), NULL, 0);
+            // This may be a real
+            double v = V3ParseImp::parseDouble(literal.c_str(), literal.length(), &success);
+            if (success) {
+                return new AstConst(fl, AstConst::RealDouble(), v);
+            }
+        }
 
-            if (v != 0) {
+        if (!success) {
+            // This is either an integer or an error
+
+            // We first try to convert it as C literal. If strtol returns
+            // 0 this is either an error or 0 was parsed. But in any case
+            // we will try to parse it as a verilog literal, hence having
+            // the false negative for 0 is okay. If anything remains in
+            // the string after the number, this is invalid C and we try
+            // the Verilog literal parser.
+            char *endptr;
+            int v = strtol(literal.c_str(), &endptr, 0);
+
+            if ((v != 0) && (endptr[0] == 0)) {
+                // This is a C literal
                 V3Number n(fl, 32, v);
                 return new AstConst(fl, n);
             } else {
+                // Try for a Verilog literal (fatals if not)
                 V3Number n(fl, literal.c_str());
                 return new AstConst(fl, n);
             }
@@ -897,25 +915,25 @@ class LinkDotFindVisitor : public AstNVisitor {
 		}
 	    }
 	    if (ins) {
-                if (m_statep->forPrimary() && nodep->isGParam()) {
-                    if (m_statep->rootEntp()->nodep() == m_modSymp->parentp()->nodep()) {
-                        // This is the toplevel module. Check for command line overwrites of parameters
-                        if (v3Global.opt.hasParameter(nodep->name())) {
-                            FileLine *fl = nodep->fileline();
-                            AstVar* newp = new AstVar(fl, AstVarType(AstVarType::GPARAM), nodep->name(), nodep);
+	        if (m_statep->forPrimary() && nodep->isGParam() &&
+	                (m_statep->rootEntp()->nodep() == m_modSymp->parentp()->nodep())) {
+	            // This is the toplevel module. Check for command line overwrites of parameters
+	            // We first search if the parameter is overwritten and then replace it with a
+	            // new value. It will keep the same FileLine information.
+	            if (v3Global.opt.hasParameter(nodep->name())) {
+	                UINFO(1,"param"<<nodep->name()<<endl);
+	                FileLine *fl = nodep->fileline();
+	                AstVar* newp = new AstVar(fl, AstVarType(AstVarType::GPARAM), nodep->name(), nodep);
 
-                            string svalue = v3Global.opt.parameter(nodep->name());
-                            AstConst *value = parseParamLiteral(fl, svalue);
+	                string svalue = v3Global.opt.parameter(nodep->name());
+	                newp->valuep(parseParamLiteral(fl, svalue));
 
-                            newp->valuep(value);
-
-                            UINFO(4,"       replace parameter "<<nodep<<endl);
-                            UINFO(4,"       with "<<newp<<endl);
-                            nodep->replaceWith(newp); pushDeletep(nodep); VL_DANGLING(nodep);
-                            nodep = (AstVar*) newp;
-                        }
-                    }
-                }
+	                UINFO(4,"       replace parameter "<<nodep<<endl);
+	                UINFO(4,"       with "<<newp<<endl);
+	                nodep->replaceWith(newp); pushDeletep(nodep); VL_DANGLING(nodep);
+	                nodep = (AstVar*) newp;
+	            }
+	        }
                 VSymEnt* insp = m_statep->insertSym(m_curSymp, nodep->name(), nodep, m_packagep);
 		if (m_statep->forPrimary() && nodep->isGParam()) {
 		    m_paramNum++;
