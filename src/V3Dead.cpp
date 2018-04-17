@@ -378,7 +378,7 @@ private:
 		// members are still alive.
 		if ((classp = (*it)->castNodeClassDType())) {
 		    bool cont = true;
-		    for (AstMemberDType *memberp = classp->membersp(); memberp; memberp = memberp->nextp()->castMemberDType()) {
+		    ASTNODE_ITERATE(MemberDType, memberp, classp->membersp()) {
 			if (memberp->user1() != 0) {
 			    cont = false;
 			    break;

@@ -351,10 +351,10 @@ private:
 	    }
 	}
 	// Convert unnamed pins to pin number based assignments
-	for (AstPin* pinp = nodep->pinsp(); pinp; pinp=pinp->nextp()->castPin()) {
+	ASTNODE_ITERATE(Pin, pinp, nodep->pinsp()) {
 	    if (pinp->name()=="") pinp->name("__pinNumber"+cvtToStr(pinp->pinNum()));
 	}
-	for (AstPin* pinp = nodep->paramsp(); pinp; pinp=pinp->nextp()->castPin()) {
+	ASTNODE_ITERATE(Pin, pinp, nodep->paramsp()) {
 	    pinp->param(true);
 	    if (pinp->name()=="") pinp->name("__paramNumber"+cvtToStr(pinp->pinNum()));
 	}
@@ -362,7 +362,7 @@ private:
 	    nodep->modName(nodep->modp()->name());
 	    // Note what pins exist
 	    vl_unordered_set<string> ports;  // Symbol table of all connected port names
-	    for (AstPin* pinp = nodep->pinsp(); pinp; pinp=pinp->nextp()->castPin()) {
+	    ASTNODE_ITERATE(Pin, pinp, nodep->pinsp()) {
 		if (pinp->name()=="") pinp->v3error("Connect by position is illegal in .* connected cells");
 		if (!pinp->exprp()) {
 		    if (pinp->name().substr(0, 11) == "__pinNumber") {

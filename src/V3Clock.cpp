@@ -154,7 +154,7 @@ private:
     AstNode* createSenseEquation(AstNodeSenItem* nodesp) {
 	// Nodep may be a list of elements; we need to walk it
 	AstNode* senEqnp = NULL;
-	for (AstNodeSenItem* senp = nodesp; senp; senp=senp->nextp()->castNodeSenItem()) {
+	ASTNODE_ITERATE(NodeSenItem, senp, nodesp) {
 	    AstNode* senOnep = NULL;
 	    if (AstSenItem* itemp = senp->castSenItem()) {
 		senOnep = createSenItemEquation(itemp);

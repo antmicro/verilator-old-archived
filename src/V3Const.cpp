@@ -1720,8 +1720,7 @@ private:
 	    {
 		AstUser4InUse	m_inuse4;
 		// Mark x in SENITEM(x)
-		for (AstNodeSenItem* senp = nodep->sensesp()->castNodeSenItem();
-		     senp; senp=senp->nextp()->castNodeSenItem()) {
+		ASTNODE_ITERATE(NodeSenItem, senp, nodep->sensesp()->castNodeSenItem()) {
 		    if (AstSenItem* itemp = senp->castSenItem()) {
 			if (itemp->varrefp() && itemp->varrefp()->varScopep()) {
 			    itemp->varrefp()->varScopep()->user4(1);
@@ -1729,9 +1728,7 @@ private:
 		    }
 		}
 		// Find x in SENTREE(SENITEM(x))
-		for (AstNodeSenItem* nextp, * senp = nodep->sensesp()->castNodeSenItem();
-		     senp; senp=nextp) {
-		    nextp=senp->nextp()->castNodeSenItem();
+		ASTNODE_ITERATE(NodeSenItem, senp, nodep->sensesp()->castNodeSenItem()) {
 		    if (AstSenGate* gatep = senp->castSenGate()) {
 			if (AstSenItem* itemp = gatep->sensesp()->castSenItem()) {
 			    if (itemp->varrefp() && itemp->varrefp()->varScopep()) {
@@ -1759,7 +1756,7 @@ private:
 		    // Something's out of order, sort it
 		    senp = NULL;
 		    vector<AstNodeSenItem*> vec;
-		    for (AstNodeSenItem* senp = nodep->sensesp()->castNodeSenItem(); senp; senp=senp->nextp()->castNodeSenItem()) {
+		    ASTNODE_ITERATE(NodeSenItem, senp, nodep->sensesp()) {
 			vec.push_back(senp);
 		    }
 		    stable_sort(vec.begin(), vec.end(), SenItemCmp());

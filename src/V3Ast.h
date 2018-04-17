@@ -994,6 +994,13 @@ ostream& operator<<(ostream& os, const V3Hash& rhs);
 #define ASTNODE_PREFETCH(nodep) \
     { if (nodep) { VL_PREFETCH_RD(&(nodep->m_nextp)); VL_PREFETCH_RD(&(nodep->m_iterpp)); }}
 
+// Iterate over nodes and cast to specific type
+// This is used for lists of nodes in an AST that are of a known subclass
+// type: The known type of the nodes
+// it: variable name for the iterator
+// init: initialize it from this statement
+#define ASTNODE_ITERATE(type,it,init) for (Ast##type * it = init; it; it = it->nextp()->cast##type())
+
 class AstNode {
     // v ASTNODE_PREFETCH depends on below ordering of members
     AstNode*	m_nextp;	// Next peer in the parent's list

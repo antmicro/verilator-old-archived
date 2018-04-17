@@ -247,7 +247,7 @@ private:
 	}
 	else if (AstStructDType* adtypep = dtypep->castStructDType()) {
 	    // For now it's packed, so similar to array
-	    for (AstMemberDType* itemp = adtypep->membersp(); itemp; itemp=itemp->nextp()->castMemberDType()) {
+	    ASTNODE_ITERATE(MemberDType, itemp, adtypep->membersp()) {
 		AstNodeDType* subtypep = itemp->subDTypep()->skipRefp();
 		int index_code = itemp->lsb();
 		ToggleEnt newent (above.m_comment+string(".")+itemp->name(),

@@ -1285,7 +1285,7 @@ private:
 	V3Number num (nodep->fileline(), nodep->width(), 0);
 	V3Number one (nodep->fileline(), nodep->width(), 1);
 	map<V3Number,AstEnumItem*> inits;
-	for (AstEnumItem* itemp = nodep->itemsp(); itemp; itemp=itemp->nextp()->castEnumItem()) {
+	ASTNODE_ITERATE(EnumItem, itemp, nodep->itemsp()) {
 	    if (itemp->valuep()) {
 		if (debug()>=9) { UINFO(0,"EnumInit "<<itemp<<endl); itemp->valuep()->dumpTree(cout,"-EnumInit: "); }
 		V3Const::constifyParamsEdit(itemp->valuep()); // itemp may change
@@ -1517,7 +1517,7 @@ private:
 	if (debug()>=9) nodep->dumpTree("-mts-in: ");
 	// Should check types the method requires, but at present we don't do much
 	userIterate(nodep->fromp(), WidthVP(SELF,BOTH).p());
-	for (AstArg* argp = nodep->pinsp()->castArg(); argp; argp = argp->nextp()->castArg()) {
+	ASTNODE_ITERATE(Arg, argp, nodep->pinsp()->castArg()) {
 	    if (argp->exprp()) userIterate(argp->exprp(), WidthVP(SELF,BOTH).p());
 	}
 	// Find the fromp dtype - should be a class
@@ -1577,7 +1577,7 @@ private:
 		// a map for when the value is many bits and sparse.
 		uint64_t msbdim = 0;
 		{
-		    for (AstEnumItem* itemp = adtypep->itemsp(); itemp; itemp = itemp->nextp()->castEnumItem()) {
+		    ASTNODE_ITERATE(EnumItem, itemp, adtypep->itemsp()) {
 			AstConst* vconstp = itemp->valuep()->castConst();
 			if (!vconstp) nodep->v3fatalSrc("Enum item without constified value");
 			if (vconstp->toUQuad() >= msbdim) msbdim = vconstp->toUQuad();
@@ -1674,7 +1674,7 @@ private:
 	    UINFO(9,"  adtypep "<<vdtypep<<endl);
 	    nodep->dtypep(vdtypep);
 	    // Determine replication count, and replicate initial value as widths need to be individually determined
-	    for (AstPatMember* patp = nodep->itemsp()->castPatMember(); patp; patp = patp->nextp()->castPatMember()) {
+	    ASTNODE_ITERATE(PatMember, patp, nodep->itemsp()->castPatMember()) {
 		int times = visitPatMemberRep(patp);
 		for (int i=1; i<times; i++) {
 		    AstNode* newp = patp->cloneTree(false);
@@ -1683,7 +1683,7 @@ private:
 		}
 	    }
 	    // Convert any PatMember with multiple items to multiple PatMembers
-	    for (AstPatMember* patp = nodep->itemsp()->castPatMember(); patp; patp = patp->nextp()->castPatMember()) {
+	    ASTNODE_ITERATE(PatMember, patp, nodep->itemsp()->castPatMember()) {
 		if (patp->lhssp()->nextp()) {
 		    // Can't just addNext, as would add to end of all members.  So detach, add next and reattach
 		    AstNRelinker relinkHandle;
@@ -1697,7 +1697,7 @@ private:
 		}
 	    }
 	    AstPatMember* defaultp = NULL;
-	    for (AstPatMember* patp = nodep->itemsp()->castPatMember(); patp; patp = patp->nextp()->castPatMember()) {
+	    ASTNODE_ITERATE(PatMember, patp, nodep->itemsp()->castPatMember()) {
 		if (patp->isDefault()) {
 		    if (defaultp) nodep->v3error("Multiple '{ default: } clauses");
 		    defaultp = patp;
@@ -1749,7 +1749,7 @@ private:
 		    }
 		}
 		AstNode* newp = NULL;
-		for (AstMemberDType* memp = classp->membersp(); memp; memp=memp->nextp()->castMemberDType()) {
+		ASTNODE_ITERATE(MemberDType, memp, classp->membersp()) {
 		    PatMap::iterator it = patmap.find(memp);
 		    AstPatMember* newpatp = NULL;
 		    AstPatMember* patp = NULL;
@@ -1981,7 +1981,7 @@ private:
 
 	// Take width as maximum across all items, if any is real whole thing is real
 	AstNodeDType* subDTypep = nodep->exprp()->dtypep();
-	for (AstCaseItem* itemp = nodep->itemsp(); itemp; itemp=itemp->nextp()->castCaseItem()) {
+	ASTNODE_ITERATE(CaseItem, itemp, nodep->itemsp()) {
 	    for (AstNode* condp = itemp->condsp(); condp; condp=condp->nextp()) {
 		if (condp->dtypep() != subDTypep) {
 		    if (condp->dtypep()->isDouble()) {
@@ -1997,7 +1997,7 @@ private:
 	}
 	// Apply width
         iterateCheck(nodep,"Case expression",nodep->exprp(),CONTEXT,FINAL,subDTypep,EXTEND_LHS);
-	for (AstCaseItem* itemp = nodep->itemsp(); itemp; itemp=itemp->nextp()->castCaseItem()) {
+	ASTNODE_ITERATE(CaseItem, itemp, nodep->itemsp()) {
 	    for (AstNode* nextcp, *condp = itemp->condsp(); condp; condp=nextcp) {
 		nextcp = condp->nextp(); // Final may cause the node to get replaced
 		iterateCheck(nodep,"Case Item",condp,CONTEXT,FINAL,subDTypep,EXTEND_LHS);

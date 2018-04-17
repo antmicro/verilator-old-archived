@@ -63,7 +63,7 @@ int AstNodeSel::bitConst() const {
 
 void AstNodeClassDType::repairMemberCache() {
     clearCache();
-    for (AstMemberDType* itemp = membersp(); itemp; itemp=itemp->nextp()->castMemberDType()) {
+    ASTNODE_ITERATE(MemberDType, itemp, membersp()) {
         if (m_members.find(itemp->name())!=m_members.end()) {
             itemp->v3error("Duplicate declaration of member name: "<<itemp->prettyName()); }
 	else m_members.insert(make_pair(itemp->name(), itemp));
@@ -72,7 +72,7 @@ void AstNodeClassDType::repairMemberCache() {
 
 const char* AstNodeClassDType::broken() const {
     vl_unordered_set<AstMemberDType*> exists;
-    for (AstMemberDType* itemp = membersp(); itemp; itemp=itemp->nextp()->castMemberDType()) {
+    ASTNODE_ITERATE(MemberDType, itemp, membersp()) {
 	exists.insert(itemp);
     }
     for (MemberNameMap::const_iterator it=m_members.begin(); it!=m_members.end(); ++it) {
@@ -580,7 +580,7 @@ string AstScope::nameDotless() const {
 
 string AstScopeName::scopePrettyNameFormatter(AstText* scopeTextp) const {
     string out;
-    for (AstText* textp=scopeTextp; textp; textp=textp->nextp()->castText()) {
+    ASTNODE_ITERATE(Text, textp, scopeTextp) {
 	out += textp->text();
     }
     // TOP will be replaced by top->name()
@@ -592,7 +592,7 @@ string AstScopeName::scopePrettyNameFormatter(AstText* scopeTextp) const {
 
 string AstScopeName::scopeNameFormatter(AstText* scopeTextp) const {
     string out;
-    for (AstText* textp=scopeTextp; textp; textp=textp->nextp()->castText()) {
+    ASTNODE_ITERATE(Text, textp, scopeTextp) {
 	out += textp->text();
     }
     if (out.substr(0,10) == "__DOT__TOP") out.replace(0,10,"");
@@ -610,28 +610,28 @@ string AstScopeName::scopeNameFormatter(AstText* scopeTextp) const {
 
 bool AstSenTree::hasClocked() const {
     if (!sensesp()) this->v3fatalSrc("SENTREE without any SENITEMs under it");
-    for (AstNodeSenItem* senp = sensesp(); senp; senp=senp->nextp()->castNodeSenItem()) {
+    ASTNODE_ITERATE(NodeSenItem, senp, sensesp()) {
 	if (senp->isClocked()) return true;
     }
     return false;
 }
 bool AstSenTree::hasSettle() const {
     if (!sensesp()) this->v3fatalSrc("SENTREE without any SENITEMs under it");
-    for (AstNodeSenItem* senp = sensesp(); senp; senp=senp->nextp()->castNodeSenItem()) {
+    ASTNODE_ITERATE(NodeSenItem, senp, sensesp()) {
 	if (senp->isSettle()) return true;
     }
     return false;
 }
 bool AstSenTree::hasInitial() const {
     if (!sensesp()) this->v3fatalSrc("SENTREE without any SENITEMs under it");
-    for (AstNodeSenItem* senp = sensesp(); senp; senp=senp->nextp()->castNodeSenItem()) {
+    ASTNODE_ITERATE(NodeSenItem, senp, sensesp()) {
 	if (senp->isInitial()) return true;
     }
     return false;
 }
 bool AstSenTree::hasCombo() const {
     if (!sensesp()) this->v3fatalSrc("SENTREE without any SENITEMs under it");
-    for (AstNodeSenItem* senp = sensesp(); senp; senp=senp->nextp()->castNodeSenItem()) {
+    ASTNODE_ITERATE(NodeSenItem, senp, sensesp()) {
 	if (senp->isCombo()) return true;
     }
     return false;

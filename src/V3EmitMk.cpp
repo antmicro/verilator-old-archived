@@ -102,7 +102,7 @@ public:
 		else if (support==2 && slow) {
 		}
 		else {
-		    for (AstCFile* nodep = v3Global.rootp()->filesp(); nodep; nodep=nodep->nextp()->castCFile()) {
+		    ASTNODE_ITERATE(CFile, nodep, v3Global.rootp()->filesp()) {
 			if (nodep->source() && nodep->slow()==(slow!=0) && nodep->support()==(support!=0)) {
 			    putMakeClassEntry(of, nodep->name());
 			}

@@ -258,7 +258,7 @@ private:
 		if (!nodep->packed()) {
 		    addIgnore("Unsupported: Unpacked struct/union");
 		} else {
-		    for (AstMemberDType* itemp = nodep->membersp(); itemp; itemp=itemp->nextp()->castMemberDType()) {
+		    ASTNODE_ITERATE(MemberDType, itemp, nodep->membersp()) {
 			AstNodeDType* subtypep = itemp->subDTypep()->skipRefp();
 			string oldShowname = m_traShowname;
 			AstNode* oldValuep = m_traValuep;

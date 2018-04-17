@@ -118,7 +118,7 @@ public:
 			    putsDecoration("// enum "+nodep->name()+" // Ignored: Too wide for C++\n");
 			} else {
 			    puts("enum "+nodep->name()+" {\n");
-			    for (AstEnumItem* itemp = adtypep->itemsp(); itemp; itemp=itemp->nextp()->castEnumItem()) {
+			    ASTNODE_ITERATE(EnumItem, itemp, adtypep->itemsp()) {
 				puts(itemp->name());
 				puts(" = ");
 				itemp->valuep()->iterateAndNext(*this);
@@ -2557,7 +2557,7 @@ public:
 void V3EmitC::emitc() {
     UINFO(2,__FUNCTION__<<": "<<endl);
     // Process each module in turn
-    for (AstNodeModule* nodep = v3Global.rootp()->modulesp(); nodep; nodep=nodep->nextp()->castNodeModule()) {
+    ASTNODE_ITERATE(NodeModule, nodep, v3Global.rootp()->modulesp()) {
 	if (v3Global.opt.outputSplit()) {
 	    { EmitCImp imp; imp.main(nodep, false, true); }
 	    { EmitCImp imp; imp.main(nodep, true, false); }

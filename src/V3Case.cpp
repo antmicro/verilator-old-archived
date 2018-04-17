@@ -71,7 +71,7 @@ private:
 	}
 	// Detect multiple defaults
 	bool hitDefault = false;
-	for (AstCaseItem* itemp = nodep->itemsp(); itemp; itemp=itemp->nextp()->castCaseItem()) {
+	ASTNODE_ITERATE(CaseItem, itemp, nodep->itemsp()) {
 	    if (itemp->isDefault()) {
 		if (hitDefault) {
 		    nodep->v3error("Multiple default statements in case statement.");
@@ -84,7 +84,7 @@ private:
 	{
 	    m_caseExprp = nodep;
 	    nodep->exprp()->accept(*this);
-	    for (AstCaseItem* itemp = nodep->itemsp(); itemp; itemp=itemp->nextp()->castCaseItem()) {
+	    ASTNODE_ITERATE(CaseItem, itemp, nodep->itemsp()) {
 		itemp->condsp()->iterateAndNext(*this);
 	    }
 	    m_caseExprp = NULL;
@@ -151,7 +151,7 @@ private:
 	bool opaque = false;
 	m_caseItems = 0;
 	m_caseNoOverlapsAllCovered = true;
-	for (AstCaseItem* itemp = nodep->itemsp(); itemp; itemp=itemp->nextp()->castCaseItem()) {
+	ASTNODE_ITERATE(CaseItem, itemp, nodep->itemsp()) {
 	    for (AstNode* icondp = itemp->condsp(); icondp!=NULL; icondp=icondp->nextp()) {
 		if (icondp->width() > width) width = icondp->width();
 		if (icondp->isDouble()) opaque = true;
@@ -170,7 +170,7 @@ private:
 	// Now pick up the values for each assignment
 	// We can cheat and use uint32_t's because we only support narrow case's
 	bool bitched = false;
-	for (AstCaseItem* itemp = nodep->itemsp(); itemp; itemp=itemp->nextp()->castCaseItem()) {
+	ASTNODE_ITERATE(CaseItem, itemp, nodep->itemsp()) {
 	    for (AstNode* icondp = itemp->condsp(); icondp!=NULL; icondp=icondp->nextp()) {
 		//if (debug()>=9) icondp->dumpTree(cout," caseitem: ");
 		AstConst* iconstp = icondp->castConst();
@@ -310,7 +310,7 @@ private:
 	// the appropriate IF AND terms.
 	if (debug()>=9) nodep->dumpTree(cout,"    _comp_IN:   ");
 	bool hadDefault = false;
-	for (AstCaseItem* itemp = nodep->itemsp(); itemp; itemp=itemp->nextp()->castCaseItem()) {
+	ASTNODE_ITERATE(CaseItem, itemp, nodep->itemsp()) {
 	    if (!itemp->condsp()) {
 		// Default clause.  Just make true, we'll optimize it away later
 		itemp->condsp(new AstConst(itemp->fileline(), AstConst::LogicTrue()));
@@ -387,7 +387,7 @@ private:
 	AstNode* grouprootp = NULL;
 	AstIf* groupnextp = NULL;
 	AstIf* itemnextp = NULL;
-	for (AstCaseItem* itemp = nodep->itemsp(); itemp; itemp=itemp->nextp()->castCaseItem()) {
+	ASTNODE_ITERATE(CaseItem, itemp, nodep->itemsp()) {
 	    AstNode* istmtsp = itemp->bodysp();   // Maybe null -- no action.
 	    if (istmtsp) istmtsp->unlinkFrBackWithNext();
 	    // Expressioned clause

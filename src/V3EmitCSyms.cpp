@@ -279,7 +279,7 @@ void EmitCSyms::emitSymHdr() {
 
     // for
     puts("\n// INCLUDE MODULE CLASSES\n");
-    for (AstNodeModule* nodep = v3Global.rootp()->modulesp(); nodep; nodep=nodep->nextp()->castNodeModule()) {
+    ASTNODE_ITERATE(NodeModule, nodep, v3Global.rootp()->modulesp()) {
 	puts("#include \""+modClassName(nodep)+".h\"\n");
     }
 
@@ -370,7 +370,7 @@ void EmitCSyms::emitSymImp() {
 
     // Includes
     puts("#include \""+symClassName()+".h\"\n");
-    for (AstNodeModule* nodep = v3Global.rootp()->modulesp(); nodep; nodep=nodep->nextp()->castNodeModule()) {
+    ASTNODE_ITERATE(NodeModule, nodep, v3Global.rootp()->modulesp()) {
 	puts("#include \""+modClassName(nodep)+".h\"\n");
     }
 

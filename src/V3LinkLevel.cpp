@@ -56,7 +56,7 @@ void V3LinkLevel::modSortByLevel() {
 
     ModVec vec;
     AstNodeModule* topp = NULL;
-    for (AstNodeModule* nodep = v3Global.rootp()->modulesp(); nodep; nodep=nodep->nextp()->castNodeModule()) {
+    ASTNODE_ITERATE(NodeModule, nodep, v3Global.rootp()->modulesp()) {
 	if (nodep->level()<=2) {
 	    if (topp) {
 		nodep->v3warn(E_MULTITOP, "Unsupported: Multiple top level modules: "
@@ -154,7 +154,7 @@ void V3LinkLevel::wrapTopPackages(AstNetlist* netlistp) {
     // This way all later SCOPE based optimizations can ignore packages
     AstNodeModule* newmodp = netlistp->modulesp();
     if (!newmodp || !newmodp->isTop()) netlistp->v3fatalSrc("No TOP module found to process");
-    for (AstNodeModule* modp = netlistp->modulesp(); modp; modp=modp->nextp()->castNodeModule()) {
+    ASTNODE_ITERATE(NodeModule, modp, netlistp->modulesp()) {
 	if (modp->castPackage()) {
 	    AstCell* cellp = new AstCell(modp->fileline(),
 					 // Could add __03a__03a="::" to prevent conflict

@@ -126,7 +126,7 @@ private:
 	    if (stp->packed()) {
 		ostringstream out;
 		out<<"'{";
-		for (AstMemberDType* itemp = stp->membersp(); itemp; itemp=itemp->nextp()->castMemberDType()) {
+		ASTNODE_ITERATE(MemberDType, itemp, stp->membersp()) {
 		    int width = itemp->width();
 		    int lsb = itemp->lsb();
 		    int msb = lsb + width - 1;
@@ -636,7 +636,7 @@ private:
 	} else if (optimizable()) {
 	    nodep->exprp()->iterateAndNext(*this);
 	    bool hit = false;
-	    for (AstCaseItem* itemp = nodep->itemsp(); itemp; itemp=itemp->nextp()->castCaseItem()) {
+	    ASTNODE_ITERATE(CaseItem, itemp, nodep->itemsp()) {
 		if (!itemp->isDefault()) {
 		    for (AstNode* ep = itemp->condsp(); ep; ep=ep->nextp()) {
 			if (hit) break;
@@ -653,7 +653,7 @@ private:
 		}
 	    }
 	    // Else default match
-	    for (AstCaseItem* itemp = nodep->itemsp(); itemp; itemp=itemp->nextp()->castCaseItem()) {
+	    ASTNODE_ITERATE(CaseItem, itemp, nodep->itemsp()) {
 		if (hit) break;
 		if (!hit && itemp->isDefault()) {
 		    itemp->bodysp()->iterateAndNext(*this);

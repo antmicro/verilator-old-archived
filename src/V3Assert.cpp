@@ -251,7 +251,7 @@ private:
 	nodep->iterateChildren(*this);
 	if (!nodep->user1SetOnce()) {
 	    bool has_default=false;
-	    for (AstCaseItem* itemp = nodep->itemsp(); itemp; itemp=itemp->nextp()->castCaseItem()) {
+	    ASTNODE_ITERATE(CaseItem, itemp, nodep->itemsp()) {
 		if (itemp->isDefault()) has_default=true;
 	    }
 	    if (nodep->fullPragma() || nodep->priorityPragma()) {
@@ -270,7 +270,7 @@ private:
 		    // Not parallel, but harmlessly so.
 		} else {
 		    AstNode* propp = NULL;
-		    for (AstCaseItem* itemp = nodep->itemsp(); itemp; itemp=itemp->nextp()->castCaseItem()) {
+		    ASTNODE_ITERATE(CaseItem, itemp, nodep->itemsp()) {
 			for (AstNode* icondp = itemp->condsp(); icondp!=NULL; icondp=icondp->nextp()) {
 			    AstNode* onep;
 			    if (nodep->casex() || nodep->casez() || nodep->caseInside()) {

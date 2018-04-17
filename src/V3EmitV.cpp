@@ -729,7 +729,7 @@ void V3EmitV::emitv() {
 	EmitVFileVisitor visitor (v3Global.rootp(), &of);
     } else {
 	// Process each module in turn
-	for (AstNodeModule* modp = v3Global.rootp()->modulesp(); modp; modp=modp->nextp()->castNodeModule()) {
+	ASTNODE_ITERATE(NodeModule, modp, v3Global.rootp()->modulesp()) {
 	    V3OutVFile of (v3Global.opt.makeDir()
 			   +"/"+EmitCBaseVisitor::modClassName(modp)+"__Vout.v");
 	    of.putsHeader();

@@ -192,7 +192,7 @@ private:
 	}
     }
     void relinkPins(CloneMap* clonemapp, AstPin* startpinp) {
-	for (AstPin* pinp = startpinp; pinp; pinp=pinp->nextp()->castPin()) {
+	ASTNODE_ITERATE(Pin, pinp, startpinp) {
 	    if (pinp->modVarp()) {
 		// Find it in the clone structure
 		//UINFO(8,"Clone find 0x"<<hex<<(uint32_t)pinp->modVarp()<<endl);
@@ -470,7 +470,7 @@ private:
 	V3Const::constifyParamsEdit(nodep->exprp());  // exprp may change
 	AstConst* exprp = nodep->exprp()->castConst();
 	// Constify
-	for (AstCaseItem* itemp = nodep->itemsp(); itemp; itemp=itemp->nextp()->castCaseItem()) {
+	ASTNODE_ITERATE(CaseItem, itemp, nodep->itemsp()) {
 	    for (AstNode* ep = itemp->condsp(); ep; ) {
 		AstNode* nextp = ep->nextp(); //May edit list
 		ep->iterateAndNext(*this);
@@ -479,7 +479,7 @@ private:
 	    }
 	}
 	// Item match
-	for (AstCaseItem* itemp = nodep->itemsp(); itemp; itemp=itemp->nextp()->castCaseItem()) {
+	ASTNODE_ITERATE(CaseItem, itemp, nodep->itemsp()) {
 	    if (!itemp->isDefault()) {
 		for (AstNode* ep = itemp->condsp(); ep; ep=ep->nextp()) {
 		    if (AstConst* ccondp = ep->castConst()) {
@@ -495,7 +495,7 @@ private:
 	    }
 	}
 	// Else default match
-	for (AstCaseItem* itemp = nodep->itemsp(); itemp; itemp=itemp->nextp()->castCaseItem()) {
+	ASTNODE_ITERATE(CaseItem, itemp, nodep->itemsp()) {
 	    if (itemp->isDefault()) {
 		if (!keepp) keepp=itemp->bodysp();
 	    }
@@ -550,7 +550,7 @@ void ParamVisitor::visitCell(AstCell* nodep) {
 	if (nodep->recursive()) any_overrides = true;  // Must always clone __Vrcm (recursive modules)
 	longname += "_";
 	if (debug()>8) nodep->paramsp()->dumpTreeAndNext(cout,"-cellparams:\t");
-	for (AstPin* pinp = nodep->paramsp(); pinp; pinp=pinp->nextp()->castPin()) {
+	ASTNODE_ITERATE(Pin, pinp, nodep->paramsp()) {
 	    if (!pinp->exprp()) continue; // No-connect
 	    if (AstVar* modvarp = pinp->modVarp()) {
 		if (!modvarp->isGParam()) {
@@ -605,7 +605,7 @@ void ParamVisitor::visitCell(AstCell* nodep) {
 	    }
 	}
 	IfaceRefRefs ifaceRefRefs;
-	for (AstPin* pinp = nodep->pinsp(); pinp; pinp=pinp->nextp()->castPin()) {
+	ASTNODE_ITERATE(Pin, pinp, nodep->pinsp()) {
 	    AstVar* modvarp = pinp->modVarp();
 	    if (modvarp->isIfaceRef()) {
 		AstIfaceRefDType* portIrefp = modvarp->subDTypep()->castIfaceRefDType();
@@ -738,7 +738,7 @@ void ParamVisitor::visitCell(AstCell* nodep) {
 
 		// Assign parameters to the constants specified
 		// DOES clone() so must be finished with module clonep() before here
-		for (AstPin* pinp = nodep->paramsp(); pinp; pinp=pinp->nextp()->castPin()) {
+		ASTNODE_ITERATE(Pin, pinp, nodep->paramsp()) {
 		    if (pinp->exprp()) {
 			if (AstVar* modvarp = pinp->modVarp()) {
 			    AstNode* newp = pinp->exprp();  // Const or InitArray
