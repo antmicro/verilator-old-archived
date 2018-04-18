@@ -209,6 +209,11 @@ public:
     }
 };
 
+class V3OutFilterFile : public V3OutFile {
+public:
+    explicit V3OutFilterFile(const string& filename) : V3OutFile(filename, V3OutFormatter::LA_C) {}
+};
+
 class V3OutScFile : public V3OutCFile {
 public:
     explicit V3OutScFile(const string& filename) : V3OutCFile(filename) {}

@@ -46,6 +46,7 @@
 #include "V3DepthBlock.h"
 #include "V3Descope.h"
 #include "V3EmitC.h"
+#include "V3EmitFilter.h"
 #include "V3EmitMk.h"
 #include "V3EmitV.h"
 #include "V3EmitXml.h"
@@ -186,6 +187,7 @@ void process () {
 
     // Calculate and check widths, edit tree to TRUNC/EXTRACT any width mismatches
     V3Width::width(v3Global.rootp());
+    V3EmitFilter::emitfilters(v3Global.rootp());
 
     V3Error::abortIfErrors();
 
