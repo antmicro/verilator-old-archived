@@ -24,13 +24,15 @@
 /// Code available from: http://www.veripool.org/verilator
 ///
 //=========================================================================
-
+
+#define _VERILATED_CPP_
 
 #if VM_SC
 # include "verilated_sc.h"
 #endif
 #include "verilated.h"
 #include "verilated_vpi.h"
+#include "verilated_imp.h"
 
 #include <list>
 #include <map>
@@ -288,6 +290,26 @@ public:
                     ->castVpiHandle());
         }
         return 0;  // End of list - only one deep
+    }
+};
+
+class VerilatedVpioModuleIter : public VerilatedVpio {
+    const std::vector<VerilatedModule*> *m_vec;
+    std::vector<VerilatedModule*>::const_iterator m_it;
+public:
+    explicit VerilatedVpioModuleIter(const std::vector<VerilatedModule*>& vec) : m_vec(&vec) {
+        m_it = m_vec->begin();
+    }
+    virtual ~VerilatedVpioModuleIter() {}
+    static inline VerilatedVpioModuleIter* castp(vpiHandle h) {
+        return dynamic_cast<VerilatedVpioModuleIter*>((VerilatedVpio*) h); }
+    virtual vluint32_t  type() const { return vpiIterator; }
+    virtual vpiHandle dovpi_scan() {
+        if (m_it == m_vec->end()) {
+            return 0;
+        }
+        VerilatedModule *mod = *m_it++;
+        return (new VerilatedVpioModule(mod))->castVpiHandle();
     }
 };
 
@@ -1133,6 +1155,16 @@ vpiHandle vpi_iterate(PLI_INT32 type, vpiHandle object) {
 	if (VL_UNLIKELY(!vop)) return 0;
 	return ((new VerilatedVpioVarIter(vop->scopep()))
 		->castVpiHandle());
+    }
+    case vpiModule: {
+        VerilatedVpioModule* vop = VerilatedVpioModule::castp(object);
+        const VerilatedModuleMap* map = VerilatedImp::moduleMap();
+        const VerilatedModule *mod = vop ? vop->modulep() : NULL;
+        VerilatedModuleMap::const_iterator it = map->find((VerilatedModule*) mod);
+        if (it == map->end()) {
+            return 0;
+        }
+        return  ((new VerilatedVpioModuleIter(it->second))->castVpiHandle());
     }
     default:
         _VL_VPI_WARNING(__FILE__, __LINE__, "%s: Unsupported type %s, nothing will be returned",
