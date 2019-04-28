@@ -292,6 +292,7 @@ public:  // But for internal use only
 #endif
     VerilatedSyms();
     ~VerilatedSyms();
+    void moduleInsert(VerilatedModule* mod, VerilatedModule* parent);
 };
 
 //===========================================================================
