@@ -174,6 +174,19 @@ public:
     virtual const char* fullname() const { return m_scopep->name(); }
 };
 
+class VerilatedVpioModule : public VerilatedVpio {
+    const VerilatedModule* m_modulep;
+public:
+    explicit VerilatedVpioModule(const VerilatedModule* modulep)
+        : m_modulep(modulep) {}
+    static inline VerilatedVpioModule* castp(vpiHandle h) {
+        return dynamic_cast<VerilatedVpioModule*>((VerilatedVpio*)h); }
+    virtual vluint32_t type() const { return vpiModule; }
+    const VerilatedModule* modulep() const { return m_modulep; }
+    virtual const char* name() const { return m_modulep->name(1); }
+    virtual const char* fullname() const { return m_modulep->name(1); }
+};
+
 class VerilatedVpioVar : public VerilatedVpio {
     const VerilatedVar*         m_varp;
     const VerilatedScope*       m_scopep;
