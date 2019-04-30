@@ -210,7 +210,7 @@ public:
     vluint32_t entSize() const { return m_entSize; }
     vluint32_t index() { return m_index; }
     virtual vluint32_t type() const {
-      if (varp()->vldir() != vpiNoDirection) return vpiPort;
+      if (varp()->vldir() != vpiNoDirection) return vpiReg; // actually vpiPort..
       return (varp()->dims()>1) ? vpiMemory : vpiReg;  // but might be wire, logic
     }
     virtual vluint32_t size() const { return get_range().elements(); }
