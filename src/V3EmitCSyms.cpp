@@ -445,22 +445,23 @@ void EmitCSyms::emitSymImp() {
 	}
     }
 
-    if (v3Global.dpi()) {
-	puts("// Setup export functions\n");
 	puts("for (int __Vfinal=0; __Vfinal<2; __Vfinal++) {\n");
-	for (ScopeFuncs::iterator it = m_scopeFuncs.begin(); it != m_scopeFuncs.end(); ++it) {
-	    AstScopeName* scopep = it->second.m_scopep;
-	    AstCFunc* funcp = it->second.m_funcp;
-	    AstNodeModule* modp = it->second.m_modp;
-	    if (funcp->dpiExport()) {
-		puts("__Vscope_"+scopep->scopeSymName()+".exportInsert(__Vfinal,");
-		putsQuoted(funcp->cname());
-		puts(", (void*)(&");
-		puts(modClassName(modp));
-		puts("::");
-		puts(funcp->name());
-		puts("));\n");
-	    }
+	if (v3Global.dpi()) {
+		puts("// Setup export functions\n");
+		for (ScopeFuncs::iterator it = m_scopeFuncs.begin(); it != m_scopeFuncs.end(); ++it) {
+			AstScopeName *scopep = it->second.m_scopep;
+			AstCFunc *funcp = it->second.m_funcp;
+			AstNodeModule *modp = it->second.m_modp;
+			if (funcp->dpiExport()) {
+				puts("__Vscope_" + scopep->scopeSymName() + ".exportInsert(__Vfinal,");
+				putsQuoted(funcp->cname());
+				puts(", (void*)(&");
+				puts(modClassName(modp));
+				puts("::");
+				puts(funcp->name());
+				puts("));\n");
+			}
+		}
 	}
 	// It would be less code if each module inserted its own variables.
 	// Someday.  For now public isn't common.
@@ -515,7 +516,6 @@ void EmitCSyms::emitSymImp() {
 	    puts(");\n");
 	}
 	puts("}\n");
-    }
 
     puts("}\n");
 
