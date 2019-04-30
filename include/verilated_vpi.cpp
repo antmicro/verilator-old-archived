@@ -1011,6 +1011,18 @@ vpiHandle vpi_handle_by_name(PLI_BYTE8* namep, vpiHandle scope) {
 	    baseNamep = dotp+1;
 	    scopename = std::string(namep,dotp-namep);
 	}
+
+	if (scopename.find(".") == std::string::npos) {
+	    // This is a toplevel, hence search in our TOP ports first.
+	    const VerilatedScope *topscopep = Verilated::scopeFind("TOP.TOP");
+	    if (topscopep) {
+	        varp = topscopep->varFind(baseNamep);
+	        if (varp)
+                return (new VerilatedVpioVar(varp, topscopep))->castVpiHandle();
+	    }
+	}
+
+	scopename = std::string("TOP.") + scopename;
 	scopep = Verilated::scopeFind(scopename.c_str());
 	if (!scopep) return NULL;
 	varp = scopep->varFind(baseNamep);
