@@ -432,17 +432,13 @@ void EmitCSyms::emitSymImp() {
 	}
     }
 
-    {  // Setup scope names
-	bool did = false;
-	for (ScopeNames::iterator it = m_scopeNames.begin(); it != m_scopeNames.end(); ++it) {
-	    if (!did) {
-		did = true;
-		puts("// Setup scope names\n");
-	    }
-	    puts("__Vscope_"+it->second.m_symName+".configure(this,name(),");
-	    putsQuoted(it->second.m_prettyName);
-	    puts(");\n");
-	}
+	if (m_scopeNames.begin() != m_scopeNames.end()) {
+        puts("// Setup scope names\n");
+        for (ScopeNames::iterator it = m_scopeNames.begin(); it != m_scopeNames.end(); ++it) {
+            puts("__Vscope_"+it->second.m_symName+".configure(this,name(),");
+            putsQuoted(it->second.m_prettyName);
+            puts(");\n");
+        }
     }
 
     if (v3Global.dpi()) {
