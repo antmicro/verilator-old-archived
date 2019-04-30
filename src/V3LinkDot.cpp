@@ -662,6 +662,7 @@ class LinkDotFindVisitor : public AstNVisitor {
 	    UINFO(8,"Top Module: "<<topmodp<<endl);
 	    m_scope = "TOP";
 	    m_curSymp = m_modSymp = m_statep->insertTopCell(topmodp, m_scope);
+	    topmodp->modPublic(true);
 	    {
                 iterate(topmodp);
 	    }
@@ -1175,6 +1176,7 @@ private:
 	    nodep->v3error("Pin is not an in/out/inout/interface: "<<nodep->prettyName());
 	} else {
 	    refp->user4(true);
+		refp->sigUserRWPublic(true);
 	    VSymEnt* symp = m_statep->insertSym(m_statep->getNodeSym(m_modp),
 						"__pinNumber"+cvtToStr(nodep->pinNum()), refp, NULL/*packagep*/);
 	    symp->exported(false);
