@@ -225,7 +225,7 @@ public:
     vluint32_t entSize() const { return m_entSize; }
     vluint32_t index() { return m_index; }
     virtual vluint32_t type() const {
-      if (varp()->vldir() != vpiNoDirection) return vpiPort;
+      if (varp()->vldir() != vpiNoDirection) return vpiReg; // actually vpiPort..
       return (varp()->dims()>1) ? vpiMemory : vpiReg;  // but might be wire, logic
     }
     virtual vluint32_t size() const { return get_range().elements(); }
@@ -1051,6 +1051,18 @@ vpiHandle vpi_handle_by_name(PLI_BYTE8* namep, vpiHandle scope) {
 	    baseNamep = dotp+1;
 	    scopename = std::string(namep,dotp-namep);
 	}
+
+	if (scopename.find(".") == std::string::npos) {
+	    // This is a toplevel, hence search in our TOP ports first.
+	    const VerilatedScope *topscopep = Verilated::scopeFind("TOP.TOP");
+	    if (topscopep) {
+	        varp = topscopep->varFind(baseNamep);
+	        if (varp)
+                return (new VerilatedVpioVar(varp, topscopep))->castVpiHandle();
+	    }
+	}
+
+	scopename = std::string("TOP.") + scopename;
 	scopep = Verilated::scopeFind(scopename.c_str());
 	if (!scopep) return NULL;
 	varp = scopep->varFind(baseNamep);
@@ -1246,6 +1258,9 @@ PLI_BYTE8 *vpi_get_str(PLI_INT32 property, vpiHandle object) {
     }
     case vpiDefName: {
 	return (PLI_BYTE8*)vop->defname();
+    }
+    case vpiType: {
+        return (PLI_BYTE8*) VerilatedVpiError::strFromVpiObjType(vop->type());
     }
     default:
         _VL_VPI_WARNING(__FILE__, __LINE__, "%s: Unsupported type %s, nothing will be returned",
