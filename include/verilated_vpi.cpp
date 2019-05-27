@@ -1044,6 +1044,15 @@ vpiHandle vpi_handle_by_name(PLI_BYTE8* namep, vpiHandle scope) {
 	if (scopep) {  // Whole thing found as a scope
 	    return (new VerilatedVpioScope(scopep))->castVpiHandle();
 	}
+
+	{
+	    std::string scopename = std::string("TOP.") + std::string(namep);
+	    scopep = Verilated::scopeFind(scopename.c_str());
+	    if (scopep) {
+	        return (new VerilatedVpioScope(scopep))->castVpiHandle();
+	    }
+	}
+
 	const char* baseNamep = scopeAndName.c_str();
 	std::string scopename;
 	const char* dotp = strrchr(namep, '.');
