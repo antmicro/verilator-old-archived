@@ -2167,7 +2167,7 @@ public:
     AstNodeModule(FileLine* fl, const string& name)
         : AstNode(fl)
 	,m_name(name), m_origName(name)
-	,m_modPublic(true), m_modTrace(false), m_inLibrary(false), m_dead(false)
+	,m_modPublic(false), m_modTrace(false), m_inLibrary(false), m_dead(false)
 	,m_internal(false), m_recursive(false), m_recursiveClone(false)
 	,m_level(0), m_varNum(0), m_typeNum(0) { }
     ASTNODE_BASE_FUNCS(NodeModule)
