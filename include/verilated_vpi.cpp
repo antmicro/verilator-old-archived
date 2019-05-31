@@ -37,6 +37,7 @@
 #include <list>
 #include <map>
 #include <set>
+#include <algorithm>
 
 //======================================================================
 // Internal constants
@@ -1054,8 +1055,15 @@ void vpi_get_systf_info(vpiHandle object, p_vpi_systf_data systf_data_p) {
     _VL_VPI_UNIMP(); return;
 }
 
-// for obtaining handles
+// extract 'module' from string like COCOTB_module.TOP
+static std::string topModuleName(void) {
+    std::string name(Verilated::scopeNameMap()->begin()->first);
+    std::string::size_type underscore = name.find('_');
+    std::string::size_type dot = name.find('.');
+    return name.substr(underscore + 1, dot - underscore - 1);
+};
 
+// for obtaining handles
 vpiHandle vpi_handle_by_name(PLI_BYTE8* namep, vpiHandle scope) {
     VerilatedVpiImp::assertOneCheck();
     _VL_VPI_ERROR_RESET();
@@ -1076,8 +1084,12 @@ vpiHandle vpi_handle_by_name(PLI_BYTE8* namep, vpiHandle scope) {
 	    return (new VerilatedVpioScope(scopep))->castVpiHandle();
 	}
 
-	{
-	    std::string scopename = std::string("TOP.") + std::string(namep);
+	// Normally there would be prefix like "TOP." but we are appending module name so
+	// there would be sth like "COCOTB_topname."
+	std::string topprefix = std::string("COCOTB_") + topModuleName() + std::string(".");
+
+	{ // Search for scope
+	    std::string scopename = topprefix + std::string(namep);
 	    scopep = Verilated::scopeFind(scopename.c_str());
 	    if (scopep) {
 	        return (new VerilatedVpioScope(scopep))->castVpiHandle();
@@ -1092,18 +1104,8 @@ vpiHandle vpi_handle_by_name(PLI_BYTE8* namep, vpiHandle scope) {
 	    scopename = std::string(namep,dotp-namep);
 	}
 
-	if (scopename.find(".") == std::string::npos) {
-	    // This is a toplevel, hence search in our TOP ports first.
-	    const VerilatedScope *topscopep = Verilated::scopeFind("TOP.TOP");
-	    if (topscopep) {
-	        varp = topscopep->varFind(baseNamep);
-	        if (varp)
-                    return (new VerilatedVpioVar(varp, topscopep))->castVpiHandle();
-	    }
-	}
-
-	{
-	    std::string scname = std::string("TOP.") + scopename;
+	{ // Search for variable in scope
+	    std::string scname = topprefix + scopename;
 	    scopep = Verilated::scopeFind(scname.c_str());
 	    if (scopep) {
 	        varp = scopep->varFind(baseNamep);
@@ -1615,6 +1617,30 @@ vpiHandle vpi_put_value(vpiHandle object, p_vpi_value value_p,
                             vop->fullname());
 	    return 0;
 	}
+
+	// Verilator add TOP module to simulated design but we are returing handlers to
+	// variables in simulated desing and not in the TOP module. So when Cocotb
+	// changes variable values in simulated design we need to do the same in TOP
+	// module. If we wouldn't do that signals in simulated design would be
+	// overridden by TOP module after call to eval()
+	std::string fullname = std::string(vop->fullname());
+	/* Max second level: e.g. COCOTB_module.module.clk */
+	if (std::count(fullname.begin(), fullname.end(), '.') == 2) {
+	    std::string topname = topModuleName();
+	    std::string prefix = std::string("COCOTB_") + topname + std::string(".") + topname + std::string(".");
+	    // We want only to propagate simulated design signals to TOP module
+	    // for example: COCOTB_module.module.clk -> COCOTB_module.TOP.clk
+	    if (!strncmp(fullname.c_str(), prefix.c_str(), prefix.size())) {
+	        std::string n = std::string("COCOTB_") + topname + std::string(".TOP") +
+	            fullname.substr(fullname.rfind("."));
+	        vpiHandle topHandle = vpi_handle_by_name((PLI_BYTE8*)n.c_str(), 0);
+	        if (topHandle) { // check that TOP module really has signal we want to update
+	            vpi_put_value(topHandle, value_p, time_p, flags);
+	            vpi_release_handle(topHandle); // not needed anymore
+	        }
+	    }
+	}
+
 	if (value_p->format == vpiVectorVal) {
 	    if (VL_UNLIKELY(!value_p->value.vector)) return NULL;
 	    switch (vop->varp()->vltype()) {
