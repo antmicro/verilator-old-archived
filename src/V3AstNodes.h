@@ -1136,7 +1136,7 @@ private:
 	m_usedClock=false; m_usedParam=false; m_usedLoopIdx=false;
 	m_sigPublic=false; m_sigModPublic=false; m_sigUserRdPublic=false; m_sigUserRWPublic=false;
 	if (v3Global.opt.vpi()) {
-	    m_sigPublic=true; m_sigModPublic=true; m_sigUserRdPublic=true; m_sigUserRWPublic=true;
+	    m_sigPublic=true; m_sigUserRdPublic=true; m_sigUserRWPublic=true;
 	}
 	m_funcLocal=false; m_funcReturn=false;
 	m_attrClockEn=false; m_attrScBv=false; m_attrIsolateAssign=false; m_attrSFormat=false;

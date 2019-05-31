@@ -173,7 +173,18 @@ public:
     virtual vluint32_t type() const { return vpiScope; }
     const VerilatedScope* scopep() const { return m_scopep; }
     virtual const char* name() const { return m_scopep->name(); }
-    virtual const char* fullname() const { return m_scopep->name(); }
+    virtual const char* fullname() const {
+        const char *s = m_scopep->name();
+
+        int level = 1;
+        for (;level > 0; level--) {
+            while ((*s != 0) && (*s != '.')) s++;
+            if (*s == 0) return 0;
+            s++;
+        }
+
+        return s;
+    }
 };
 
 class VerilatedVpioModule : public VerilatedVpio {
@@ -310,6 +321,26 @@ public:
         }
         VerilatedModule *mod = *m_it++;
         return (new VerilatedVpioModule(mod))->castVpiHandle();
+    }
+};
+
+class VerilatedVpioModuleScopeIter : public VerilatedVpio {
+    const VerilatedScopeNameMap *scope_map;
+    VerilatedScopeNameMap::const_iterator m_it;
+public:
+    explicit VerilatedVpioModuleScopeIter(void) {
+        scope_map = VerilatedImp::scopeNameMap();
+        m_it = scope_map->begin();
+    }
+    virtual ~VerilatedVpioModuleScopeIter() {}
+    virtual vluint32_t type() const { return vpiIterator; }
+    virtual vpiHandle dovpi_scan() {
+        if (m_it == scope_map->end())
+            return 0;
+
+        const VerilatedScope *scope = m_it->second;
+        m_it++;
+        return ((new VerilatedVpioScope(scope))->castVpiHandle());
     }
 };
 
@@ -1067,11 +1098,20 @@ vpiHandle vpi_handle_by_name(PLI_BYTE8* namep, vpiHandle scope) {
 	    if (topscopep) {
 	        varp = topscopep->varFind(baseNamep);
 	        if (varp)
-                return (new VerilatedVpioVar(varp, topscopep))->castVpiHandle();
+                    return (new VerilatedVpioVar(varp, topscopep))->castVpiHandle();
 	    }
 	}
 
-	scopename = std::string("TOP.") + scopename;
+	{
+	    std::string scname = std::string("TOP.") + scopename;
+	    scopep = Verilated::scopeFind(scname.c_str());
+	    if (scopep) {
+	        varp = scopep->varFind(baseNamep);
+                if (varp)
+	            return (new VerilatedVpioVar(varp, scopep))->castVpiHandle();
+	    }
+	}
+
 	scopep = Verilated::scopeFind(scopename.c_str());
 	if (!scopep) return NULL;
 	varp = scopep->varFind(baseNamep);
@@ -1183,14 +1223,10 @@ vpiHandle vpi_iterate(PLI_INT32 type, vpiHandle object) {
 		->castVpiHandle());
     }
     case vpiModule: {
-        VerilatedVpioModule* vop = VerilatedVpioModule::castp(object);
-        const VerilatedModuleMap* map = VerilatedImp::moduleMap();
-        const VerilatedModule *mod = vop ? vop->modulep() : NULL;
-        VerilatedModuleMap::const_iterator it = map->find((VerilatedModule*) mod);
-        if (it == map->end()) {
-            return 0;
-        }
-        return  ((new VerilatedVpioModuleIter(it->second))->castVpiHandle());
+        if (VL_UNLIKELY(object)) return 0; /* not implemented */
+
+        return ((new VerilatedVpioModuleScopeIter())
+            ->castVpiHandle());
     }
     default:
         _VL_VPI_WARNING(__FILE__, __LINE__, "%s: Unsupported type %s, nothing will be returned",
