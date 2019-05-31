@@ -1222,7 +1222,8 @@ vpiHandle vpi_iterate(PLI_INT32 type, vpiHandle object) {
 	return ((new VerilatedVpioVarIter(vop->scopep()))
 		->castVpiHandle());
     }
-    case vpiModule: {
+    case vpiModule: return 0;
+    case vpiScope: {
         if (VL_UNLIKELY(object)) return 0; /* not implemented */
 
         return ((new VerilatedVpioModuleScopeIter())
