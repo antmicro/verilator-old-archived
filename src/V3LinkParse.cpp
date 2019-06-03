@@ -181,8 +181,15 @@ private:
 	    return;
 	}
 
-	if (v3Global.opt.vpi())
-	    nodep->sigUserRWPublic(true);
+	if (v3Global.opt.vpi()) {
+	    switch (nodep->varType()) {
+	    case AstVarType::VAR:
+	    case AstVarType::PORT:
+	    case AstVarType::WIRE:
+	        nodep->sigUserRWPublic(true);
+	        break;
+	    }
+	}
 
 	// We used modTrace before leveling, and we may now
 	// want to turn it off now that we know the levelizations
