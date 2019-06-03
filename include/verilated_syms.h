@@ -36,7 +36,6 @@
 #include "verilated_sym_props.h"
 
 #include <map>
-#include <vector>
 
 //======================================================================
 /// Types
@@ -63,13 +62,5 @@ public:
     VerilatedVarNameMap() {}
     ~VerilatedVarNameMap() {}
 };
-
-class VerilatedModuleMap
-        : public std::map<VerilatedModule*, std::vector<VerilatedModule*> > {
-public:
-    VerilatedModuleMap() {}
-    ~VerilatedModuleMap() {}
-};
-
 
 #endif  // Guard

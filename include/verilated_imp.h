@@ -197,10 +197,6 @@ class VerilatedImp {
     std::vector<FILE*>  m_fdps VL_GUARDED_BY(m_fdMutex);  ///< File descriptors
     std::deque<IData>   m_fdFree VL_GUARDED_BY(m_fdMutex);  ///< List of free descriptors (SLOW - FOPEN/CLOSE only)
 
-    VerilatedMutex      m_hierarchyMutex;
-    VerilatedModuleMap  m_moduleMap VL_GUARDED_BY(m_hierarchyMutex);
-    VerilatedModule*    m_top;
-
 public:  // But only for verilated*.cpp
     // CONSTRUCTORS
     VerilatedImp()
@@ -244,15 +240,7 @@ private:
     static void commandArgVl(const std::string& arg);
     static bool commandArgVlValue(const std::string& arg,
                                   const std::string& prefix, std::string& valuer);
-public:
-	static inline void moduleInsert(VerilatedModule* mod, VerilatedModule* parent) {
-		VerilatedLockGuard lock(s_s.m_hierarchyMutex);
-		s_s.m_moduleMap[parent].push_back(mod);
-	}
-	static const VerilatedModuleMap* moduleMap() VL_MT_SAFE_POSTINIT {
-		// Thread save only assuming this is called only after model construction completed
-		return &s_s.m_moduleMap;
-	}
+
 public:
     // METHODS - user scope tracking
     // We implement this as a single large map instead of one map per scope

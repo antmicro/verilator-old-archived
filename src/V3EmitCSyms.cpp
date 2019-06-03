@@ -418,37 +418,6 @@ void EmitCSyms::emitSymImp() {
 	}
     }
 
-    if (v3Global.opt.vpi()) {
-        puts("// Setup module hierarchy\n");
-        for (std::vector<ScopeModPair>::iterator it = m_scopes.begin(); it != m_scopes.end(); ++it) {
-            AstScope* scopep = it->first;  AstNodeModule* modp = it->second;
-            if (!modp->isTop()) {
-                puts("this->moduleInsert(");
-                string arrow = scopep->name();
-                string::size_type pos;
-                while ((pos = arrow.find('.')) != string::npos) {
-                    arrow.replace(pos, 1, "->");
-                }
-                if (arrow.substr(0,5) == "TOP->") arrow.replace(0,5,"TOPp->");
-                ofp()->printf("%s, ", arrow.c_str());
-
-                scopep = scopep->aboveScopep();
-                if (!scopep->aboveScopep()) {
-                    puts("NULL");
-                } else {
-                    string arrow = scopep->name();
-                    string::size_type pos;
-                    while ((pos = arrow.find('.')) != string::npos) {
-                            arrow.replace(pos, 1, "->");
-                    }
-                    if (arrow.substr(0,5) == "TOP->") arrow.replace(0,5,"TOPp->");
-                    ofp()->printf("%s", arrow.c_str());
-                }
-                puts(");\n");
-            }
-        }
-    }
-
     puts("// Setup each module's pointer back to symbol table (for public functions)\n");
     puts("TOPp->__Vconfigure(this, true);\n");
     for (std::vector<ScopeModPair>::iterator it = m_scopes.begin(); it != m_scopes.end(); ++it) {

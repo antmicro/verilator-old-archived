@@ -210,16 +210,7 @@ private:
 public:
     explicit VerilatedModule(const char* namep);  ///< Create module with given hierarchy name
     ~VerilatedModule();
-    /// Return name and strip hierarchy levels
-    inline const char* name(int level = 0) const {
-        const char *s = m_namep;
-        for (;level > 0; level--) {
-            while ((*s != 0) && (*s != '.')) s++;
-            if (*s == 0) return 0;
-            s++;
-        }
-        return s;
-    }
+    const char* name() const { return m_namep; }  ///< Return name of module
 };
 
 //=========================================================================
@@ -292,7 +283,6 @@ public:  // But for internal use only
 #endif
     VerilatedSyms();
     ~VerilatedSyms();
-    void moduleInsert(VerilatedModule* mod, VerilatedModule* parent);
 };
 
 //===========================================================================

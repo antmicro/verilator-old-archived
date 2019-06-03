@@ -184,19 +184,6 @@ public:
     }
 };
 
-class VerilatedVpioModule : public VerilatedVpio {
-    const VerilatedModule* m_modulep;
-public:
-    explicit VerilatedVpioModule(const VerilatedModule* modulep)
-        : m_modulep(modulep) {}
-    static inline VerilatedVpioModule* castp(vpiHandle h) {
-        return dynamic_cast<VerilatedVpioModule*>((VerilatedVpio*)h); }
-    virtual vluint32_t type() const { return vpiModule; }
-    const VerilatedModule* modulep() const { return m_modulep; }
-    virtual const char* name() const { return m_modulep->name(1); }
-    virtual const char* fullname() const { return m_modulep->name(1); }
-};
-
 class VerilatedVpioVar : public VerilatedVpio {
     const VerilatedVar*         m_varp;
     const VerilatedScope*       m_scopep;
@@ -298,26 +285,6 @@ public:
                     ->castVpiHandle());
         }
         return 0;  // End of list - only one deep
-    }
-};
-
-class VerilatedVpioModuleIter : public VerilatedVpio {
-    const std::vector<VerilatedModule*> *m_vec;
-    std::vector<VerilatedModule*>::const_iterator m_it;
-public:
-    explicit VerilatedVpioModuleIter(const std::vector<VerilatedModule*>& vec) : m_vec(&vec) {
-        m_it = m_vec->begin();
-    }
-    virtual ~VerilatedVpioModuleIter() {}
-    static inline VerilatedVpioModuleIter* castp(vpiHandle h) {
-        return dynamic_cast<VerilatedVpioModuleIter*>((VerilatedVpio*) h); }
-    virtual vluint32_t  type() const { return vpiIterator; }
-    virtual vpiHandle dovpi_scan() {
-        if (m_it == m_vec->end()) {
-            return 0;
-        }
-        VerilatedModule *mod = *m_it++;
-        return (new VerilatedVpioModule(mod))->castVpiHandle();
     }
 };
 

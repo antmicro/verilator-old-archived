@@ -1986,10 +1986,6 @@ VerilatedSyms::~VerilatedSyms() {
 #endif
 }
 
-void VerilatedSyms::moduleInsert(VerilatedModule *mod, VerilatedModule *parent) {
-    VerilatedImp::moduleInsert(mod, parent);
-}
-
 //===========================================================================
 // VerilatedModule:: Methods
 
