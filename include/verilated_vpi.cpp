@@ -1048,8 +1048,7 @@ void vpi_get_cb_info(vpiHandle object, p_cb_data cb_data_p) {
     _VL_VPI_UNIMP(); return;
 }
 vpiHandle vpi_register_systf(p_vpi_systf_data systf_data_p) {
-    _VL_VPI_WARNING(__FILE__, __LINE__, "missing systemtf implementation, ignoring %s\n", systf_data_p->tfname);
-    return 0;
+    _VL_VPI_UNIMP(); return 0;
 }
 void vpi_get_systf_info(vpiHandle object, p_vpi_systf_data systf_data_p) {
     _VL_VPI_UNIMP(); return;

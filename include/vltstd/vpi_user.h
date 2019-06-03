@@ -867,7 +867,7 @@ XXTERN PLI_INT32    vpi_remove_cb       PROTO_PARAMS((vpiHandle cb_obj));
 XXTERN void         vpi_get_cb_info     PROTO_PARAMS((vpiHandle object,
                                                       p_cb_data cb_data_p));
 XXTERN vpiHandle    vpi_register_systf  PROTO_PARAMS((p_vpi_systf_data
-                                                      systf_data_p));
+                                                      systf_data_p)) __attribute__((weak));
 XXTERN void         vpi_get_systf_info  PROTO_PARAMS((vpiHandle object,
                                                       p_vpi_systf_data
                                                       systf_data_p));
