@@ -176,14 +176,10 @@ public:
     virtual const char* name() const { return m_scopep->name(); }
     virtual const char* fullname() const {
         const char *s = m_scopep->name();
-
-        int level = 1;
-        for (;level > 0; level--) {
-            while ((*s != 0) && (*s != '.')) s++;
-            if (*s == 0) return 0;
-            s++;
+        if (!strncmp(s, "COCOTB_", 7)) {
+            const char *r = strchr(s, '.');
+            if (r) return r + 1;
         }
-
         return s;
     }
 };
