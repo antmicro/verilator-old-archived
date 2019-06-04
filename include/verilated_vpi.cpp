@@ -1025,6 +1025,12 @@ static std::string topModuleName(void) {
     return name.substr(underscore + 1, dot - underscore - 1);
 };
 
+static bool isBypassTop(void)
+{
+    const char *name = Verilated::scopeNameMap()->begin()->first;
+    return !strncmp(name, "BYPASSTOP_", 10);
+}
+
 // for obtaining handles
 vpiHandle vpi_handle_by_name(PLI_BYTE8* namep, vpiHandle scope) {
     VerilatedVpiImp::assertOneCheck();
@@ -1048,9 +1054,11 @@ vpiHandle vpi_handle_by_name(PLI_BYTE8* namep, vpiHandle scope) {
 
 	// Normally there would be prefix like "TOP." but we are appending module name so
 	// there would be sth like "BYPASSTOP_topname."
-	std::string topprefix = std::string("BYPASSTOP_") + topModuleName() + std::string(".");
+	std::string topprefix;
+	if (isBypassTop())
+	    topprefix = std::string("BYPASSTOP_") + topModuleName() + std::string(".");
 
-	{ // Search for scope
+	if (topprefix.size()) { // Search for scope
 	    std::string scopename = topprefix + std::string(namep);
 	    scopep = Verilated::scopeFind(scopename.c_str());
 	    if (scopep) {
@@ -1066,7 +1074,7 @@ vpiHandle vpi_handle_by_name(PLI_BYTE8* namep, vpiHandle scope) {
 	    scopename = std::string(namep,dotp-namep);
 	}
 
-	{ // Search for variable in scope
+	if (topprefix.size()) { // Search for variable in scope
 	    std::string scname = topprefix + scopename;
 	    scopep = Verilated::scopeFind(scname.c_str());
 	    if (scopep) {
