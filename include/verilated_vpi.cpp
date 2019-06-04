@@ -1025,7 +1025,7 @@ static std::string topModuleName(void) {
     return name.substr(underscore + 1, dot - underscore - 1);
 };
 
-static bool isBypassTop(void)
+static inline bool isBypassTop(void)
 {
     const char *name = Verilated::scopeNameMap()->begin()->first;
     return !strncmp(name, "BYPASSTOP_", 10);
