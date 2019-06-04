@@ -176,7 +176,7 @@ public:
     virtual const char* name() const { return m_scopep->name(); }
     virtual const char* fullname() const {
         const char *s = m_scopep->name();
-        if (!strncmp(s, "COCOTB_", 7)) {
+        if (!strncmp(s, "BYPASSTOP_", 10)) {
             const char *r = strchr(s, '.');
             if (r) return r + 1;
         }
@@ -1017,7 +1017,7 @@ void vpi_get_systf_info(vpiHandle object, p_vpi_systf_data systf_data_p) {
     _VL_VPI_UNIMP(); return;
 }
 
-// extract 'module' from string like COCOTB_module.TOP
+// extract 'module' from string like BYPASSTOP_module.TOP
 static std::string topModuleName(void) {
     std::string name(Verilated::scopeNameMap()->begin()->first);
     std::string::size_type underscore = name.find('_');
@@ -1047,8 +1047,8 @@ vpiHandle vpi_handle_by_name(PLI_BYTE8* namep, vpiHandle scope) {
 	}
 
 	// Normally there would be prefix like "TOP." but we are appending module name so
-	// there would be sth like "COCOTB_topname."
-	std::string topprefix = std::string("COCOTB_") + topModuleName() + std::string(".");
+	// there would be sth like "BYPASSTOP_topname."
+	std::string topprefix = std::string("BYPASSTOP_") + topModuleName() + std::string(".");
 
 	{ // Search for scope
 	    std::string scopename = topprefix + std::string(namep);
@@ -1581,19 +1581,19 @@ vpiHandle vpi_put_value(vpiHandle object, p_vpi_value value_p,
 	}
 
 	// Verilator add TOP module to simulated design but we are returing handlers to
-	// variables in simulated desing and not in the TOP module. So when Cocotb
+	// variables in simulated desing and not in the TOP module. So when testbench
 	// changes variable values in simulated design we need to do the same in TOP
 	// module. If we wouldn't do that signals in simulated design would be
 	// overridden by TOP module after call to eval()
 	std::string fullname = std::string(vop->fullname());
-	/* Max second level: e.g. COCOTB_module.module.clk */
+	/* Max second level: e.g. BYPASSTOP_module.module.clk */
 	if (std::count(fullname.begin(), fullname.end(), '.') == 2) {
 	    std::string topname = topModuleName();
-	    std::string prefix = std::string("COCOTB_") + topname + std::string(".") + topname + std::string(".");
+	    std::string prefix = std::string("BYPASSTOP_") + topname + std::string(".") + topname + std::string(".");
 	    // We want only to propagate simulated design signals to TOP module
-	    // for example: COCOTB_module.module.clk -> COCOTB_module.TOP.clk
+	    // for example: BYPASSTOP_module.module.clk -> BYPASSTOP_module.TOP.clk
 	    if (!strncmp(fullname.c_str(), prefix.c_str(), prefix.size())) {
-	        std::string n = std::string("COCOTB_") + topname + std::string(".TOP") +
+	        std::string n = std::string("BYPASSTOP_") + topname + std::string(".TOP") +
 	            fullname.substr(fullname.rfind("."));
 	        vpiHandle topHandle = vpi_handle_by_name((PLI_BYTE8*)n.c_str(), 0);
 	        if (topHandle) { // check that TOP module really has signal we want to update
