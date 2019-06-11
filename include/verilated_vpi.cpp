@@ -35,6 +35,7 @@
 #include <list>
 #include <map>
 #include <set>
+#include <algorithm>
 
 //======================================================================
 // Internal constants
@@ -171,7 +172,14 @@ public:
     virtual vluint32_t type() const { return vpiScope; }
     const VerilatedScope* scopep() const { return m_scopep; }
     virtual const char* name() const { return m_scopep->name(); }
-    virtual const char* fullname() const { return m_scopep->name(); }
+    virtual const char* fullname() const {
+        const char *s = m_scopep->name();
+        if (VerilatedVpi::isBypassTop()) {
+            const char *r = strchr(s, '.');
+            if (r) return r + 1;
+        }
+        return s;
+    }
 };
 
 class VerilatedVpioVar : public VerilatedVpio {
@@ -353,11 +361,12 @@ class VerilatedVpiImp {
     VpioTimedCbs        m_timedCbs;  // Time based callbacks
     VerilatedVpiError*  m_errorInfop;  // Container for vpi error info
     VerilatedAssertOneThread m_assertOne;  ///< Assert only called from single thread
+    bool m_bypassTop;
 
     static VerilatedVpiImp s_s;  // Singleton
 
 public:
-    VerilatedVpiImp() { m_errorInfop=NULL; }
+    VerilatedVpiImp() { m_errorInfop=NULL; m_bypassTop = false; }
     ~VerilatedVpiImp() {}
     static void assertOneCheck() { s_s.m_assertOne.check(); }
     static void cbReasonAdd(VerilatedVpioCb* vop) {
@@ -454,6 +463,14 @@ public:
     }
 
     static VerilatedVpiError* error_info() VL_MT_UNSAFE_ONE;  // getter for vpi error info
+
+    static bool isBypassTop(void) VL_MT_UNSAFE_ONE {
+	return s_s.m_bypassTop;
+    }
+
+    static void setBypassTop(bool flag) VL_MT_UNSAFE_ONE {
+	s_s.m_bypassTop = flag;
+    }
 };
 
 class VerilatedVpiError {
@@ -543,6 +560,14 @@ void VerilatedVpi::callValueCbs() VL_MT_UNSAFE_ONE {
 
 bool VerilatedVpi::callCbs(vluint32_t reason) VL_MT_UNSAFE_ONE {
     return VerilatedVpiImp::callCbs(reason);
+}
+
+bool VerilatedVpi::isBypassTop(void) VL_MT_UNSAFE_ONE {
+    return VerilatedVpiImp::isBypassTop();
+}
+
+void VerilatedVpi::setBypassTop(bool flag) VL_MT_UNSAFE_ONE {
+    VerilatedVpiImp::setBypassTop(flag);
 }
 
 //======================================================================
@@ -1030,6 +1055,15 @@ vpiHandle vpi_handle_by_name(PLI_BYTE8* namep, vpiHandle scope) {
 	if (scopep) {  // Whole thing found as a scope
 	    return (new VerilatedVpioScope(scopep))->castVpiHandle();
 	}
+
+	if (VerilatedVpi::isBypassTop()) { // Search for scope
+	    std::string scopename = topModulePrefix() + "." + std::string(namep);
+	    scopep = Verilated::scopeFind(scopename.c_str());
+	    if (scopep) {
+	        return (new VerilatedVpioScope(scopep))->castVpiHandle();
+	    }
+	}
+
 	const char* baseNamep = scopeAndName.c_str();
 	std::string scopename;
 	const char* dotp = strrchr(namep, '.');
@@ -1037,6 +1071,17 @@ vpiHandle vpi_handle_by_name(PLI_BYTE8* namep, vpiHandle scope) {
 	    baseNamep = dotp+1;
 	    scopename = std::string(namep,dotp-namep);
 	}
+
+	if (VerilatedVpi::isBypassTop()) { // Search for variable in scope
+	    std::string scname = topModulePrefix() + "." + scopename;
+	    scopep = Verilated::scopeFind(scname.c_str());
+	    if (scopep) {
+	        varp = scopep->varFind(baseNamep);
+                if (varp)
+	            return (new VerilatedVpioVar(varp, scopep))->castVpiHandle();
+	    }
+	}
+
 	scopep = Verilated::scopeFind(scopename.c_str());
 	if (!scopep) return NULL;
 	varp = scopep->varFind(baseNamep);
@@ -1536,6 +1581,32 @@ vpiHandle vpi_put_value(vpiHandle object, p_vpi_value value_p,
                             vop->fullname());
 	    return 0;
 	}
+
+	if (VerilatedVpi::isBypassTop()) {
+	    // Verilator add TOP module to simulated design but we are returing handlers to
+	    // variables in simulated desing and not in the TOP module. So when testbench
+	    // changes variable values in simulated design we need to do the same in TOP
+	    // module. If we wouldn't do that signals in simulated design would be
+	    // overridden by TOP module after call to eval()
+	    std::string fullname = std::string(vop->fullname());
+	    /* Max second level: e.g. prefix.module.clk */
+	    if (std::count(fullname.begin(), fullname.end(), '.') == 2) {
+	        std::string prefix = topModulePrefix() + std::string(".") +
+		    topModuleName() + std::string(".");
+	        // We want only to propagate simulated design signals to prefix.TOP
+	        // for example: prefix.module.clk -> prefix.TOP.clk
+	        if (!strncmp(fullname.c_str(), prefix.c_str(), prefix.size())) {
+		    std::string n = topModulePrefix() + std::string(".TOP") +
+			fullname.substr(fullname.rfind("."));
+		    vpiHandle topHandle = vpi_handle_by_name((PLI_BYTE8*)n.c_str(), 0);
+		    if (topHandle) { // check that TOP module really has signal we want to update
+			vpi_put_value(topHandle, value_p, time_p, flags);
+			vpi_release_handle(topHandle); // not needed anymore
+		    }
+		}
+	    }
+	}
+
 	if (value_p->format == vpiVectorVal) {
 	    if (VL_UNLIKELY(!value_p->value.vector)) return NULL;
 	    switch (vop->varp()->vltype()) {

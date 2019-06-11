@@ -50,6 +50,10 @@ public:
     static bool callCbs(vluint32_t reason) VL_MT_UNSAFE_ONE;
     /// Self test, for internal use only
     static void selfTest() VL_MT_UNSAFE_ONE;
+    /// Is .TOP module bypassing enabled
+    static bool isBypassTop(void) VL_MT_UNSAFE_ONE;
+    /// Enable .TOP module bypassing by setting prefix and DUT top module name
+    static void setBypassTop(bool flag) VL_MT_UNSAFE_ONE;
 };
 
 #endif  // Guard
