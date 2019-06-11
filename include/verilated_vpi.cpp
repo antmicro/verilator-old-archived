@@ -1034,6 +1034,27 @@ void vpi_get_systf_info(vpiHandle object, p_vpi_systf_data systf_data_p) {
     _VL_VPI_UNIMP(); return;
 }
 
+static inline std::string
+topModuleName(void)
+{
+    const auto *map = Verilated::scopeNameMap(); // obtain scopes map
+    auto itr = map->begin(); ++itr; // jump to second element (1st prefix.TOP, 2nd prefix.dut)
+    std::string name = std::string((*itr).first); // obtain name (e.g. prefix.dut)
+    std::string::size_type dot = name.find('.'); // strip module name
+    return name.substr(dot+1);
+}
+
+static inline std::string
+topModulePrefix(void)
+{
+    const auto *map = Verilated::scopeNameMap(); // obtain scopes map
+    auto itr = map->begin(); // 1st element is good enough (e.g. prefix.TOP)
+    std::string name = std::string((*itr).first); // get its name (e.g. prefix.TOP)
+    std::string::size_type dot = name.find('.'); // strip only prefix
+    auto prefix = name.substr(0, dot);
+    return prefix;
+}
+
 // for obtaining handles
 
 vpiHandle vpi_handle_by_name(PLI_BYTE8* namep, vpiHandle scope) {
