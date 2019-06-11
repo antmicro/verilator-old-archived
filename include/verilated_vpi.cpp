@@ -278,6 +278,26 @@ public:
     }
 };
 
+class VerilatedVpioModuleScopeIter : public VerilatedVpio {
+    const VerilatedScopeNameMap *scope_map;
+    VerilatedScopeNameMap::const_iterator m_it;
+public:
+    explicit VerilatedVpioModuleScopeIter(void) {
+        scope_map = Verilated::scopeNameMap();
+        m_it = scope_map->begin();
+    }
+    virtual ~VerilatedVpioModuleScopeIter() {}
+    virtual vluint32_t type() const { return vpiIterator; }
+    virtual vpiHandle dovpi_scan() {
+        if (m_it == scope_map->end())
+            return 0;
+
+        const VerilatedScope *scope = m_it->second;
+        m_it++;
+        return ((new VerilatedVpioScope(scope))->castVpiHandle());
+    }
+};
+
 class VerilatedVpioMemoryWordIter : public VerilatedVpio {
     const vpiHandle             m_handle;
     const VerilatedVar*         m_varp;
@@ -1126,6 +1146,12 @@ vpiHandle vpi_iterate(PLI_INT32 type, vpiHandle object) {
 	if (VL_UNLIKELY(!vop)) return 0;
 	return ((new VerilatedVpioVarIter(vop->scopep()))
 		->castVpiHandle());
+    }
+    case vpiScope: {
+        if (VL_UNLIKELY(object)) return 0; /* not implemented */
+
+        return ((new VerilatedVpioModuleScopeIter())
+            ->castVpiHandle());
     }
     default:
         _VL_VPI_WARNING(__FILE__, __LINE__, "%s: Unsupported type %s, nothing will be returned",
