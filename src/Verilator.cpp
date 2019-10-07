@@ -121,16 +121,21 @@ void V3Global::readFiles() {
     V3InFilter filter (v3Global.opt.pipeFilter());
     V3ParseSym parseSyms (v3Global.rootp());  // Symbol table must be common across all parsing
 
-    V3Parse parser (v3Global.rootp(), &filter, &parseSyms);
+    puts("Before injected loader");
+    AstNetlist* design_root = v3Global.rootp();
+    AstModule* module = new AstModule(new FileLine("fileline module poc"), "poc empty module");
+    design_root->addModulep(module);
+    
+    /*V3Parse parser (v3Global.rootp(), &filter, &parseSyms);
     // Read top module
-    const V3StringList& vFiles = v3Global.opt.vFiles();
+    /*const V3StringList& vFiles = v3Global.opt.vFiles();
     for (V3StringList::const_iterator it = vFiles.begin(); it != vFiles.end(); ++it) {
         string filename = *it;
         parser.parseFile(new FileLine(FileLine::commandLineFilename()),
                          filename, false,
                          "Cannot find file containing module: ");
+    
     }
-
     // Read libraries
     // To be compatible with other simulators,
     // this needs to be done after the top file is read
@@ -140,7 +145,9 @@ void V3Global::readFiles() {
         parser.parseFile(new FileLine(FileLine::commandLineFilename()),
                          filename, true,
                          "Cannot find file containing library module: ");
-    }
+    }*/
+
+    puts("After injected loader");
     //v3Global.rootp()->dumpTreeFile(v3Global.debugFilename("parse.tree"));
     V3Error::abortIfErrors();
 
@@ -574,6 +581,7 @@ int main(int argc, char** argv, char** env) {
     srand(static_cast<int>(randseed));
 
     // Post-constructor initialization of netlists
+    // AstNetlist - root of the design is created here
     v3Global.boot();
 
     // Preprocessor
