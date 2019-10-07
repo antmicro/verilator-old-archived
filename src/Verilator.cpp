@@ -93,6 +93,8 @@
 #include "V3Unroll.h"
 #include "V3Width.h"
 
+#include "V3ParseImp.h"
+
 #include <ctime>
 #include <sys/stat.h>
 
@@ -122,10 +124,41 @@ void V3Global::readFiles() {
     V3ParseSym parseSyms (v3Global.rootp());  // Symbol table must be common across all parsing
 
     puts("Before injected loader");
+
     AstNetlist* design_root = v3Global.rootp();
+    
+    //Bison - modFront<modulep>:
+    /*
+     { $$ = new AstModule($<fl>3,*$3);
+                          $$->inLibrary(PARSEP->inLibrary() || PARSEP->inCellDefine());
+                          $$->modTrace(GRAMMARP->allTracingOn($$->fileline()));
+                          PARSEP->rootp()->addModulep($$);
+                          SYMP->pushNew($$); }
+                          */
     AstModule* module = new AstModule(new FileLine("fileline module poc"), "poc empty module");
     design_root->addModulep(module);
     
+    //Bison - module_declaration:
+    /*
+    modFront importsAndParametersE portsStarE ';' module_itemListE yENDMODULE endLabelE
+    { $1->modTrace(GRAMMARP->allTracingOn($1->fileline()));  // Stash for implicit wires, etc
+                          if ($2) $1->addStmtp($2); if ($3) $1->addStmtp($3);
+                          if ($5) $1->addStmtp($5);
+                          SYMP->popScope($1);
+                          GRAMMARP->endLabel($<fl>7,$1,$7); }
+
+    */
+
+    AstPort* p1 = new AstPort(new FileLine("port1"), 1, "port1");
+    AstPort* p2 = new AstPort(new FileLine("port2"), 2, "port2");
+    AstPort* p3 = new AstPort(new FileLine("port3"), 3, "port3");
+    p1->addNextNull(p2);
+    p2->addNextNull(p3);
+    module->addStmtp(p1);
+
+    
+
+
     /*V3Parse parser (v3Global.rootp(), &filter, &parseSyms);
     // Read top module
     /*const V3StringList& vFiles = v3Global.opt.vFiles();
