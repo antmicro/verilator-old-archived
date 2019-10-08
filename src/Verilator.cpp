@@ -138,6 +138,8 @@ void V3Global::readFiles() {
     AstModule* module = new AstModule(new FileLine("fileline module poc"), "poc empty module");
     design_root->addModulep(module);
     
+    //V3ParseGrammar::singletonp();
+
     //Bison - module_declaration:
     /*
     modFront importsAndParametersE portsStarE ';' module_itemListE yENDMODULE endLabelE
@@ -148,17 +150,50 @@ void V3Global::readFiles() {
                           GRAMMARP->endLabel($<fl>7,$1,$7); }
 
     */
+    //importsAndParametersE is null
+    //module->addStmtp(nullptr);
 
-    AstPort* p1 = new AstPort(new FileLine("port1"), 1, "port1");
-    AstPort* p2 = new AstPort(new FileLine("port2"), 2, "port2");
-    AstPort* p3 = new AstPort(new FileLine("port3"), 3, "port3");
+    //adding portsStarE
+    AstPort* p1 = new AstPort(new FileLine("port1"), 1, "c");
+    AstPort* p2 = new AstPort(new FileLine("port2"), 2, "d");
+    AstPort* p3 = new AstPort(new FileLine("port3"), 3, "q");
     p1->addNextNull(p2);
     p2->addNextNull(p3);
     module->addStmtp(p1);
 
+    //Bison - module_itemList<nodep>:
+    /*
+                module_item                             { $$ = $1; }
+        |       module_itemList module_item             { $$ = $1->addNextNull($2); }
+        ;
+
+        list_of_variable_decl_assignments<nodep>:       // ==IEEE: list_of_variable_decl_assignments
+                variable_decl_assignment                { $$ = $1; }
+        |       list_of_variable_decl_assignments ',' variable_decl_assignment  { $$ = $1->addNextNull($3); }
+        ;
+
+    */
+
+    //variable creation based on "AstVar* V3ParseGrammar::createVariable"
+    //adding module_itemListE
+    AstNodeDType* basicdtype1 = new AstBasicDType(new FileLine("var1"), AstBasicDTypeKwd::LOGIC_IMPLICIT);
+    AstNodeDType* basicdtype2 = new AstBasicDType(new FileLine("var2"), AstBasicDTypeKwd::LOGIC_IMPLICIT);
+    AstNodeDType* basicdtype3 = new AstBasicDType(new FileLine("var3"), AstBasicDTypeKwd::LOGIC_IMPLICIT);
+
+    AstVar* v1 = new AstVar(new FileLine("var1"), AstVarType::WIRE, "c",VFlagChildDType(), basicdtype1);
+    v1->declDirection(VDirection::INPUT);
+    v1->direction(VDirection::INPUT);
+    AstVar* v2 = new AstVar(new FileLine("var2"), AstVarType::WIRE, "d",VFlagChildDType(), basicdtype2);
+    v2->declDirection(VDirection::INPUT);
+    v2->direction(VDirection::INPUT);
+    AstVar* v3 = new AstVar(new FileLine("var3"), AstVarType::PORT, "q",VFlagChildDType(), basicdtype3);
+    v3->declDirection(VDirection::OUTPUT);
+    v3->direction(VDirection::OUTPUT);
+
+    v1->addNextNull(v2);
+    v2->addNextNull(v3);
+    module->addStmtp(v1);
     
-
-
     /*V3Parse parser (v3Global.rootp(), &filter, &parseSyms);
     // Read top module
     /*const V3StringList& vFiles = v3Global.opt.vFiles();
