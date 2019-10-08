@@ -189,11 +189,28 @@ void V3Global::readFiles() {
     AstVar* v3 = new AstVar(new FileLine("var3"), AstVarType::PORT, "q",VFlagChildDType(), basicdtype3);
     v3->declDirection(VDirection::OUTPUT);
     v3->direction(VDirection::OUTPUT);
+    AstConst* c = new AstConst(new FileLine("qconst"),1);
+    basicdtype3->addNextNull(c);
 
     v1->addNextNull(v2);
     v2->addNextNull(v3);
     module->addStmtp(v1);
     
+
+    AstSenItem* posedge_c = new AstSenItem(new FileLine("posedge_c"), AstEdgeType::ET_POSEDGE,
+        new AstParseRef(new FileLine("parseref c"), AstParseRefExp::PX_TEXT, "c",nullptr,nullptr));
+
+    AstSenTree* sentree = new AstSenTree(new FileLine("sentree"),posedge_c);
+
+    AstAssignDly* begin_statements = new AstAssignDly(new FileLine("beginblock"), 
+        new AstParseRef(new FileLine("parseref q"), AstParseRefExp::PX_TEXT, "q",nullptr,nullptr),
+        new AstParseRef(new FileLine("parseref d"), AstParseRefExp::PX_TEXT, "d",nullptr,nullptr));
+    AstBegin* begin_block = new AstBegin(new FileLine("beginblock"), "beginblock", begin_statements);
+
+    //yALWAYS       event_controlE stmtBlock  { $$ = new AstAlways($1,VAlwaysKwd::ALWAYS, $2,$3); }
+    AstAlways* astalways = new AstAlways(new FileLine("astalways"),VAlwaysKwd::ALWAYS, sentree, begin_block);
+
+    v3->addNextNull(astalways);
     /*V3Parse parser (v3Global.rootp(), &filter, &parseSyms);
     // Read top module
     /*const V3StringList& vFiles = v3Global.opt.vFiles();
