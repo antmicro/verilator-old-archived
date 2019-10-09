@@ -94,6 +94,8 @@
 #include "V3Width.h"
 
 #include "V3ParseImp.h"
+#include "json_to_ast.hpp"
+#include "json_to_ast.cpp" //this should be added in makefile
 
 #include <ctime>
 #include <sys/stat.h>
@@ -126,7 +128,7 @@ void V3Global::readFiles() {
     puts("Before injected loader");
 
     AstNetlist* design_root = v3Global.rootp();
-    
+    json_to_ast::load(design_root, "rsrc/dff.json");
     //Bison - modFront<modulep>:
     /*
      { $$ = new AstModule($<fl>3,*$3);
