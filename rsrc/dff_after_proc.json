@@ -1,0 +1,86 @@
+{
+  "creator": "Yosys 0.9+932 (git sha1 be8efd7c, clang 6.0.0-1ubuntu2 -fPIC -Os)",
+  "modules": {
+    "dff": {
+      "attributes": {
+        "cells_not_processed": 1,
+        "src": "../dff.v:28"
+      },
+      "ports": {
+        "c": {
+          "direction": "input",
+          "bits": [ 2 ]
+        },
+        "d": {
+          "direction": "input",
+          "bits": [ 3 ]
+        },
+        "q": {
+          "direction": "output",
+          "bits": [ 4 ]
+        }
+      },
+      "cells": {
+        "$procdff$3": {
+          "hide_name": 1,
+          "type": "$dff",
+          "parameters": {
+            "CLK_POLARITY": "1",
+            "WIDTH": 1
+          },
+          "attributes": {
+            "src": "../dff.v:32"
+          },
+          "port_directions": {
+            "CLK": "input",
+            "D": "input",
+            "Q": "output"
+          },
+          "connections": {
+            "CLK": [ 2 ],
+            "D": [ 3 ],
+            "Q": [ 4 ]
+          }
+        }
+      },
+      "netnames": {
+        "$0\\q[0:0]": {
+          "hide_name": 1,
+          "bits": [ 3 ],
+          "attributes": {
+            "src": "../dff.v:32"
+          }
+        },
+        "$1\\q[0:0]": {
+          "hide_name": 1,
+          "bits": [ "0" ],
+          "attributes": {
+            "src": "../dff.v:30"
+          }
+        },
+        "c": {
+          "hide_name": 0,
+          "bits": [ 2 ],
+          "attributes": {
+            "src": "../dff.v:29"
+          }
+        },
+        "d": {
+          "hide_name": 0,
+          "bits": [ 3 ],
+          "attributes": {
+            "src": "../dff.v:29"
+          }
+        },
+        "q": {
+          "hide_name": 0,
+          "bits": [ 4 ],
+          "attributes": {
+            "init": "0",
+            "src": "../dff.v:30"
+          }
+        }
+      }
+    }
+  }
+}
