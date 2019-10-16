@@ -124,60 +124,19 @@ void V3Global::readFiles() {
 
     V3InFilter filter (v3Global.opt.pipeFilter());
     V3ParseSym parseSyms (v3Global.rootp());  // Symbol table must be common across all parsing
-    //should we read from json instead of parsing verilog with yacc?
+
     if(v3Global.opt.useJson())
     {
         AstNetlist* design_root = v3Global.rootp();
-        json_to_ast::load(design_root, "rsrc/dff.json");
-        //Bison - modFront<modulep>:
-        /*
-        { $$ = new AstModule($<fl>3,*$3);
-                            $$->inLibrary(PARSEP->inLibrary() || PARSEP->inCellDefine());
-                            $$->modTrace(GRAMMARP->allTracingOn($$->fileline()));
-                            PARSEP->rootp()->addModulep($$);
-                            SYMP->pushNew($$); }
-                            */
+
         AstModule* module = new AstModule(new FileLine("fileline module poc"), "poc empty module");
         design_root->addModulep(module);
         
-        //V3ParseGrammar::singletonp();
-
-        //Bison - module_declaration:
-        /*
-        modFront importsAndParametersE portsStarE ';' module_itemListE yENDMODULE endLabelE
-        { $1->modTrace(GRAMMARP->allTracingOn($1->fileline()));  // Stash for implicit wires, etc
-                            if ($2) $1->addStmtp($2); if ($3) $1->addStmtp($3);
-                            if ($5) $1->addStmtp($5);
-                            SYMP->popScope($1);
-                            GRAMMARP->endLabel($<fl>7,$1,$7); }
-
-        */
-        //importsAndParametersE is null
-        //module->addStmtp(nullptr);
-
-        //adding portsStarE
         AstPort* p1 = new AstPort(new FileLine("port1"), 1, "c");
         AstPort* p2 = new AstPort(new FileLine("port2"), 2, "d");
         AstPort* p3 = new AstPort(new FileLine("port3"), 3, "q");
-        p1->addNextNull(p2);
-        p2->addNextNull(p3);
-        module->addStmtp(p1);
+        
 
-        //Bison - module_itemList<nodep>:
-        /*
-                    module_item                             { $$ = $1; }
-            |       module_itemList module_item             { $$ = $1->addNextNull($2); }
-            ;
-
-            list_of_variable_decl_assignments<nodep>:       // ==IEEE: list_of_variable_decl_assignments
-                    variable_decl_assignment                { $$ = $1; }
-            |       list_of_variable_decl_assignments ',' variable_decl_assignment  { $$ = $1->addNextNull($3); }
-            ;
-
-        */
-
-        //variable creation based on "AstVar* V3ParseGrammar::createVariable"
-        //adding module_itemListE
         AstNodeDType* basicdtype1 = new AstBasicDType(new FileLine("var1"), AstBasicDTypeKwd::LOGIC_IMPLICIT);
         AstNodeDType* basicdtype2 = new AstBasicDType(new FileLine("var2"), AstBasicDTypeKwd::LOGIC_IMPLICIT);
         AstNodeDType* basicdtype3 = new AstBasicDType(new FileLine("var3"), AstBasicDTypeKwd::LOGIC_IMPLICIT);
@@ -191,28 +150,36 @@ void V3Global::readFiles() {
         AstVar* v3 = new AstVar(new FileLine("var3"), AstVarType::PORT, "q",VFlagChildDType(), basicdtype3);
         v3->declDirection(VDirection::OUTPUT);
         v3->direction(VDirection::OUTPUT);
-        AstConst* c = new AstConst(new FileLine("qconst"),1);
-        basicdtype3->addNextNull(c);
 
-        v1->addNextNull(v2);
-        v2->addNextNull(v3);
-        module->addStmtp(v1);
+        AstNodeDType* basicdtype4 = new AstBasicDType(new FileLine("var4"), AstBasicDTypeKwd::LOGIC);
+        AstVar* v4 = new AstVar(new FileLine("var4"), AstVarType::VAR, "t",VFlagChildDType(), basicdtype4);
+        basicdtype4->addNextNull(new AstConst(new FileLine("tconst"),0));
         
-
         AstSenItem* posedge_c = new AstSenItem(new FileLine("posedge_c"), AstEdgeType::ET_POSEDGE,
             new AstParseRef(new FileLine("parseref c"), AstParseRefExp::PX_TEXT, "c",nullptr,nullptr));
 
         AstSenTree* sentree = new AstSenTree(new FileLine("sentree"),posedge_c);
 
         AstAssignDly* begin_statements = new AstAssignDly(new FileLine("beginblock"), 
-            new AstParseRef(new FileLine("parseref q"), AstParseRefExp::PX_TEXT, "q",nullptr,nullptr),
+            new AstParseRef(new FileLine("parseref q"), AstParseRefExp::PX_TEXT, "t",nullptr,nullptr),
             new AstParseRef(new FileLine("parseref d"), AstParseRefExp::PX_TEXT, "d",nullptr,nullptr));
-        AstBegin* begin_block = new AstBegin(new FileLine("beginblock"), "beginblock", begin_statements);
 
-        //yALWAYS       event_controlE stmtBlock  { $$ = new AstAlways($1,VAlwaysKwd::ALWAYS, $2,$3); }
-        AstAlways* astalways = new AstAlways(new FileLine("astalways"),VAlwaysKwd::ALWAYS, sentree, begin_block);
-
-        v3->addNextNull(astalways);
+        AstAlways* astalways = new AstAlways(new FileLine("astalways"),VAlwaysKwd::ALWAYS, sentree, begin_statements);
+        
+        AstAssignW* assignw_tq = new AstAssignW(
+            new FileLine("assignw_tq"),
+            new AstParseRef(new FileLine("parseref t"), AstParseRefExp::PX_TEXT, "t",nullptr,nullptr),
+            new AstParseRef(new FileLine("parseref q"), AstParseRefExp::PX_TEXT, "q",nullptr,nullptr)
+        );
+        p1->addNextNull(p2);
+        p2->addNextNull(p3);
+        module->addStmtp(p1);
+        v1->addNextNull(v2);
+        v2->addNextNull(v3);
+        v3->addNextNull(v4);
+        module->addStmtp(v1);
+        v4->addNextNull(astalways);
+        astalways->addNextNull(assignw_tq);
     }
     else
     {
