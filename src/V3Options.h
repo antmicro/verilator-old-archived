@@ -100,6 +100,7 @@ class V3Options {
     std::map<string,string> m_parameters;  // Parameters
 
 
+    bool        m_internal_dff; // main switch: --internal-dff
     bool        m_preprocOnly;  // main switch: -E
     bool        m_makeDepend;   // main switch: -MMD
     bool        m_makePhony;    // main switch: -MP
@@ -259,6 +260,7 @@ class V3Options {
     void addForceInc(const string& filename);
 
     // ACCESSORS (options)
+    bool genInternalDff() const { return m_internal_dff; }
     bool preprocOnly() const { return m_preprocOnly; }
     bool makeDepend() const { return m_makeDepend; }
     bool makePhony() const { return m_makePhony; }

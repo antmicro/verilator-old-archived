@@ -121,25 +121,85 @@ void V3Global::readFiles() {
     V3InFilter filter (v3Global.opt.pipeFilter());
     V3ParseSym parseSyms (v3Global.rootp());  // Symbol table must be common across all parsing
 
-    V3Parse parser (v3Global.rootp(), &filter, &parseSyms);
-    // Read top module
-    const V3StringList& vFiles = v3Global.opt.vFiles();
-    for (V3StringList::const_iterator it = vFiles.begin(); it != vFiles.end(); ++it) {
-        string filename = *it;
-        parser.parseFile(new FileLine(FileLine::commandLineFilename()),
-                         filename, false,
-                         "Cannot find file containing module: ");
-    }
+    if (v3Global.opt.genInternalDff()) {
+        AstNetlist* design_root = v3Global.rootp();
 
-    // Read libraries
-    // To be compatible with other simulators,
-    // this needs to be done after the top file is read
-    const V3StringSet& libraryFiles = v3Global.opt.libraryFiles();
-    for (V3StringSet::const_iterator it = libraryFiles.begin(); it != libraryFiles.end(); ++it) {
-        string filename = *it;
-        parser.parseFile(new FileLine(FileLine::commandLineFilename()),
-                         filename, true,
-                         "Cannot find file containing library module: ");
+        AstModule* module = new AstModule(new FileLine("internal"), "top");
+        design_root->addModulep(module);
+
+        AstPort* p1 = new AstPort(new FileLine("internal"), 1, "c");
+        AstPort* p2 = new AstPort(new FileLine("internal"), 2, "d");
+        AstPort* p3 = new AstPort(new FileLine("internal"), 3, "q");
+
+        AstNodeDType* basicdtype1 = new AstBasicDType(new FileLine("internal"), AstBasicDTypeKwd::LOGIC_IMPLICIT);
+        AstNodeDType* basicdtype2 = new AstBasicDType(new FileLine("internal"), AstBasicDTypeKwd::LOGIC_IMPLICIT);
+        AstNodeDType* basicdtype3 = new AstBasicDType(new FileLine("internal"), AstBasicDTypeKwd::LOGIC_IMPLICIT);
+
+        AstVar* v1 = new AstVar(new FileLine("internal"), AstVarType::WIRE, "c",VFlagChildDType(), basicdtype1);
+        v1->declDirection(VDirection::INPUT);
+        v1->direction(VDirection::INPUT);
+        v1->trace(true);
+        AstVar* v2 = new AstVar(new FileLine("internal"), AstVarType::WIRE, "d",VFlagChildDType(), basicdtype2);
+        v2->declDirection(VDirection::INPUT);
+        v2->direction(VDirection::INPUT);
+        v2->trace(true);
+        AstVar* v3 = new AstVar(new FileLine("internal"), AstVarType::PORT, "q",VFlagChildDType(), basicdtype3);
+        v3->declDirection(VDirection::OUTPUT);
+        v3->direction(VDirection::OUTPUT);
+        v3->trace(true);
+
+        AstNodeDType* basicdtype4 = new AstBasicDType(new FileLine("internal"), AstBasicDTypeKwd::LOGIC);
+        AstVar* v4 = new AstVar(new FileLine("internal"), AstVarType::VAR, "t",VFlagChildDType(), basicdtype4);
+        v4->trace(true);
+        basicdtype4->addNextNull(new AstConst(new FileLine("internal"),0));
+
+        AstSenItem* posedge_c = new AstSenItem(new FileLine("internal"), AstEdgeType::ET_POSEDGE,
+            new AstParseRef(new FileLine("internal"), AstParseRefExp::PX_TEXT, "c",nullptr,nullptr));
+
+        AstSenTree* sentree = new AstSenTree(new FileLine("internal"),posedge_c);
+
+        AstAssignDly* begin_statements = new AstAssignDly(new FileLine("internal"),
+            new AstParseRef(new FileLine("internal"), AstParseRefExp::PX_TEXT, "t",nullptr,nullptr),
+            new AstParseRef(new FileLine("internal"), AstParseRefExp::PX_TEXT, "d",nullptr,nullptr));
+
+        AstAlways* astalways = new AstAlways(new FileLine("internal"),VAlwaysKwd::ALWAYS, sentree, begin_statements);
+
+        AstAssignW* assignw_tq = new AstAssignW(
+            new FileLine("internal"),
+            new AstParseRef(new FileLine("internal"), AstParseRefExp::PX_TEXT, "q",nullptr,nullptr),
+            new AstParseRef(new FileLine("internal"), AstParseRefExp::PX_TEXT, "t",nullptr,nullptr)
+        );
+
+        p1->addNextNull(p2);
+        p2->addNextNull(p3);
+        module->addStmtp(p1);
+        v1->addNextNull(v2);
+        v2->addNextNull(v3);
+        v3->addNextNull(v4);
+        module->addStmtp(v1);
+        v4->addNextNull(astalways);
+        astalways->addNextNull(assignw_tq);
+    } else {
+        V3Parse parser (v3Global.rootp(), &filter, &parseSyms);
+        // Read top module
+        const V3StringList& vFiles = v3Global.opt.vFiles();
+        for (V3StringList::const_iterator it = vFiles.begin(); it != vFiles.end(); ++it) {
+            string filename = *it;
+            parser.parseFile(new FileLine(FileLine::commandLineFilename()),
+                             filename, false,
+                             "Cannot find file containing module: ");
+        }
+
+        // Read libraries
+        // To be compatible with other simulators,
+        // this needs to be done after the top file is read
+        const V3StringSet& libraryFiles = v3Global.opt.libraryFiles();
+        for (V3StringSet::const_iterator it = libraryFiles.begin(); it != libraryFiles.end(); ++it) {
+            string filename = *it;
+            parser.parseFile(new FileLine(FileLine::commandLineFilename()),
+                             filename, true,
+                             "Cannot find file containing library module: ");
+        }
     }
     //v3Global.rootp()->dumpTreeFile(v3Global.debugFilename("parse.tree"));
     V3Error::abortIfErrors();

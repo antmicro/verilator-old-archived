@@ -651,6 +651,7 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
             if (sw[0]=='-' && sw[1]=='-') ++sw;
             if (0) {}
             // Single switches
+            else if ( onoff (sw, "-internal-dff", flag/*ref*/)) { m_internal_dff = flag; }
             else if (!strcmp(sw, "-E"))                         { m_preprocOnly = true; }
             else if ( onoff (sw, "-MMD", flag/*ref*/))          { m_makeDepend = flag; }
             else if ( onoff (sw, "-MP", flag/*ref*/))           { m_makePhony = flag; }
@@ -1262,6 +1263,7 @@ void V3Options::showVersion(bool verbose) {
 V3Options::V3Options() {
     m_impp = new V3OptionsImp;
 
+    m_internal_dff = false;
     m_assert = false;
     m_autoflush = false;
     m_bboxSys = false;
