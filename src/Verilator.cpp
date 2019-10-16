@@ -129,14 +129,13 @@ void V3Global::readFiles() {
     {
         AstNetlist* design_root = v3Global.rootp();
 
-        AstModule* module = new AstModule(new FileLine("fileline module poc"), "poc empty module");
+        AstModule* module = new AstModule(new FileLine("fileline module poc"), "dff module");
         design_root->addModulep(module);
         
         AstPort* p1 = new AstPort(new FileLine("port1"), 1, "c");
         AstPort* p2 = new AstPort(new FileLine("port2"), 2, "d");
         AstPort* p3 = new AstPort(new FileLine("port3"), 3, "q");
         
-
         AstNodeDType* basicdtype1 = new AstBasicDType(new FileLine("var1"), AstBasicDTypeKwd::LOGIC_IMPLICIT);
         AstNodeDType* basicdtype2 = new AstBasicDType(new FileLine("var2"), AstBasicDTypeKwd::LOGIC_IMPLICIT);
         AstNodeDType* basicdtype3 = new AstBasicDType(new FileLine("var3"), AstBasicDTypeKwd::LOGIC_IMPLICIT);
