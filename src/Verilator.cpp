@@ -96,6 +96,8 @@
 #include <ctime>
 #include <sys/stat.h>
 
+#include "json.hpp" // nlohmann
+
 V3Global v3Global;
 
 //######################################################################
@@ -121,25 +123,166 @@ void V3Global::readFiles() {
     V3InFilter filter (v3Global.opt.pipeFilter());
     V3ParseSym parseSyms (v3Global.rootp());  // Symbol table must be common across all parsing
 
-    V3Parse parser (v3Global.rootp(), &filter, &parseSyms);
-    // Read top module
-    const V3StringList& vFiles = v3Global.opt.vFiles();
-    for (V3StringList::const_iterator it = vFiles.begin(); it != vFiles.end(); ++it) {
-        string filename = *it;
-        parser.parseFile(new FileLine(FileLine::commandLineFilename()),
-                         filename, false,
-                         "Cannot find file containing module: ");
-    }
+    if(v3Global.opt.json())
+    {
+        const V3StringList& vFiles = v3Global.opt.vFiles();
 
-    // Read libraries
-    // To be compatible with other simulators,
-    // this needs to be done after the top file is read
-    const V3StringSet& libraryFiles = v3Global.opt.libraryFiles();
-    for (V3StringSet::const_iterator it = libraryFiles.begin(); it != libraryFiles.end(); ++it) {
-        string filename = *it;
-        parser.parseFile(new FileLine(FileLine::commandLineFilename()),
-                         filename, true,
-                         "Cannot find file containing library module: ");
+        /* Read JSON input */
+        std::ifstream filein(*(vFiles.begin()));
+        std::stringstream ss;
+        ss << filein.rdbuf();
+        nlohmann::json json = nlohmann::json::parse(ss.str());
+
+        AstNetlist *designRoot = v3Global.rootp();
+
+        unsigned np = 0;
+
+        auto modules = json.find("modules");
+        for (auto itr = modules->begin() ; itr != modules->end() ; ++itr) {
+            auto top = itr->find("attributes")->find("top");
+            if (top.value() == 0)
+                continue ;
+
+            AstModule *module = new AstModule(new FileLine("json"), itr.key());
+            designRoot->addModulep(module);
+
+            std::map<unsigned, std::string> signals;
+
+            auto ports = itr->find("ports");
+            for (auto itr = ports->begin() ; itr != ports->end() ; ++itr) {
+                //std::cout << "Port: " << itr.key() << std::endl;
+
+                AstPort *p = new AstPort(new FileLine("json"), ++np, itr.key());
+                module->addStmtp(p);
+
+                AstNodeDType *dtype = new AstBasicDType(new FileLine("json"), AstBasicDTypeKwd::LOGIC_IMPLICIT);
+                AstVar *v = new AstVar(new FileLine("json"), AstVarType::VAR, itr.key(), dtype);
+
+                std::string dir = itr->find("direction").value();
+                if (dir == "input") {
+                    v->declDirection(VDirection::INPUT);
+                    v->direction(VDirection::INPUT);
+                } else {
+                    v->declDirection(VDirection::OUTPUT);
+                    v->direction(VDirection::OUTPUT);
+                }
+
+                if (v3Global.opt.trace())
+                    v->trace(true);
+
+                auto bits = itr->find("bits");
+                for (auto itrb = bits->begin() ; itrb != bits->end() ; ++itrb) {
+                    //std::cout << "Bits: " << itrb.value() << std::endl;
+                    signals.insert({itrb.value(), itr.key()});
+                }
+
+                module->addStmtp(v);
+            }
+
+            auto nets = itr->find("netnames");
+            for (auto itr = nets->begin() ; itr != nets->end() ; ++itr) {
+                if (itr->find("hide_name").value() != 0)
+                    continue ;
+
+                int n = itr->find("bits")->begin().value();
+                if (signals.find(n) != signals.end())
+                    continue ;
+
+                //std::cout << "Adding net: " << itr.key() << std::endl;
+
+                AstNodeDType *dtype = new AstBasicDType(new FileLine("json"), AstBasicDTypeKwd::LOGIC_IMPLICIT);
+                AstVar *v = new AstVar(new FileLine("json"), AstVarType::VAR, itr.key(), dtype);
+                if (v3Global.opt.trace())
+                    v->trace(true);
+                module->addStmtp(v);
+
+                signals.insert({n, itr.key()});
+            }
+
+            //std::cout << "Dump signals" << std::endl;
+            //for (auto itr = signals.begin() ; itr != signals.end() ; ++itr) {
+            //    std::cout << "Signal: " << itr->first << " -> " << itr->second << std::endl;
+            //}
+            //std::cout << "Name for 3: " << signals.find(3)->second << std::endl;
+
+            auto cells = itr->find("cells");
+            for (auto itr = cells->begin() ; itr != cells->end() ; ++itr) {
+                //std::cout << "Cell: " << itr.key() << std::endl;
+
+                std::string type = std::string(itr->find("type").value());
+                if (type == "$dff") {
+                    //std::cout << "Translating DFF\n";
+
+                    auto conns = itr->find("connections");
+                    std::string cName = signals.find(conns->find("CLK")->begin().value())->second;
+                    std::string dName = signals.find(conns->find("D")->begin().value())->second;
+                    std::string qName = signals.find(conns->find("Q")->begin().value())->second;
+
+                    auto params = itr->find("parameters");
+
+                    AstEdgeType edgetype;
+                    std::string clkpolarity = params->find("CLK_POLARITY")->begin().value();
+                    if (clkpolarity == "1")
+                        edgetype = AstEdgeType::ET_POSEDGE;
+                    else
+                        edgetype = AstEdgeType::ET_NEGEDGE;
+
+                    AstSenItem *edge = new AstSenItem(new FileLine("json"), edgetype,
+                        new AstParseRef(new FileLine("json"), AstParseRefExp::PX_TEXT,
+                        cName, nullptr, nullptr));
+                    AstSenTree *sentree = new AstSenTree(new FileLine("json"), edge);
+
+                    AstAssignDly *assigndly = new AstAssignDly(new FileLine("json"),
+                        new AstParseRef(new FileLine("json"), AstParseRefExp::PX_TEXT, qName, nullptr, nullptr),
+                        new AstParseRef(new FileLine("json"), AstParseRefExp::PX_TEXT, dName, nullptr, nullptr));
+
+                    AstAlways *astalways = new AstAlways(new FileLine("json"), VAlwaysKwd::ALWAYS, sentree, assigndly);
+                    module->addStmtp(astalways);
+                    //std::cout << "Done" << std::endl;
+                } else if (type == "$not") {
+                    //std::cout << "Translating NOT gate" << std::endl;
+
+                    auto conns = itr->find("connections");
+                    std::string aName = signals.find(conns->find("A")->begin().value())->second;
+                    std::string yName = signals.find(conns->find("Y")->begin().value())->second;
+
+                    AstAssignW *assignw = new AstAssignW(new FileLine("json"),
+                        new AstParseRef(new FileLine("json"), AstParseRefExp::PX_TEXT, yName, nullptr, nullptr),
+                        new AstNot(new FileLine("json"),
+                            new AstParseRef(new FileLine("json"), AstParseRefExp::PX_TEXT, aName, nullptr, nullptr))
+                    );
+
+                    module->addStmtp(assignw);
+
+                    //std::cout << "Done" << std::endl;
+                } else {
+                    //std::cout << "Unknown type: " << type << std::endl;
+                    throw std::invalid_argument("Unknown cell: " + type + "\n");
+                }
+            }
+        }
+    }
+    else
+    {
+        V3Parse parser (v3Global.rootp(), &filter, &parseSyms);
+        // Read top module
+        const V3StringList& vFiles = v3Global.opt.vFiles();
+        for (V3StringList::const_iterator it = vFiles.begin(); it != vFiles.end(); ++it) {
+            string filename = *it;
+            parser.parseFile(new FileLine(FileLine::commandLineFilename()),
+                            filename, false,
+                            "Cannot find file containing module: ");
+        }
+        // Read libraries
+        // To be compatible with other simulators,
+        // this needs to be done after the top file is read
+        const V3StringSet& libraryFiles = v3Global.opt.libraryFiles();
+        for (V3StringSet::const_iterator it = libraryFiles.begin(); it != libraryFiles.end(); ++it) {
+            string filename = *it;
+            parser.parseFile(new FileLine(FileLine::commandLineFilename()),
+                            filename, true,
+                            "Cannot find file containing library module: ");
+        }
     }
     //v3Global.rootp()->dumpTreeFile(v3Global.debugFilename("parse.tree"));
     V3Error::abortIfErrors();
