@@ -242,6 +242,7 @@ private:
     bool m_hierarchical = false;    // main switch: --hierarchical
     bool m_hierChild = false;       // main switch: --hierarchical-child
     bool m_ignc = false;            // main switch: --ignc
+    bool m_jsonAst = false;         // main switch: --json-ast
     bool m_lintOnly = false;        // main switch: --lint-only
     bool m_gmake = false;           // main switch: --make gmake
     bool m_main = false;            // main swithc: --main
@@ -260,6 +261,7 @@ private:
     bool m_public = false;          // main switch: --public
     bool m_publicFlatRW = false;    // main switch: --public-flat-rw
     bool m_quietExit = false;       // main switch: --quiet-exit
+    bool m_relativeCFuncs = false;  // main switch: --relative-cfuncs
     bool m_relativeIncludes = false; // main switch: --relative-includes
     bool m_reportUnoptflat = false; // main switch: --report-unoptflat
     bool m_savable = false;         // main switch: --savable
@@ -475,6 +477,8 @@ public:
     bool lintOnly() const { return m_lintOnly; }
     bool ignc() const { return m_ignc; }
     bool quietExit() const { return m_quietExit; }
+    bool jsonAst() const { return m_jsonAst; }
+    bool relativeCFuncs() const { return m_relativeCFuncs; }
     bool reportUnoptflat() const { return m_reportUnoptflat; }
     bool verilate() const { return m_verilate; }
     bool vpi() const { return m_vpi; }
