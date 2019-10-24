@@ -103,6 +103,8 @@
 
 #include <ctime>
 
+#include "json.hpp" // nlohmann
+
 V3Global v3Global;
 
 static void reportStatsIfEnabled() {
