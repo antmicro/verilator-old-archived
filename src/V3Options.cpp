@@ -683,6 +683,7 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
             else if ( onoff (sw, "-exe", flag/*ref*/))          { m_exe = flag; }
             else if ( onoff (sw, "-ignc", flag/*ref*/))         { m_ignc = flag; }
             else if ( onoff (sw, "-inhibit-sim", flag/*ref*/))  { m_inhibitSim = flag; }
+            else if ( onoff (sw, "-json-ast", flag/*ref*/))     { m_json_ast = flag; }
             else if ( onoff (sw, "-lint-only", flag/*ref*/))    { m_lintOnly = flag; }
             else if (!strcmp(sw, "-no-pins64"))                 { m_pinsBv = 33; }
             else if ( onoff (sw, "-order-clock-delay", flag/*ref*/)) { m_orderClockDly = flag; }
