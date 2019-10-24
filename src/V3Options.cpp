@@ -1101,6 +1101,8 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
         if (m_instrCountDpi < 0) fl->v3fatal("--instr-count-dpi must be non-negative: " << val);
     });
 
+    DECL_OPTION("-json-ast", OnOff, &m_jsonAst);
+
     DECL_OPTION("-LDFLAGS", CbVal, callStrSetter(&V3Options::addLdLibs));
     const auto setLang = [this, fl](const char* valp) {
         const V3LangCode optval = V3LangCode(valp);
