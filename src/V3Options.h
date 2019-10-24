@@ -252,6 +252,7 @@ private:
     bool        m_flatten;      // main switch: --flatten
     bool        m_ignc;         // main switch: --ignc
     bool        m_inhibitSim;   // main switch: --inhibit-sim
+    bool        m_json_ast;     // main switch: --json-ast
     bool        m_lintOnly;     // main switch: --lint-only
     bool        m_gmake;        // main switch: --make gmake
     bool        m_main;         // main swithc: --main
@@ -477,6 +478,7 @@ public:
     bool ignc() const { return m_ignc; }
     bool inhibitSim() const { return m_inhibitSim; }
     bool quietExit() const { return m_quietExit; }
+    bool jsonAst() const { return m_json_ast; }
     bool relativeCFuncs() const { return m_relativeCFuncs; }
     bool reportUnoptflat() const { return m_reportUnoptflat; }
     bool verilate() const { return m_verilate; }

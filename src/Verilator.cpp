@@ -98,9 +98,11 @@
 
 #include <ctime>
 
+#include "json.hpp" // nlohmann
+
 V3Global v3Global;
 
-static void process() {
+void process() {
     // Sort modules by level so later algorithms don't need to care
     V3LinkLevel::modSortByLevel();
     V3Error::abortIfErrors();
