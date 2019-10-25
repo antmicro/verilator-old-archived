@@ -121,6 +121,16 @@ static void * parseAstTree(nlohmann::json& json)
 
     static unsigned np = 0;
 
+    struct Range {
+        Range(int left, int right) {
+            this->left = left;
+            this->right = right;
+        }
+        ~Range(void) {}
+
+        int left, right;
+    };
+
     if (type == "AST_MODULE") {
         auto name = json.find("name").value();
 
@@ -134,21 +144,54 @@ static void * parseAstTree(nlohmann::json& json)
         }
 
         return module;
+    } else if (type == "AST_RANGE") {
+        auto range = json.find("nodes");
+        assert( (range->size()) == 1 || (range->size() == 2) );
+
+        int left = range.value()[0].find("value").value();
+        int right = left;
+        if (range->size() >= 2)
+            right = range.value()[1].find("value").value();
+
+        assert( (left >= right) && (right >= 0) );
+        return new Range(left, right);
     } else if (type == "AST_WIRE") {
         auto name = json.find("name").value();
 
-        AstNodeDType *dtype = new AstBasicDType(new FileLine("json"), AstBasicDTypeKwd::LOGIC_IMPLICIT);
-        AstVar *v = new AstVar(new FileLine("json"), AstVarType::VAR, name, dtype);
+        //std::cout << "Wire: " << name << std::endl;
 
-        if (json.find("input") != json.end()) {
-            v->declDirection(VDirection::INPUT);
-            v->direction(VDirection::INPUT);
-        } else if (json.find("output") != json.end()) {
-            v->declDirection(VDirection::OUTPUT);
-            v->direction(VDirection::OUTPUT);
+        /* Size of wire */
+        unsigned lrange = 0, rrange = 0;
+        auto nodes = json.find("nodes");
+        if (nodes != json.end()) {
+            for (auto itr = nodes->begin() ; itr != nodes->end() ; ++itr) {
+                auto type = itr->find("type").value();
+
+                if (type == "AST_RANGE") {
+                    Range *range = reinterpret_cast<Range *>(parseAstTree(itr.value()));
+                    lrange = range->left;
+                    rrange = range->right;
+                    delete range;
+                } else
+                    std::cout << "Unknonw type (2): " << type << std::endl;
+            }
         }
 
-        if (json.find("reg") == json.end()) {
+        AstNodeDType *dtype = new AstBasicDType(new FileLine("json"),
+            VFlagLogicPacked(), (lrange - rrange + 1));
+        AstVar *v = new AstVar(new FileLine("json"), AstVarType::VAR, name, dtype);
+
+        auto port = json.find("port");
+        if (port != json.end()) {
+            auto direction = port.value();
+            if (direction == "input") {
+                v->declDirection(VDirection::INPUT);
+                v->direction(VDirection::INPUT);
+            } else if (direction == "output") {
+                v->declDirection(VDirection::OUTPUT);
+                v->direction(VDirection::OUTPUT);
+            }
+
             AstPort *p = new AstPort(new FileLine("json"), ++np, name);
             v->addNextNull(p);
         }
@@ -157,17 +200,19 @@ static void * parseAstTree(nlohmann::json& json)
             v->trace(true);
 
         return v;
-    } else if ( (type == "AST_ASSIGN") || (type == "AST_ASSIGN_LE") ) {
+    } else if ( (type == "AST_ASSIGN") || (type == "AST_ASSIGN_LE") || (type == "AST_ASSIGN_EQ") ) {
         auto nodes = json.find("nodes").value();
         assert(nodes.size() == 2);
 
         auto lvalue = reinterpret_cast<AstNode *>(parseAstTree(nodes[0]));
         auto rvalue = reinterpret_cast<AstNode *>(parseAstTree(nodes[1]));
 
-        if (type == "AST_ASSIGN")
+        if (type == "AST_ASSIGN") // assign
             return new AstAssignW(new FileLine("json"), lvalue, rvalue);
-        else if (type == "AST_ASSIGN_LE")
+        if (type == "AST_ASSIGN_LE") // <= (non blocking)
             return new AstAssignDly(new FileLine("json"), lvalue, rvalue);
+        if (type == "AST_ASSIGN_EQ") // = (blocking)
+            return new AstAssign(new FileLine("json"), lvalue, rvalue);
     } else if (type == "AST_ALWAYS") {
         auto nodes = json.find("nodes");
 
@@ -190,8 +235,25 @@ static void * parseAstTree(nlohmann::json& json)
 
         return astAlways;
     } else if (type == "AST_IDENTIFIER") {
-        return new AstParseRef(new FileLine("json"), AstParseRefExp::PX_TEXT,
+        AstParseRef *ref = new AstParseRef(new FileLine("json"), AstParseRefExp::PX_TEXT,
             json.find("name").value(), nullptr, nullptr);
+
+        auto nodes = json.find("nodes");
+        if (nodes != json.end()) {
+            for (auto itr = nodes->begin() ; itr != nodes->end() ; ++itr) {
+                auto type = itr->find("type").value();
+
+                if (type == "AST_RANGE") {
+                    Range *range = reinterpret_cast<Range *>(parseAstTree(itr.value()));
+                    AstSel *sel = new AstSel(new FileLine("json"), ref, range->left, 1);
+                    delete range;
+                    return sel;
+                } else
+                    std::cout << "Unknown type (AST_IDENTIFIER): " << type << std::endl;
+            }
+        }
+
+        return ref;
     } else if (type == "AST_POSEDGE") {
         auto nodes = json.find("nodes").value();
         assert(nodes.size() == 1);
@@ -217,6 +279,24 @@ static void * parseAstTree(nlohmann::json& json)
         assert(nodes.size() == 1);
         auto *ref = reinterpret_cast<AstParseRef *>(parseAstTree(nodes[0]));
         return new AstNot(new FileLine("json"), ref);
+    } else if (type == "AST_INITIAL") {
+        auto nodes = json.find("nodes");
+
+        AstBegin *begin = nullptr;
+        for (auto itr = nodes->begin() ; itr != nodes->end() ; ++itr) {
+            auto type = itr->find("type").value();
+
+            if (type == "AST_BLOCK")
+                begin = reinterpret_cast<AstBegin *>(parseAstTree(itr.value()));
+            else
+                std::cout << "Unknown type (2): " << type << std::endl;
+        }
+
+        return new AstInitial(new FileLine("json"), begin);
+    } else if (type == "AST_CONSTANT") {
+        int value = json.find("value").value();
+        //std::cout << "Constant value: " << value << std::endl;
+        return new AstConst(new FileLine("json"), value);
     } else {
         std::cout << "Unknown type (1): " << type << std::endl;
     }
