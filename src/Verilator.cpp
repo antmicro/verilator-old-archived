@@ -279,6 +279,24 @@ static void * parseAstTree(nlohmann::json& json)
         assert(nodes.size() == 1);
         auto *ref = reinterpret_cast<AstParseRef *>(parseAstTree(nodes[0]));
         return new AstNot(new FileLine("json"), ref);
+    } else if (type == "AST_BIT_XOR") {
+        auto nodes = json.find("nodes").value();
+        assert(nodes.size() == 2);
+        auto *ref1 = reinterpret_cast<AstParseRef *>(parseAstTree(nodes[0]));
+        auto *ref2 = reinterpret_cast<AstParseRef *>(parseAstTree(nodes[1]));
+        return new AstXor(new FileLine("json"), ref1, ref2);
+    } else if (type == "AST_BIT_OR") {
+        auto nodes = json.find("nodes").value();
+        assert(nodes.size() == 2);
+        auto *ref1 = reinterpret_cast<AstParseRef *>(parseAstTree(nodes[0]));
+        auto *ref2 = reinterpret_cast<AstParseRef *>(parseAstTree(nodes[1]));
+        return new AstOr(new FileLine("json"), ref1, ref2);
+    } else if (type == "AST_BIT_AND") {
+        auto nodes = json.find("nodes").value();
+        assert(nodes.size() == 2);
+        auto *ref1 = reinterpret_cast<AstParseRef *>(parseAstTree(nodes[0]));
+        auto *ref2 = reinterpret_cast<AstParseRef *>(parseAstTree(nodes[1]));
+        return new AstAnd(new FileLine("json"), ref1, ref2);
     } else if (type == "AST_INITIAL") {
         auto nodes = json.find("nodes");
 
