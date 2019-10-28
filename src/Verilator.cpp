@@ -155,6 +155,30 @@ static void * parseAstTree(nlohmann::json& json)
 
         assert( (left >= right) && (right >= 0) );
         return new Range(left, right);
+	} else if (type == "AST_PARAMETER") {
+		auto name = json.find("name").value();
+		//std::cout << "Name: " << name << std::endl;
+
+		auto nodes = json.find("nodes");
+		assert(nodes->size() == 1);
+
+		assert(nodes.value()[0].find("type").value() == "AST_CONSTANT");
+		int width = nodes.value()[0].find("width").value();
+		int value = nodes.value()[0].find("value").value();
+
+		AstNodeDType *dtype = new AstBasicDType(new FileLine("json"),
+			VFlagLogicPacked(), width);
+
+		AstVar *param = new AstVar(new FileLine("json"), AstVarType::VAR, name, dtype);
+
+		AstConst *cnst = new AstConst(new FileLine("json"), AstConst::WidthedValue(), width, value);
+		AstParseRef *ref = new AstParseRef(new FileLine("json"), AstParseRefExp::PX_TEXT, name, nullptr, nullptr);
+		AstAssignW *assign = new AstAssignW(new FileLine("json"), ref, cnst);
+		param->addNextNull(assign);
+
+		//int value = json.find("value").value();
+
+		return param;
     } else if (type == "AST_WIRE") {
         auto name = json.find("name").value();
 
