@@ -295,8 +295,8 @@ static void * parseAstTree(nlohmann::json& json)
         return new AstInitial(new FileLine("json"), begin);
     } else if (type == "AST_CONSTANT") {
         int value = json.find("value").value();
-        //std::cout << "Constant value: " << value << std::endl;
-        return new AstConst(new FileLine("json"), value);
+        int width = json.find("width").value();
+        return new AstConst(new FileLine("json"), AstConst::WidthedValue(), width, value);
     } else {
         std::cout << "Unknown type (1): " << type << std::endl;
     }
