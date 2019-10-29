@@ -131,7 +131,17 @@ static void * parseAstTree(nlohmann::json& json)
         int left, right;
     };
 
-    if (type == "AST_MODULE") {
+    if (type == "AST_TOP") {
+        std::vector<AstModule *> *modules = new std::vector<AstModule *>();
+
+        auto nodes = json.find("nodes");
+        for (auto itr = nodes->begin() ; itr != nodes->end() ; ++itr) {
+            AstModule *module = reinterpret_cast<AstModule *>(parseAstTree(itr.value()));
+            modules->push_back(module);
+        }
+
+        return modules;
+    } else if (type == "AST_MODULE") {
         auto name = json.find("name").value();
 
         AstModule *module = new AstModule(new FileLine("json"), name);
@@ -365,11 +375,15 @@ void V3Global::readFiles() {
         nlohmann::json json = nlohmann::json::parse(ss.str());
 
         /* Parse */
-        AstModule *module = reinterpret_cast<AstModule *>(parseAstTree(json));
+        std::vector<AstModule *> *modules = reinterpret_cast<std::vector<AstModule *> *>(parseAstTree(json));
 
         /* Add to design */
         AstNetlist *designRoot = v3Global.rootp();
-        designRoot->addModulep(module);
+        for (auto itr = modules->begin() ; itr != modules->end() ; ++itr) {
+            std::cout << "adding module" << std::endl;
+            designRoot->addModulep(*itr);
+        }
+        delete modules;
     }
     else
     {
