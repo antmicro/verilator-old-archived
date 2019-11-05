@@ -126,6 +126,27 @@ extern void * parseAstTree(nlohmann::json& json)
         param->valuep(cnst);
 
         return param;
+    } else if (type == "AST_MEMORY") {
+        auto name = json.find("name").value();
+
+        auto nodes = json.find("nodes");
+        assert( (nodes != json.end()) && (nodes->size() == 2) );
+
+        assert(nodes.value()[0].find("type").value() == "AST_RANGE");
+        assert(nodes.value()[1].find("type").value() == "AST_RANGE");
+
+        auto range1 = reinterpret_cast<AstRange *>(parseAstTree(nodes.value()[0]));
+        assert(range1);
+        AstBasicDType *dtype = new AstBasicDType(new FileLine("json"), AstBasicDTypeKwd::LOGIC_IMPLICIT);
+        dtype->rangep(range1);
+
+        auto range2 = reinterpret_cast<AstRange *>(parseAstTree(nodes.value()[1]));
+
+        auto dtypearray = new AstUnpackArrayDType(new FileLine("json"), VFlagChildDType(),
+            dtype, range2);
+        auto var = new AstVar(new FileLine("json"), AstVarType::VAR, name, dtypearray);
+        var->childDTypep(dtypearray);
+        return var;
     } else if (type == "AST_WIRE") {
         auto name = json.find("name").value();
 
