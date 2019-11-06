@@ -520,9 +520,15 @@ extern void * parseAstTree(nlohmann::json& json)
     } else if (type == "AST_COND") {
         auto nodes = json.find("nodes").value();
         debug(std::cout << "AST_COND: nodes.size() " << nodes.size() << std::endl);
-        assert(nodes.size() == 2);
+
         auto cond = reinterpret_cast<AstNode *>(parseAstTree(nodes[0]));
-        auto ref = reinterpret_cast<AstNode *>(parseAstTree(nodes[1]));
+        // e.g. case cond1, cond2: begin ... end;
+        for (int i = 1 ; i < (nodes.size() - 1) ; ++i) {
+            auto tmp = reinterpret_cast<AstNode *>(parseAstTree(nodes[i]));
+            cond->addNextNull(tmp);
+        }
+
+        auto ref = reinterpret_cast<AstNode *>(parseAstTree(nodes[nodes.size() - 1]));
         return new AstCaseItem(new FileLine("json"), cond, ref);
     } else if (type == "AST_DEFAULT") {
         /* Used in AST_CASE, shoud return nullptr (default case) */
