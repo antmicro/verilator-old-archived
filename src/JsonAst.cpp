@@ -166,10 +166,7 @@ extern void * parseAstTree(nlohmann::json& json)
                     auto range = reinterpret_cast<AstRange *>(parseAstTree(itr.value()));
                     assert(range);
                     dtype = new AstBasicDType(new FileLine("json"), VFlagLogicPacked(), range->elementsConst());
-                    AstRange *r = new AstRange(new FileLine("json"),
-                        new AstConst(new FileLine("json"), range->msbConst()),
-                        new AstConst(new FileLine("json"), range->lsbConst()));
-                    dtype->rangep(r);
+                    dtype->rangep(range);
                 } else
                     debug(std::cout << "AST_WIRE: Unknown type: " << type << std::endl);
             }
@@ -254,7 +251,7 @@ extern void * parseAstTree(nlohmann::json& json)
                         assert(range);
                         debug(std::cout << "AST_IDENTIFIER: " << range->name() << ", " << range->elementsConst() << ", " <<
                             range->msbConst() << ", " << range->lsbConst() << std::endl);
-                        AstSel *sel = new AstSel(new FileLine("json"), ref, range->msbConst(), range->elementsConst());
+                        AstSel *sel = new AstSel(new FileLine("json"), ref, range->lsbConst(), range->elementsConst());
                         return sel;
                     } else {
                         auto type = nodes.value()[0].find("type").value();
@@ -557,7 +554,7 @@ extern void * parseAstTree(nlohmann::json& json)
                         range->elementsConst(), cnst->toUInt()); // FIXME: What about signed values?
                 } else {
                     value = new AstConst(new FileLine("json"), AstConst::WidthedValue(),
-                        1, cnst->toUInt()); // FIXME: What about signed values?
+                        cnst->width(), cnst->toUInt()); // FIXME: What about signed values?
                 }
             } else
                 value = reinterpret_cast<AstNode *>(parseAstTree(nodes[0]));
