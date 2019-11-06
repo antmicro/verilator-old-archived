@@ -146,6 +146,8 @@ extern void * parseAstTree(nlohmann::json& json)
             dtype, range2);
         auto var = new AstVar(new FileLine("json"), AstVarType::VAR, name, dtypearray);
         var->childDTypep(dtypearray);
+        if (v3Global.opt.trace())
+            var->trace(true);
         return var;
     } else if (type == "AST_WIRE") {
         auto name = json.find("name").value();
