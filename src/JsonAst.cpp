@@ -517,6 +517,18 @@ extern void * parseAstTree(nlohmann::json& json)
         auto ref = new AstGenIf(new FileLine("json"), ref0, ref1, ref2);
         auto gen = new AstGenerate(new FileLine("json"), ref);
         return gen;
+    } else if (type == "AST_FOR") {
+        auto nodes = json.find("nodes").value();
+        assert(nodes.size() == 4);
+
+        auto init  = reinterpret_cast<AstNode *>(parseAstTree(nodes[0]));
+        auto cond  = reinterpret_cast<AstNode *>(parseAstTree(nodes[1]));
+        auto acti  = reinterpret_cast<AstNode *>(parseAstTree(nodes[2]));
+        auto block = reinterpret_cast<AstNode *>(parseAstTree(nodes[3]));
+
+        auto loop = new AstWhile(new FileLine("json"), cond, block, acti);
+        init->addNextNull(loop);
+        return init;
     } else if (type == "AST_COND") {
         auto nodes = json.find("nodes").value();
         debug(std::cout << "AST_COND: nodes.size() " << nodes.size() << std::endl);
