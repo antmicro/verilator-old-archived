@@ -34,6 +34,7 @@ extern void * parseAstTree(nlohmann::json& json)
 
         std::string modType;
         AstPin *modPins = nullptr;
+        AstPin *modParams = nullptr;
 
         auto nodes = json.find("nodes");
         for (auto itr = nodes->begin() ; itr != nodes->end() ; ++itr) {
@@ -41,27 +42,41 @@ extern void * parseAstTree(nlohmann::json& json)
 
             if (type == "AST_CELLTYPE") {
                 modType = itr->find("name").value();
-        } else if (type == "AST_ARGUMENT") {
-            auto name  = itr->find("name").value();
-            debug(std::cout << "AST_CELL: AST_ARGUMENT: " << name << std::endl);
+            } else if (type == "AST_ARGUMENT") {
+                auto name  = itr->find("name").value();
+                debug(std::cout << "AST_CELL: AST_ARGUMENT: " << name << std::endl);
 
-            auto nodes = itr->find("nodes");
-            if (nodes != itr->end()) {
-                assert(nodes->size() == 1);
+                auto nodes = itr->find("nodes");
+                if (nodes != itr->end()) {
+                    assert(nodes->size() == 1);
 
-                AstParseRef *ref = reinterpret_cast<AstParseRef *>(parseAstTree(nodes.value()[0]));
-                AstPin *pin = new AstPin(new FileLine("json"), ++np, name, ref);
-                if (!modPins)
-                    modPins = pin;
-                else
-                    modPins->addNextNull(pin);
-            }
-        } else
-            debug(std::cout << "AST_CELL: Unknown type " << type << std::endl);
+                    AstParseRef *ref = reinterpret_cast<AstParseRef *>(parseAstTree(nodes.value()[0]));
+                    AstPin *pin = new AstPin(new FileLine("json"), ++np, name, ref);
+                    if (!modPins)
+                        modPins = pin;
+                    else
+                        modPins->addNextNull(pin);
+                }
+            } else if (type == "AST_PARASET") {
+                auto name = itr->find("name").value();
+                auto nodes = itr->find("nodes");
+                if (nodes != itr->end()) {
+                    assert(nodes->size() == 1);
+
+                    auto node = reinterpret_cast<AstConst *>(parseAstTree(nodes.value()[0]));
+                    AstPin *pin = new AstPin(new FileLine("json"), ++np, name, node);
+                    pin->param(true);
+                    if (!modParams)
+                        modParams = pin;
+                    else
+                        modParams->addNextNull(pin);
+                }
+            } else
+                debug(std::cout << "AST_CELL: Unknown type " << type << std::endl);
         }
 
         AstCell *cell = new AstCell(new FileLine("json"), new FileLine("json"),
-            name, modType, modPins, nullptr, nullptr);
+            name, modType, modPins, modParams, nullptr);
 
         return cell;
     } else if (type == "AST_MODULE") {
