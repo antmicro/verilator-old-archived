@@ -71,9 +71,9 @@ extern void * parseAstTree(nlohmann::json& json)
 
         auto nodes = json.find("nodes");
         for (auto itr = nodes->begin() ; itr != nodes->end() ; ++itr) {
-            void *node = parseAstTree(itr.value());
+            auto *node = reinterpret_cast<AstNode *>(parseAstTree(itr.value()));
             if (node)
-                module->addStmtp(reinterpret_cast<AstNode *>(node));
+                module->addStmtp(node);
         }
 
         return module;
