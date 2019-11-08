@@ -120,10 +120,7 @@ extern void * parseAstTree(nlohmann::json& json)
         // FIXME: AstVarType
         AstVar *param = new AstVar(new FileLine("json"), AstVarType::GPARAM, name, dtype);
         param->childDTypep(dtype);
-
-        AstConst *cnst = new AstConst(new FileLine("json"), AstConst::WidthedValue(),
-            range->elementsConst(), value->toUInt()); // FIXME: What about signed values?
-        param->valuep(cnst);
+        param->valuep(value);
 
         return param;
     } else if (type == "AST_MEMORY") {
