@@ -126,6 +126,7 @@ class V3Options {
     bool        m_ignc;         // main switch: --ignc
     bool        m_inhibitSim;   // main switch: --inhibit-sim
     bool        m_json_ast;     // main switch: --json-ast
+    bool        m_uhdm_ast;     // main switch: --uhdm-ast
     bool        m_lintOnly;     // main switch: --lint-only
     bool        m_orderClockDly;// main switch: --order-clock-delay
     bool        m_outFormatOk;  // main switch: --cc, --sc or --sp was specified
@@ -316,6 +317,7 @@ class V3Options {
     bool ignc() const { return m_ignc; }
     bool inhibitSim() const { return m_inhibitSim; }
     bool jsonAst() const { return m_json_ast; }
+    bool uhdmAst() const { return m_uhdm_ast; }
     bool relativeCFuncs() const { return m_relativeCFuncs; }
     bool reportUnoptflat() const { return m_reportUnoptflat; }
     bool vpi() const { return m_vpi; }

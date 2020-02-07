@@ -145,6 +145,15 @@ void V3Global::readFiles() {
         }
         delete modules;
     }
+    else if(v3Global.opt.uhdmAst())
+    {
+        std::cout << "Parsing input as UHDM" << std::endl;
+
+        /* Parse */
+
+        exit(0);
+        /* Add to design ... eventually*/
+    }
     else
     {
         V3Parse parser (v3Global.rootp(), &filter, &parseSyms);
