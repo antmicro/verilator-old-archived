@@ -1102,6 +1102,7 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
     });
 
     DECL_OPTION("-json-ast", OnOff, &m_jsonAst);
+    DECL_OPTION("-uhdm-ast", OnOff, &m_uhdmAst);
 
     DECL_OPTION("-LDFLAGS", CbVal, callStrSetter(&V3Options::addLdLibs));
     const auto setLang = [this, fl](const char* valp) {
