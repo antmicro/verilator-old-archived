@@ -1131,6 +1131,8 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
                 m_xInitialEdge = flag;
             } else if (onoff(sw, "-xml-only", flag /*ref*/)) {
                 m_xmlOnly = flag;
+            } else if ( onoff (sw, "-uhdm-ast", flag/*ref*/)) {
+                m_uhdm_ast = flag;
             } else {
                 hadSwitchPart1 = false;
             }
