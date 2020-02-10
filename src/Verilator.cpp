@@ -99,6 +99,8 @@
 
 #include <ctime>
 
+#include "uhdm.h"
+#include "vpi_visitor.h"
 V3Global v3Global;
 
 static void reportStatsIfEnabled() {
