@@ -98,6 +98,9 @@
 
 #include "json.hpp" // nlohmann
 
+#include "uhdm.h"
+#include "vpi_visitor.h"
+
 V3Global v3Global;
 
 //######################################################################
@@ -148,10 +151,22 @@ void V3Global::readFiles() {
     else if(v3Global.opt.uhdmAst())
     {
         std::cout << "Parsing input as UHDM" << std::endl;
+        const V3StringList& vFiles = v3Global.opt.vFiles();
+        UHDM::Serializer serializer;
+
+        for (auto file : vFiles) {
+            std::cout << "Walking " << file << std::endl;
+            std::vector<vpiHandle> restoredDesigns = serializer.Restore(file);
+
+            std::string restored = UHDM::visit_designs(restoredDesigns);
+            //std::string restored = UHDM::visit_designs(restoredDesigns);
+            std::cout << "Restored design: " <<std::endl;
+            std::cout << restored;
+        }
+        exit(0);
 
         /* Parse */
 
-        exit(0);
         /* Add to design ... eventually*/
     }
     else
