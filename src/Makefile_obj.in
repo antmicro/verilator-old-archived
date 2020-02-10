@@ -80,7 +80,8 @@ ifeq ($(VL_DEBUG),)
 CPPFLAGS += -O2
 else
 # Debug
-CPPFLAGS += @CFG_CXXFLAGS_DEBUG@ -DVL_DEBUG -D_GLIBCXX_DEBUG
+# UHDM does not currently build separate release and debug libs, so drop GLIBCXX_DEBUG for now
+CPPFLAGS += @CFG_CXXFLAGS_DEBUG@ -DVL_DEBUG #-D_GLIBCXX_DEBUG
 LDFLAGS += @CFG_LDFLAGS_DEBUG@
 endif
 #################
@@ -102,6 +103,13 @@ else
 CPPFLAGS += $(CFG_CXXFLAGS_SRC)
 endif
 LDFLAGS += $(CFG_LDFLAGS_SRC)
+
+#*** UHDM ***
+CPPFLAGS += -std=c++14 -I$(srcdir)/../../image/include/uhdm \
+			-I$(srcdir)/../../image/include/uhdm/include \
+			-I$(srcdir)/../../image/include/uhdm/headers
+LDFLAGS += -L$(srcdir)/../../image/lib/uhdm -L$(srcdir)/../../image/lib
+LIBS += -luhdm -lcapnp -lkj -ldl -lutil -lm -lrt -lpthread
 
 CPPFLAGSWALL   = $(CPPFLAGS)
 CPPFLAGSPARSER = $(CPPFLAGS) $(CFG_CXXFLAGS_PARSER)

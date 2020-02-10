@@ -106,6 +106,9 @@
 
 #include "json.hpp" // nlohmann
 
+#include "uhdm.h"
+#include "vpi_visitor.h"
+
 V3Global v3Global;
 
 static void reportStatsIfEnabled() {
