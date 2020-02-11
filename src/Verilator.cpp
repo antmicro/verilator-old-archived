@@ -102,6 +102,7 @@
 
 #include "uhdm.h"
 #include "vpi_visitor.h"
+#include "UhdmAst.h"
 
 V3Global v3Global;
 
