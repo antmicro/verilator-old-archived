@@ -251,6 +251,7 @@ RAW_OBJS = \
 	V3Width.o \
 	V3WidthSel.o \
 	JsonAst.o \
+	UhdmAst.o \
 
 # Non-concatable
 NC_OBJS += \
