@@ -260,6 +260,7 @@ RAW_OBJS = \
 	V3Waiver.o \
 	V3Width.o \
 	V3WidthSel.o \
+	UhdmAst.o \
 
 # Non-concatable
 NC_OBJS += \
