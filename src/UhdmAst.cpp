@@ -46,6 +46,7 @@ namespace UhdmAst {
     switch(objectType) {
       case vpiDesign: {
         std::cout << "> Is a design" << std::endl;
+        //FIXME: Only one module for now
         itr = vpi_iterate(UHDM::uhdmallModules,obj_h);
         while (vpiHandle vpi_obj = vpi_scan(itr) ) {
           node = visit_object(vpi_obj);
@@ -83,8 +84,8 @@ namespace UhdmAst {
         port->addNextNull(var);
         var->childDTypep(dtype);
 
-        //if (v3Global.opt.trace())
-        //    var->trace(true);
+        if (v3Global.opt.trace())
+            var->trace(true);
 
         if (port) {
           return port;
@@ -150,6 +151,14 @@ namespace UhdmAst {
           std::cout << ">> returning contAssign" << std::endl;
           return new AstAssignW(new FileLine("uhdm"), lvalue, rvalue);
         }
+        break;
+      }
+      case vpiRefObj: {
+        std::cout << ">> Is a RefObj" << std::endl;
+
+        bool isLvalue = (objectName == "b"); //FIXME: Absurd, but temporarily true
+        return new AstVarRef(new FileLine("uhdm"), objectName, isLvalue);
+
         break;
       }
       default: {
