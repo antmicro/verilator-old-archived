@@ -55,6 +55,7 @@ namespace UhdmAst {
       return node;
     }
     else if (objectType == vpiClassObj) {
+      std::cout << "> Is a ClassObj" << std::endl;
     }
     else if (objectType == vpiPort) {
       std::cout << "> Is a port" << std::endl;
@@ -88,8 +89,10 @@ namespace UhdmAst {
       }
     }
     else if (objectType == vpiPackage) {
+      std::cout << "> Is a package" << std::endl;
     }
     else if (objectType == vpiClassDefn) {
+      std::cout << "> Is a ClassDefn" << std::endl;
     }
     else if (objectType == vpiModule) {
       std::cout << "> Is a module" << std::endl;
@@ -97,19 +100,48 @@ namespace UhdmAst {
 
       if (module != nullptr) {
         std::cout << "> Have node" << std::endl;
-        itr = vpi_iterate(vpiPort, obj_h);
-        while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
-          auto *childNode = visit_object(vpi_child_obj);
-          std::cout << "! Out of general children" << std::endl;
-          if (childNode != nullptr) {
-            std::cout << ">> Has a child node" << std::endl;
-            // Update current module's list of statements
-            module->addStmtp(childNode);
+
+        std::vector<int> module_child_nodes = {vpiPort, vpiContAssign};
+        for (auto child : module_child_nodes) {
+          itr = vpi_iterate(child, obj_h);
+          while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
+            auto *childNode = visit_object(vpi_child_obj);
+            std::cout << "! Out of general children" << std::endl;
+            if (childNode != nullptr) {
+              std::cout << ">> Has a child node" << std::endl;
+              // Update current module's list of statements
+              module->addStmtp(childNode);
+            }
+            vpi_free_object(vpi_child_obj);
           }
-          vpi_free_object(vpi_child_obj);
+          vpi_free_object(itr);
         }
-        vpi_free_object(itr);
         return module;
+      }
+    } else if (objectType == vpiContAssign) {
+      std::cout << ">> Is a ContAssign" << std::endl;
+      AstNode* lvalue = nullptr;
+      AstNode* rvalue = nullptr;
+
+      // Right
+      itr = vpi_handle(vpiRhs,obj_h);
+      if (itr) {
+        std::cout << ">> have right" << std::endl;
+        rvalue = visit_object(itr);
+      }
+      vpi_free_object(itr);
+
+      // Left
+      itr = vpi_handle(vpiLhs,obj_h);
+      if (itr) {
+        std::cout << ">> have left" << std::endl;
+        lvalue = visit_object(itr);
+      }
+      vpi_free_object(itr);
+
+      if (lvalue && rvalue) {
+        std::cout << ">> returning contAssign" << std::endl;
+        return new AstAssignW(new FileLine("uhdm"), lvalue, rvalue);
       }
     }
     return nullptr;
