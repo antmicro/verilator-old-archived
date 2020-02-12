@@ -165,15 +165,17 @@ void V3Global::readFiles() {
 
             /* Parse */
             std::cout << "Parsing" <<std::endl;
-            std::vector<AstNodeModule *> modules = UhdmAst::visit_designs(restoredDesigns);
+            std::vector<AstNodeModule*> modules =
+                        UhdmAst::visit_designs(restoredDesigns);
 
             /* Add to design ... eventually*/
             std::cout << "Adding to design" <<std::endl;
             AstNetlist *designRoot = v3Global.rootp();
-            for (auto itr = modules.begin() ; itr != modules.end() ; ++itr) {
+            for (auto itr = modules.begin(); itr != modules.end(); ++itr) {
                 designRoot->addModulep(*itr);
             }
         }
+            std::cout << "Added" <<std::endl;
 
     }
     else
