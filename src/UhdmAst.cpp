@@ -18,11 +18,12 @@
 #include "V3Ast.h"
 
 namespace UhdmAst {
-  AstNodeModule* visit_object (vpiHandle obj_h) {
+  AstNode* visit_object (vpiHandle obj_h) {
     std::cout << __FUNCTION__ << " " << obj_h << std::endl;
     // Will keep current node
-    AstNodeModule* node = nullptr;
+    AstNode* node = nullptr;
 
+    static unsigned numPorts;
     // Current object data
     int lineNo = 0;
     std::string objectName = "";
@@ -56,6 +57,35 @@ namespace UhdmAst {
     else if (objectType == vpiClassObj) {
     }
     else if (objectType == vpiPort) {
+      std::cout << "> Is a port" << std::endl;
+      AstPort *port = nullptr;
+      AstVar *var = nullptr;
+      AstBasicDType *dtype = nullptr;
+
+      dtype = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::LOGIC_IMPLICIT);
+
+      port = new AstPort(new FileLine("uhdm"), ++numPorts, objectName);
+
+      var = new AstVar(new FileLine("uhdm"), AstVarType::PORT, objectName, dtype);
+      if (const int n = vpi_get(vpiDirection, obj_h)) {
+        if (n == 1) {
+          var->declDirection(VDirection::INPUT);
+          var->direction(VDirection::INPUT);
+        } else if (n == 2) {
+          var->declDirection(VDirection::OUTPUT);
+          var->direction(VDirection::OUTPUT);
+        }
+      }
+
+      port->addNextNull(var);
+      var->childDTypep(dtype);
+
+      //if (v3Global.opt.trace())
+      //    var->trace(true);
+
+      if (port) {
+        return port;
+      }
     }
     else if (objectType == vpiPackage) {
     }
@@ -63,24 +93,24 @@ namespace UhdmAst {
     }
     else if (objectType == vpiModule) {
       std::cout << "> Is a module" << std::endl;
-      node = new AstModule(new FileLine("uhdm"), objectName);
-    }
+      AstModule *module = new AstModule(new FileLine("uhdm"), objectName);
 
-    if (node != nullptr) {
-      std::cout << "> Have node" << std::endl;
-      itr = vpi_iterate(vpiPort, obj_h);
-      while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
-        auto *childNode = visit_object(vpi_child_obj);
-        std::cout << "! Out of general children" << std::endl;
-        if (childNode != nullptr) {
-          std::cout << ">> Has a child node" << std::endl;
-          // Update current module's list of statements
-          node->addStmtp(childNode);
+      if (module != nullptr) {
+        std::cout << "> Have node" << std::endl;
+        itr = vpi_iterate(vpiPort, obj_h);
+        while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
+          auto *childNode = visit_object(vpi_child_obj);
+          std::cout << "! Out of general children" << std::endl;
+          if (childNode != nullptr) {
+            std::cout << ">> Has a child node" << std::endl;
+            // Update current module's list of statements
+            module->addStmtp(childNode);
+          }
+          vpi_free_object(vpi_child_obj);
         }
-        vpi_free_object(vpi_child_obj);
+        vpi_free_object(itr);
+        return module;
       }
-      vpi_free_object(itr);
-      return node;
     }
     return nullptr;
   }
@@ -89,8 +119,10 @@ namespace UhdmAst {
     std::cout << __FUNCTION__ << std::endl;
     std::vector<AstNodeModule*> nodes;
     for (auto design : designs) {
-      nodes.push_back(visit_object(design));
+      // Top level nodes need to be NodeModules (created from design)
+      nodes.push_back(reinterpret_cast<AstNodeModule*>(visit_object(design)));
     }
+    std::cout << __FUNCTION__ << " end" << std::endl;
     return nodes;
   }
 
