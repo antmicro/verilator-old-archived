@@ -135,7 +135,17 @@ namespace UhdmAst {
         itr = vpi_handle(vpiRhs,obj_h);
         if (itr) {
           std::cout << ">> have right" << std::endl;
-          rvalue = visit_object(itr);
+          // Look ahead: is it just a reference?
+          const unsigned int rvalueType = vpi_get(vpiType, itr);
+          if (rvalueType == vpiRefObj) {
+            // If so, construct it here without visiting
+            rvalue = new AstVarRef(new FileLine("uhdm"),
+                                   vpi_get_str(vpiName, itr),
+                                   false); // is lvalue
+          } else {
+            // Determine type as usual
+            rvalue = visit_object(itr);
+          }
         }
         vpi_free_object(itr);
 
@@ -143,7 +153,17 @@ namespace UhdmAst {
         itr = vpi_handle(vpiLhs,obj_h);
         if (itr) {
           std::cout << ">> have left" << std::endl;
-          lvalue = visit_object(itr);
+          // Look ahead: is it just a reference?
+          const unsigned int lvalueType = vpi_get(vpiType, itr);
+          if (lvalueType == vpiRefObj) {
+            // If so, construct it here without visiting
+            lvalue = new AstVarRef(new FileLine("uhdm"),
+                                   vpi_get_str(vpiName, itr),
+                                   true); // is lvalue
+          } else {
+            // Determine type as usual
+            lvalue = visit_object(itr);
+          }
         }
         vpi_free_object(itr);
 
