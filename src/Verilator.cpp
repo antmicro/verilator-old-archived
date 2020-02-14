@@ -100,6 +100,8 @@
 
 #include "uhdm.h"
 #include "UhdmAst.h"
+#include "vpi_visitor.h"
+#include <iostream>
 
 V3Global v3Global;
 
@@ -155,6 +157,8 @@ void V3Global::readFiles() {
 
         for (auto file : vFiles) {
             std::vector<vpiHandle> restoredDesigns = serializer.Restore(file);
+
+            std::cout << UHDM::visit_designs(restoredDesigns) << std::endl;
 
             /* Parse */
             std::vector<AstNodeModule*> modules =
