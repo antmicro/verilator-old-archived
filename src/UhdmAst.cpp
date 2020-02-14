@@ -51,12 +51,15 @@ namespace UhdmAst {
                          dtype);
 
         if (const int n = vpi_get(vpiDirection, obj_h)) {
-          if (n == 1) {
+          if (n == vpiInput) {
             var->declDirection(VDirection::INPUT);
             var->direction(VDirection::INPUT);
-          } else if (n == 2) {
+          } else if (n == vpiOutput) {
             var->declDirection(VDirection::OUTPUT);
             var->direction(VDirection::OUTPUT);
+          } else if (n == vpiInout) {
+            var->declDirection(VDirection::INOUT);
+            var->direction(VDirection::INOUT);
           }
         }
 
@@ -76,7 +79,9 @@ namespace UhdmAst {
         AstModule *module = new AstModule(new FileLine("uhdm"), objectName);
 
         if (module != nullptr) {
-          std::vector<int> module_child_nodes = {vpiPort, vpiContAssign};
+          std::vector<int> module_child_nodes = {vpiPort,
+                                                 vpiContAssign,
+                                                 vpiLogicNet};
           for (auto child : module_child_nodes) {
             itr = vpi_iterate(child, obj_h);
             while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
@@ -100,34 +105,14 @@ namespace UhdmAst {
         // Right
         itr = vpi_handle(vpiRhs,obj_h);
         if (itr) {
-          // Look ahead: is it just a reference?
-          const unsigned int rvalueType = vpi_get(vpiType, itr);
-          if (rvalueType == vpiRefObj) {
-            // If so, construct it here without visiting
-            rvalue = new AstVarRef(new FileLine("uhdm"),
-                                   vpi_get_str(vpiName, itr),
-                                   false); // is lvalue
-          } else {
-            // Determine type as usual
-            rvalue = visit_object(itr);
-          }
+          rvalue = visit_object(itr);
         }
         vpi_free_object(itr);
 
         // Left
         itr = vpi_handle(vpiLhs,obj_h);
         if (itr) {
-          // Look ahead: is it just a reference?
-          const unsigned int lvalueType = vpi_get(vpiType, itr);
-          if (lvalueType == vpiRefObj) {
-            // If so, construct it here without visiting
-            lvalue = new AstVarRef(new FileLine("uhdm"),
-                                   vpi_get_str(vpiName, itr),
-                                   true); // is lvalue
-          } else {
-            // Determine type as usual
-            lvalue = visit_object(itr);
-          }
+          lvalue = visit_object(itr);
         }
         vpi_free_object(itr);
 
@@ -137,12 +122,68 @@ namespace UhdmAst {
         break;
       }
       case vpiRefObj: {
+        std::cout << "Got a VarRef" << std::endl;
 
+          std::vector<int> child_node_handle_types = {vpiInstance,
+                                                      vpiTaskFunc,
+                                                      vpiActual,
+                                                      vpiTypespec};
+          std::vector<int> child_node_iter_types = {vpiPortInst};
+          for (auto child : child_node_handle_types) {
+            itr = vpi_handle(child,obj_h);
+            if (itr){
+              auto *childNode = visit_object(itr);
+            }
+            vpi_free_object(itr);
+          }
+          for (auto child : child_node_iter_types) {
+            itr = vpi_iterate(child, obj_h);
+            while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
+              auto *childNode = visit_object(vpi_child_obj);
+              vpi_free_object(vpi_child_obj);
+            }
+            vpi_free_object(itr);
+          }
         // TODO: We actually don't know if this is an lvalue below,
         // can it be read via vpi?
         node = new AstVarRef(new FileLine("uhdm"), objectName, false);
         return node;
 
+        break;
+      }
+      case vpiLogicNet: {
+        std::cout << "Got a logicNet" << std::endl;
+          std::vector<int> child_node_handle_types = {vpiLeftRange,
+                                                      vpiRightRange,
+                                                      };
+          std::vector<int> child_node_iter_types = {vpiRange,
+                                                    vpiBit};
+          for (auto child : child_node_handle_types) {
+            itr = vpi_handle(child,obj_h);
+            if (itr){
+        std::cout << "Got a handle" << std::endl;
+              auto *childNode = visit_object(itr);
+            }
+            vpi_free_object(itr);
+          }
+          for (auto child : child_node_iter_types) {
+            itr = vpi_iterate(child, obj_h);
+            while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
+        std::cout << "Got an iterator" << std::endl;
+              auto *childNode = visit_object(vpi_child_obj);
+              vpi_free_object(vpi_child_obj);
+            }
+            vpi_free_object(itr);
+          }
+        AstBasicDType *dtype = nullptr;
+        dtype = new AstBasicDType(new FileLine("uhdm"),
+                                  AstBasicDTypeKwd::LOGIC_IMPLICIT);
+        if (const int n = vpi_get(vpiNetType, obj_h)) {
+          std::cout << "Net type: " << n << std::endl;
+        }
+        auto *v = new AstVar(new FileLine("uhdm"), AstVarType::VAR, objectName, dtype);
+        v->childDTypep(dtype);
+        return v;
         break;
       }
       // What we can see (but don't support yet)
