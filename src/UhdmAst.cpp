@@ -24,9 +24,29 @@ namespace UhdmAst {
     }
 
     const unsigned int objectType = vpi_get(vpiType, obj_h);
+    std::cout << "Object: " << objectName
+              << " of type " << objectType
+              << std::endl;
 
     switch(objectType) {
       case vpiDesign: {
+
+        std::vector<int> child_node_iter_types = {UHDM::uhdmtopModules,
+                                                  UHDM::uhdmallPrograms,
+                                                  UHDM::uhdmallPackages,
+                                                  UHDM::uhdmallClasses,
+                                                  UHDM::uhdmallInterfaces,
+                                                  UHDM::uhdmallUdps
+                                                 };
+        for (auto child : child_node_iter_types) {
+          itr = vpi_iterate(child, obj_h);
+          while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
+            visit_object(vpi_child_obj);
+            vpi_free_object(vpi_child_obj);
+          }
+          vpi_free_object(itr);
+        }
+
         //FIXME: Only one module for now
         itr = vpi_iterate(UHDM::uhdmallModules,obj_h);
         while (vpiHandle vpi_obj = vpi_scan(itr) ) {
@@ -34,6 +54,7 @@ namespace UhdmAst {
           vpi_free_object(vpi_obj);
         }
         vpi_free_object(itr);
+
         return node;
       }
       case vpiPort: {
@@ -165,7 +186,6 @@ namespace UhdmAst {
         break;
       }
       case vpiLogicNet: {
-        std::cout << "Got a logicNet: " << objectName << std::endl;
         // Handling of this node is not functional yet
         break;
           std::vector<int> child_node_handle_types = {vpiLeftRange,
@@ -203,10 +223,41 @@ namespace UhdmAst {
 
         break;
       }
+      case vpiClassDefn: {
+        if (const char* s = vpi_get_str(vpiFullName, obj_h)) {
+          std::cout << "|vpiFullName: " << s << std::endl;
+        }
+
+        std::vector<int> child_node_iter_types = {vpiConcurrentAssertions,
+                                                  vpiVariables,
+                                                  vpiParameter,
+                                                  vpiInternalScope,
+                                                  vpiTypedef,
+                                                  vpiPropertyDecl,
+                                                  vpiSequenceDecl,
+                                                  vpiNamedEvent,
+                                                  vpiNamedEventArray,
+                                                  vpiVirtualInterfaceVar,
+                                                  vpiReg,
+                                                  vpiRegArray,
+                                                  vpiMemory,
+                                                  vpiLetDecl,
+                                                  vpiImport};
+        for (auto child : child_node_iter_types) {
+          itr = vpi_iterate(child, obj_h);
+          while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
+          std::cout << "Got an iterator" << std::endl;
+            auto *childNode = visit_object(vpi_child_obj);
+            vpi_free_object(vpi_child_obj);
+          }
+          vpi_free_object(itr);
+        }
+
+        break;
+      }
       // What we can see (but don't support yet)
       case vpiClassObj:
       case vpiPackage:
-      case vpiClassDefn:
       default: {
         break;
       }
