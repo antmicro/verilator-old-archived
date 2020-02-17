@@ -165,7 +165,9 @@ namespace UhdmAst {
         break;
       }
       case vpiLogicNet: {
-        std::cout << "Got a logicNet" << std::endl;
+        std::cout << "Got a logicNet: " << objectName << std::endl;
+        // Handling of this node is not functional yet
+        break;
           std::vector<int> child_node_handle_types = {vpiLeftRange,
                                                       vpiRightRange,
                                                       };
@@ -174,7 +176,7 @@ namespace UhdmAst {
           for (auto child : child_node_handle_types) {
             itr = vpi_handle(child,obj_h);
             if (itr){
-        std::cout << "Got a handle" << std::endl;
+            std::cout << "Got a handle" << std::endl;
               auto *childNode = visit_object(itr);
             }
             vpi_free_object(itr);
@@ -182,12 +184,13 @@ namespace UhdmAst {
           for (auto child : child_node_iter_types) {
             itr = vpi_iterate(child, obj_h);
             while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
-        std::cout << "Got an iterator" << std::endl;
+            std::cout << "Got an iterator" << std::endl;
               auto *childNode = visit_object(vpi_child_obj);
               vpi_free_object(vpi_child_obj);
             }
             vpi_free_object(itr);
           }
+
         AstBasicDType *dtype = nullptr;
         dtype = new AstBasicDType(new FileLine("uhdm"),
                                   AstBasicDTypeKwd::LOGIC_IMPLICIT);
@@ -197,6 +200,7 @@ namespace UhdmAst {
         auto *v = new AstVar(new FileLine("uhdm"), AstVarType::VAR, objectName, dtype);
         v->childDTypep(dtype);
         return v;
+
         break;
       }
       // What we can see (but don't support yet)
