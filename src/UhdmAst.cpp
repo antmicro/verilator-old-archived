@@ -122,31 +122,44 @@ namespace UhdmAst {
         break;
       }
       case vpiRefObj: {
-        std::cout << "Got a VarRef" << std::endl;
+        bool isLvalue = false;
+        std::vector<int> child_node_handle_types = {vpiInstance,
+                                                    vpiTaskFunc,
+                                                    vpiTypespec};
+        std::vector<int> child_node_iter_types = {vpiPortInst};
+        for (auto child : child_node_handle_types) {
+          itr = vpi_handle(child,obj_h);
+          if (itr){
+            auto *childNode = visit_object(itr);
+          }
+          vpi_free_object(itr);
+        }
+        for (auto child : child_node_iter_types) {
+          itr = vpi_iterate(child, obj_h);
+          while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
+            auto *childNode = visit_object(vpi_child_obj);
+            vpi_free_object(vpi_child_obj);
+          }
+          vpi_free_object(itr);
+        }
 
-          std::vector<int> child_node_handle_types = {vpiInstance,
-                                                      vpiTaskFunc,
-                                                      vpiActual,
-                                                      vpiTypespec};
-          std::vector<int> child_node_iter_types = {vpiPortInst};
-          for (auto child : child_node_handle_types) {
-            itr = vpi_handle(child,obj_h);
-            if (itr){
-              auto *childNode = visit_object(itr);
+        vpiHandle actual = vpi_handle(vpiActual, obj_h);
+        if (actual) {
+          auto actual_type = vpi_get(vpiType, actual);
+          if (actual_type == vpiPort) {
+            if (const int n = vpi_get(vpiDirection, actual)) {
+              if (n == vpiInput) {
+                isLvalue = false;
+              } else if (n == vpiOutput) {
+                isLvalue = true;
+              } else if (n == vpiInout) {
+                isLvalue = true;
+              }
             }
-            vpi_free_object(itr);
           }
-          for (auto child : child_node_iter_types) {
-            itr = vpi_iterate(child, obj_h);
-            while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
-              auto *childNode = visit_object(vpi_child_obj);
-              vpi_free_object(vpi_child_obj);
-            }
-            vpi_free_object(itr);
-          }
-        // TODO: We actually don't know if this is an lvalue below,
-        // can it be read via vpi?
-        node = new AstVarRef(new FileLine("uhdm"), objectName, false);
+          vpi_free_object(actual);
+        }
+        node = new AstVarRef(new FileLine("uhdm"), objectName, isLvalue);
         return node;
 
         break;
