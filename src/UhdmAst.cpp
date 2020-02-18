@@ -1,10 +1,46 @@
 #include <vector>
+#include <functional>
 
 #include "headers/uhdm.h"
 
 #include "V3Ast.h"
+#include "UhdmAst.h"
 
 namespace UhdmAst {
+
+  // Walks through one-to-many relationships from given parent
+  // node through the VPI interface, visiting child nodes belonging to
+  // ChildrenNodeTypes that are present in the given object.
+  void visit_one_to_many (const std::vector<int> childrenNodeTypes,
+                          vpiHandle parentHandle,
+                          const std::function<void(AstNode*)> &f) {
+    for (auto child : childrenNodeTypes) {
+      vpiHandle itr = vpi_iterate(child, parentHandle);
+      while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
+        auto *childNode = visit_object(vpi_child_obj);
+        f(childNode);
+        vpi_free_object(vpi_child_obj);
+      }
+      vpi_free_object(itr);
+    }
+  }
+
+  // Walks through one-to-one relationships from given parent
+  // node through the VPI interface, visiting child nodes belonging to
+  // ChildrenNodeTypes that are present in the given object.
+  void visit_one_to_one (const std::vector<int> childrenNodeTypes,
+                          vpiHandle parentHandle,
+                          const std::function<void(AstNode*)> &f) {
+    for (auto child : childrenNodeTypes) {
+      vpiHandle itr = vpi_handle(child, parentHandle);
+      if (itr) {
+        auto *childNode = visit_object(itr);
+        f(childNode);
+      }
+      vpi_free_object(itr);
+    }
+  }
+
   AstNode* visit_object (vpiHandle obj_h) {
     // Will keep current node
     AstNode* node = nullptr;
@@ -31,29 +67,23 @@ namespace UhdmAst {
     switch(objectType) {
       case vpiDesign: {
 
-        std::vector<int> child_node_iter_types = {UHDM::uhdmtopModules,
-                                                  UHDM::uhdmallPrograms,
-                                                  UHDM::uhdmallPackages,
-                                                  UHDM::uhdmallClasses,
-                                                  UHDM::uhdmallInterfaces,
-                                                  UHDM::uhdmallUdps
-                                                 };
-        for (auto child : child_node_iter_types) {
-          itr = vpi_iterate(child, obj_h);
-          while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
-            visit_object(vpi_child_obj);
-            vpi_free_object(vpi_child_obj);
-          }
-          vpi_free_object(itr);
-        }
+        visit_one_to_many({UHDM::uhdmtopModules,
+                           UHDM::uhdmallPrograms,
+                           UHDM::uhdmallPackages,
+                           UHDM::uhdmallClasses,
+                           UHDM::uhdmallInterfaces,
+                           UHDM::uhdmallUdps},
+                          obj_h,
+                          [](AstNode* node){});
 
         //FIXME: Only one module for now
-        itr = vpi_iterate(UHDM::uhdmallModules,obj_h);
-        while (vpiHandle vpi_obj = vpi_scan(itr) ) {
-          node = visit_object(vpi_obj);
-          vpi_free_object(vpi_obj);
-        }
-        vpi_free_object(itr);
+        visit_one_to_many({UHDM::uhdmallModules},
+            obj_h,
+            [&](AstNode* module) {
+              if (module != nullptr) {
+                node = module;
+              }
+            });
 
         return node;
       }
@@ -100,21 +130,12 @@ namespace UhdmAst {
         AstModule *module = new AstModule(new FileLine("uhdm"), objectName);
 
         if (module != nullptr) {
-          std::vector<int> module_child_nodes = {vpiPort,
-                                                 vpiContAssign,
-                                                 vpiLogicNet};
-          for (auto child : module_child_nodes) {
-            itr = vpi_iterate(child, obj_h);
-            while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
-              auto *childNode = visit_object(vpi_child_obj);
-              if (childNode != nullptr) {
-                // Update current module's list of statements
-                module->addStmtp(childNode);
-              }
-              vpi_free_object(vpi_child_obj);
-            }
-            vpi_free_object(itr);
-          }
+          visit_one_to_many({vpiPort, vpiContAssign, vpiLogicNet},
+              obj_h,
+              [&](AstNode* node){
+                if (node != nullptr)
+                  module->addStmtp(node);
+              });
           return module;
         }
         break;
@@ -124,18 +145,18 @@ namespace UhdmAst {
         AstNode* rvalue = nullptr;
 
         // Right
-        itr = vpi_handle(vpiRhs,obj_h);
-        if (itr) {
-          rvalue = visit_object(itr);
-        }
-        vpi_free_object(itr);
+        visit_one_to_one({vpiRhs},
+            obj_h,
+            [&](AstNode* child){
+              rvalue = child;
+            });
 
         // Left
-        itr = vpi_handle(vpiLhs,obj_h);
-        if (itr) {
-          lvalue = visit_object(itr);
-        }
-        vpi_free_object(itr);
+        visit_one_to_one({vpiLhs},
+            obj_h,
+            [&](AstNode* child){
+              lvalue = child;
+            });
 
         if (lvalue && rvalue) {
           return new AstAssignW(new FileLine("uhdm"), lvalue, rvalue);
@@ -144,25 +165,14 @@ namespace UhdmAst {
       }
       case vpiRefObj: {
         bool isLvalue = false;
-        std::vector<int> child_node_handle_types = {vpiInstance,
-                                                    vpiTaskFunc,
-                                                    vpiTypespec};
-        std::vector<int> child_node_iter_types = {vpiPortInst};
-        for (auto child : child_node_handle_types) {
-          itr = vpi_handle(child,obj_h);
-          if (itr){
-            auto *childNode = visit_object(itr);
-          }
-          vpi_free_object(itr);
-        }
-        for (auto child : child_node_iter_types) {
-          itr = vpi_iterate(child, obj_h);
-          while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
-            auto *childNode = visit_object(vpi_child_obj);
-            vpi_free_object(vpi_child_obj);
-          }
-          vpi_free_object(itr);
-        }
+        visit_one_to_one({vpiInstance,
+                          vpiTaskFunc,
+                          vpiTypespec},
+                         obj_h,
+                         [](AstNode*){});
+        visit_one_to_many({vpiPortInst},
+                          obj_h,
+                          [](AstNode*){});
 
         vpiHandle actual = vpi_handle(vpiActual, obj_h);
         if (actual) {
@@ -188,28 +198,12 @@ namespace UhdmAst {
       case vpiLogicNet: {
         // Handling of this node is not functional yet
         break;
-          std::vector<int> child_node_handle_types = {vpiLeftRange,
-                                                      vpiRightRange,
-                                                      };
-          std::vector<int> child_node_iter_types = {vpiRange,
-                                                    vpiBit};
-          for (auto child : child_node_handle_types) {
-            itr = vpi_handle(child,obj_h);
-            if (itr){
-            std::cout << "Got a handle" << std::endl;
-              auto *childNode = visit_object(itr);
-            }
-            vpi_free_object(itr);
-          }
-          for (auto child : child_node_iter_types) {
-            itr = vpi_iterate(child, obj_h);
-            while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
-            std::cout << "Got an iterator" << std::endl;
-              auto *childNode = visit_object(vpi_child_obj);
-              vpi_free_object(vpi_child_obj);
-            }
-            vpi_free_object(itr);
-          }
+          visit_one_to_one({vpiLeftRange, vpiRightRange},
+                           obj_h,
+                           [](AstNode*){});
+          visit_one_to_many({vpiRange, vpiBit},
+                            obj_h,
+                            [](AstNode*){});
 
         AstBasicDType *dtype = nullptr;
         dtype = new AstBasicDType(new FileLine("uhdm"),
@@ -228,30 +222,23 @@ namespace UhdmAst {
           std::cout << "|vpiFullName: " << s << std::endl;
         }
 
-        std::vector<int> child_node_iter_types = {vpiConcurrentAssertions,
-                                                  vpiVariables,
-                                                  vpiParameter,
-                                                  vpiInternalScope,
-                                                  vpiTypedef,
-                                                  vpiPropertyDecl,
-                                                  vpiSequenceDecl,
-                                                  vpiNamedEvent,
-                                                  vpiNamedEventArray,
-                                                  vpiVirtualInterfaceVar,
-                                                  vpiReg,
-                                                  vpiRegArray,
-                                                  vpiMemory,
-                                                  vpiLetDecl,
-                                                  vpiImport};
-        for (auto child : child_node_iter_types) {
-          itr = vpi_iterate(child, obj_h);
-          while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
-          std::cout << "Got an iterator" << std::endl;
-            auto *childNode = visit_object(vpi_child_obj);
-            vpi_free_object(vpi_child_obj);
-          }
-          vpi_free_object(itr);
-        }
+        visit_one_to_many({vpiConcurrentAssertions,
+                           vpiVariables,
+                           vpiParameter,
+                           vpiInternalScope,
+                           vpiTypedef,
+                           vpiPropertyDecl,
+                           vpiSequenceDecl,
+                           vpiNamedEvent,
+                           vpiNamedEventArray,
+                           vpiVirtualInterfaceVar,
+                           vpiReg,
+                           vpiRegArray,
+                           vpiMemory,
+                           vpiLetDecl,
+                           vpiImport},
+                          obj_h,
+                          [](AstNode*){});
 
         break;
       }
