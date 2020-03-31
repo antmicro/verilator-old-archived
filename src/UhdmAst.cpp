@@ -12,12 +12,12 @@ namespace UhdmAst {
   // node through the VPI interface, visiting child nodes belonging to
   // ChildrenNodeTypes that are present in the given object.
   void visit_one_to_many (const std::vector<int> childrenNodeTypes,
-                          vpiHandle parentHandle,
+                          vpiHandle parentHandle, std::set<const UHDM::BaseClass*> visited,
                           const std::function<void(AstNode*)> &f) {
     for (auto child : childrenNodeTypes) {
       vpiHandle itr = vpi_iterate(child, parentHandle);
       while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
-        auto *childNode = visit_object(vpi_child_obj);
+        auto *childNode = visit_object(vpi_child_obj, visited);
         f(childNode);
         vpi_free_object(vpi_child_obj);
       }
@@ -29,19 +29,20 @@ namespace UhdmAst {
   // node through the VPI interface, visiting child nodes belonging to
   // ChildrenNodeTypes that are present in the given object.
   void visit_one_to_one (const std::vector<int> childrenNodeTypes,
-                          vpiHandle parentHandle,
+                         vpiHandle parentHandle, std::set<const UHDM::BaseClass*> visited,
                           const std::function<void(AstNode*)> &f) {
     for (auto child : childrenNodeTypes) {
       vpiHandle itr = vpi_handle(child, parentHandle);
       if (itr) {
-        auto *childNode = visit_object(itr);
+        auto *childNode = visit_object(itr, visited);
         f(childNode);
       }
       vpi_free_object(itr);
     }
   }
 
-  AstNode* visit_object (vpiHandle obj_h) {
+  AstNode* visit_object (vpiHandle obj_h,
+        std::set<const UHDM::BaseClass*> visited) {
     // Will keep current node
     AstNode* node = nullptr;
 
@@ -63,6 +64,16 @@ namespace UhdmAst {
     std::cout << "Object: " << objectName
               << " of type " << objectType
               << std::endl;
+    bool alreadyVisited = false;
+    const uhdm_handle* const handle = (const uhdm_handle*) obj_h;
+    const UHDM::BaseClass* const object = (const UHDM::BaseClass*) handle->object;
+    if (visited.find(object) != visited.end()) {
+      alreadyVisited = true;
+    }
+    visited.insert(object);
+    if (alreadyVisited) {
+      return node;
+    }
 
     switch(objectType) {
       case vpiDesign: {
@@ -75,11 +86,13 @@ namespace UhdmAst {
                            UHDM::uhdmallInterfaces,
                            UHDM::uhdmallUdps},
                           obj_h,
+                          visited,
                           [](AstNode* node){});
 
         //FIXME: Only one module for now
-        visit_one_to_many({UHDM::uhdmallModules},
+        visit_one_to_many({UHDM::uhdmtopModules},
             obj_h,
+            visited,
             [&](AstNode* module) {
               if (module != nullptr) {
                 node = module;
@@ -97,6 +110,7 @@ namespace UhdmAst {
         // Unhandled relationships: will visit (and print) the object
         visit_one_to_many({vpiBit},
                           obj_h,
+                          visited,
                           [](AstNode*){});
         visit_one_to_one({vpiTypedef,
                           vpiInstance,
@@ -104,6 +118,7 @@ namespace UhdmAst {
                           vpiHighConn,
                           vpiLowConn},
                          obj_h,
+                         visited,
                          [](AstNode*){});
 
         dtype = new AstBasicDType(new FileLine("uhdm"),
@@ -181,6 +196,7 @@ namespace UhdmAst {
                            vpiImport
                           },
                           obj_h,
+                          visited,
                           [](AstNode* node){});
         visit_one_to_one({vpiDefaultDisableIff,
                           vpiInstanceArray,
@@ -191,12 +207,14 @@ namespace UhdmAst {
                           vpiModule  // TODO: Both here and in one-to-many?
                          },
                          obj_h,
+                         visited,
                          [](AstNode*){});
 
 
         if (module != nullptr) {
           visit_one_to_many({vpiPort, vpiContAssign, vpiLogicNet},
               obj_h,
+              visited,
               [&](AstNode* node){
                 if (node != nullptr)
                   module->addStmtp(node);
@@ -212,14 +230,17 @@ namespace UhdmAst {
         // Unhandled relationships: will visit (and print) the object
         visit_one_to_one({vpiDelay},
                          obj_h,
+                         visited,
                          [](AstNode*){});
         visit_one_to_many({vpiBit},
                           obj_h,
+                          visited,
                           [](AstNode*){});
 
         // Right
         visit_one_to_one({vpiRhs},
             obj_h,
+            visited,
             [&](AstNode* child){
               rvalue = child;
             });
@@ -227,6 +248,7 @@ namespace UhdmAst {
         // Left
         visit_one_to_one({vpiLhs},
             obj_h,
+            visited,
             [&](AstNode* child){
               lvalue = child;
             });
@@ -243,9 +265,11 @@ namespace UhdmAst {
                           vpiTaskFunc,
                           vpiTypespec},
                          obj_h,
+                         visited,
                          [](AstNode*){});
         visit_one_to_many({vpiPortInst},
                           obj_h,
+                          visited,
                           [](AstNode*){});
 
         vpiHandle actual = vpi_handle(vpiActual, obj_h);
@@ -280,6 +304,7 @@ namespace UhdmAst {
                           vpiTypespec
                          },
                          obj_h,
+                         visited,
                          [](AstNode*){});
         visit_one_to_many({vpiRange,
                            vpiBit,
@@ -294,6 +319,7 @@ namespace UhdmAst {
                            vpiTchkTerm
                           },
                           obj_h,
+                          visited,
                           [](AstNode*){});
 
         AstBasicDType *dtype = nullptr;
@@ -330,6 +356,7 @@ namespace UhdmAst {
                            vpiLetDecl,
                            vpiImport},
                           obj_h,
+                          visited,
                           [](AstNode*){});
 
         break;
@@ -347,9 +374,10 @@ namespace UhdmAst {
 
   std::vector<AstNodeModule*> visit_designs (const std::vector<vpiHandle>& designs) {
     std::vector<AstNodeModule*> nodes;
+    std::set<const UHDM::BaseClass*> visited;
     for (auto design : designs) {
       // Top level nodes need to be NodeModules (created from design)
-      nodes.push_back(reinterpret_cast<AstNodeModule*>(visit_object(design)));
+      nodes.push_back(reinterpret_cast<AstNodeModule*>(visit_object(design, visited)));
     }
     return nodes;
   }

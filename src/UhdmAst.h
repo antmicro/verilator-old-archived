@@ -10,7 +10,7 @@
 namespace UhdmAst {
 
   // Visits single VPI object and creates proper AST node
-  AstNode* visit_object (vpiHandle obj_h);
+  AstNode* visit_object (vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited);
 
   // Visits all VPI design objects and returns created ASTs
   std::vector<AstNodeModule*> visit_designs (const std::vector<vpiHandle>& designs);
