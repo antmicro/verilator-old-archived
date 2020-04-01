@@ -8,6 +8,8 @@
 
 namespace UhdmAst {
 
+  //FIXME: quick hack to global
+    std::vector<AstNodeModule*> nodes;
   // Walks through one-to-many relationships from given parent
   // node through the VPI interface, visiting child nodes belonging to
   // ChildrenNodeTypes that are present in the given object.
@@ -158,6 +160,8 @@ namespace UhdmAst {
       case vpiModule: {
         AstModule *module = new AstModule(new FileLine("uhdm"), objectName);
 
+        std::string modType = vpi_get_str(vpiDefName, obj_h);
+        AstModule *module = new AstModule(new FileLine("uhdm"), modType);
 
         if (module != nullptr) {
           visit_one_to_many({vpiPort, vpiContAssign, vpiLogicNet},
@@ -167,7 +171,14 @@ namespace UhdmAst {
                 if (node != nullptr)
                   module->addStmtp(node);
               });
-          return module;
+          //FIXME
+          nodes.push_back(module);
+        AstPin *modPins = nullptr;
+        AstPin *modParams = nullptr;
+        std::string fullname = vpi_get_str(vpiFullName, obj_h);
+        AstCell *cell = new AstCell(new FileLine("json"), new FileLine("json"),
+            objectName, modType, modPins, modParams, nullptr);
+        return cell;
         }
         // Unhandled relationships: will visit (and print) the object
         //visit_one_to_many({vpiProcess,
@@ -365,6 +376,7 @@ namespace UhdmAst {
     case vpiInterface: {
       // Interface definition is represented by a module node
       AstModule *elaboratedInterface = new AstModule(new FileLine("uhdm"), objectName);
+      AstIface* elaboratedInterface = new AstIface(new FileLine("uhdm"), objectName);
       visit_one_to_many({
           vpiNet,
           vpiModport
@@ -377,8 +389,15 @@ namespace UhdmAst {
         }
       });
       elaboratedInterface->name(objectName);
-      return elaboratedInterface;
+          //FIXME
+          nodes.push_back(elaboratedInterface);
 
+        std::string modType = vpi_get_str(vpiDefName, obj_h);
+        AstPin *modPins = nullptr;
+        AstPin *modParams = nullptr;
+        AstCell *cell = new AstCell(new FileLine("json"), new FileLine("json"),
+            objectName, modType, modPins, modParams, nullptr);
+        return cell;
       // Unhandled relationships: will visit (and print) the object
       //visit_one_to_one({
       //    vpiParent,
@@ -446,10 +465,17 @@ namespace UhdmAst {
       return node;
     }
     case vpiIODecl: {
-      AstBasicDType* dtype = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::LOGIC_IMPLICIT); //TODO: check type
-      AstVar* io_node = new AstVar(new FileLine("uhdm"), AstVarType::IMPLICITWIRE,
-          objectName, dtype);
-      io_node->childDTypep(dtype);
+     VDirection dir;
+      if (const int n = vpi_get(vpiDirection, obj_h)) {
+        if (n == vpiInput) {
+          dir = VDirection::INPUT;
+        } else if (n == vpiOutput) {
+          dir = VDirection::OUTPUT;
+        } else if (n == vpiInout) {
+          dir = VDirection::INOUT;
+        }
+      }
+      AstModportVarRef* io_node = new AstModportVarRef(new FileLine("uhdm"), objectName, dir);
       return io_node;
     }
       // What we can see (but don't support yet)
@@ -464,7 +490,6 @@ namespace UhdmAst {
   }
 
   std::vector<AstNodeModule*> visit_designs (const std::vector<vpiHandle>& designs) {
-    std::vector<AstNodeModule*> nodes;
     std::set<const UHDM::BaseClass*> visited;
     for (auto design : designs) {
         visit_one_to_many({
