@@ -446,9 +446,10 @@ namespace UhdmAst {
       return node;
     }
     case vpiIODecl: {
-      AstVar* io_node = new AstVar(new FileLine("uhdm"), AstVarType::IFACEREF,
-          objectName,
-          new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::LOGIC_IMPLICIT)); //TODO: check type
+      AstBasicDType* dtype = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::LOGIC_IMPLICIT); //TODO: check type
+      AstVar* io_node = new AstVar(new FileLine("uhdm"), AstVarType::IMPLICITWIRE,
+          objectName, dtype);
+      io_node->childDTypep(dtype);
       return io_node;
     }
       // What we can see (but don't support yet)
