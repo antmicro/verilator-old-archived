@@ -89,6 +89,7 @@ namespace UhdmAst {
                 node = module;
               }
             });
+        return node;
         // Unhandled relationships: will visit (and print) the object
         //visit_one_to_many({UHDM::uhdmtopModules,
         //                   UHDM::uhdmallPrograms,
@@ -100,7 +101,6 @@ namespace UhdmAst {
         //                  visited,
         //                  [](AstNode* node){});
 
-        return node;
       }
       case vpiPort: {
         static unsigned numPorts;
@@ -362,6 +362,95 @@ namespace UhdmAst {
 
         break;
       }
+    case vpiInterface: {
+      // Interface definition is represented by a module node
+      AstModule *elaboratedInterface = new AstModule(new FileLine("uhdm"), objectName);
+      visit_one_to_many({
+          vpiNet,
+          vpiModport
+          },
+          obj_h,
+          visited,
+          [&](AstNode* port){
+        if(port) {
+          elaboratedInterface->addStmtp(port);
+        }
+      });
+      elaboratedInterface->name(objectName);
+      return elaboratedInterface;
+
+      // Unhandled relationships: will visit (and print) the object
+      //visit_one_to_one({
+      //    vpiParent,
+      //    vpiInstanceArray,
+      //    vpiGlobalClocking,
+      //    vpiDefaultClocking,
+      //    vpiDefaultDisableIff,
+      //    vpiInstance,
+      //    vpiModule
+      //    },
+      //    obj_h,
+      //    visited,
+      //    [](AST::AstNode*){});
+      //visit_one_to_many({
+      //    vpiProcess,
+      //    vpiInterfaceTfDecl,
+      //    vpiModPath,
+      //    vpiContAssign,
+      //    vpiInterface,
+      //    vpiInterfaceArray,
+      //    vpiPort,
+      //    vpiTaskFunc,
+      //    vpiArrayNet,
+      //    vpiAssertion,
+      //    vpiClassDefn,
+      //    vpiProgram,
+      //    vpiProgramArray,
+      //    vpiSpecParam,
+      //    vpiConcurrentAssertions,
+      //    vpiVariables,
+      //    vpiParameter,
+      //    vpiInternalScope,
+      //    vpiTypedef,
+      //    vpiPropertyDecl,
+      //    vpiSequenceDecl,
+      //    vpiNamedEvent,
+      //    vpiNamedEventArray,
+      //    vpiVirtualInterfaceVar,
+      //    vpiReg,
+      //    vpiRegArray,
+      //    vpiMemory,
+      //    vpiLetDecl,
+      //    vpiImport,
+      //    },
+      //    obj_h,
+      //    visited,
+      //    [](AST::AstNode*){});
+      break;
+    }
+    case vpiModport: {
+      AstNode* modport_vars = nullptr;
+      visit_one_to_many({vpiIODecl},
+          obj_h,
+          visited,
+          [&](AstNode* net){
+        if(net) {
+          if (modport_vars == nullptr) {
+            modport_vars = net;
+          } else {
+            modport_vars->addNext(net);
+          }
+        }
+      });
+      AstModport *node = new AstModport(new FileLine("uhdm"), objectName, modport_vars);
+      return node;
+    }
+    case vpiIODecl: {
+      AstVar* io_node = new AstVar(new FileLine("uhdm"), AstVarType::IFACEREF,
+          objectName,
+          new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::LOGIC_IMPLICIT)); //TODO: check type
+      return io_node;
+    }
       // What we can see (but don't support yet)
       case vpiClassObj:
       case vpiPackage:
