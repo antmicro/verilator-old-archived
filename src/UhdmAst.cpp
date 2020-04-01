@@ -467,8 +467,19 @@ namespace UhdmAst {
     std::vector<AstNodeModule*> nodes;
     std::set<const UHDM::BaseClass*> visited;
     for (auto design : designs) {
-      // Top level nodes need to be NodeModules (created from design)
-      nodes.push_back(reinterpret_cast<AstNodeModule*>(visit_object(design, visited)));
+        visit_one_to_many({
+            UHDM::uhdmallInterfaces,
+            UHDM::uhdmtopModules
+            },
+            design,
+            visited,
+            [&](AstNode* module) {
+              if (module != nullptr) {
+              // Top level nodes need to be NodeModules (created from design)
+              // This is true as we visit only top modules and interfaces (with the same AST node) above
+              nodes.push_back(reinterpret_cast<AstNodeModule*>(module));
+              }
+            });
     }
     return nodes;
   }
