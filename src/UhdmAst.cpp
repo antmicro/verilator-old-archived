@@ -55,6 +55,8 @@ namespace UhdmAst {
 
     if (const char* s = vpi_get_str(vpiName, obj_h)) {
       objectName = s;
+    } else if (auto s = vpi_get_str(vpiDefName, obj_h)) {
+      objectName = s;
     }
     if (unsigned int l = vpi_get(vpiLineNo, obj_h)) {
       lineNo = l;
