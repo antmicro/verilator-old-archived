@@ -298,25 +298,44 @@ namespace UhdmAst {
         break;
       }
       case vpiRefObj: {
-        bool isLvalue = false;
-        vpiHandle actual = vpi_handle(vpiActual, obj_h);
-        if (actual) {
-          auto actual_type = vpi_get(vpiType, actual);
-          if (actual_type == vpiPort) {
-            if (const int n = vpi_get(vpiDirection, actual)) {
-              if (n == vpiInput) {
-                isLvalue = false;
-              } else if (n == vpiOutput) {
-                isLvalue = true;
-              } else if (n == vpiInout) {
-                isLvalue = true;
+        size_t dot_pos = objectName.find('.');
+        if (dot_pos != std::string::npos) {
+          //TODO: Handle >1 dot
+          std::string lhs = objectName.substr(0, dot_pos);
+          std::string rhs = objectName.substr(dot_pos + 1, objectName.length());
+          AstParseRef* lhsNode = new AstParseRef(new FileLine("UHDM"),
+                                                 AstParseRefExp::en::PX_TEXT,
+                                                 lhs,
+                                                 nullptr,
+                                                 nullptr);
+          AstParseRef* rhsNode = new AstParseRef(new FileLine("UHDM"),
+                                                 AstParseRefExp::en::PX_TEXT,
+                                                 rhs,
+                                                 nullptr,
+                                                 nullptr);
+
+          return new AstDot(new FileLine("UHDM"), lhsNode, rhsNode);
+        } else {
+          bool isLvalue = false;
+          vpiHandle actual = vpi_handle(vpiActual, obj_h);
+          if (actual) {
+            auto actual_type = vpi_get(vpiType, actual);
+            if (actual_type == vpiPort) {
+              if (const int n = vpi_get(vpiDirection, actual)) {
+                if (n == vpiInput) {
+                  isLvalue = false;
+                } else if (n == vpiOutput) {
+                  isLvalue = true;
+                } else if (n == vpiInout) {
+                  isLvalue = true;
+                }
               }
             }
+            vpi_free_object(actual);
           }
-          vpi_free_object(actual);
+          node = new AstVarRef(new FileLine("uhdm"), objectName, isLvalue);
+          return node;
         }
-        node = new AstVarRef(new FileLine("uhdm"), objectName, isLvalue);
-        return node;
 
         // Unhandled relationships: will visit (and print) the object
         //visit_one_to_one({vpiInstance,
