@@ -172,13 +172,20 @@ namespace UhdmAst {
                   module->addStmtp(node);
               });
           //FIXME
-          nodes.push_back(module);
-        AstPin *modPins = nullptr;
-        AstPin *modParams = nullptr;
-        std::string fullname = vpi_get_str(vpiFullName, obj_h);
-        AstCell *cell = new AstCell(new FileLine("json"), new FileLine("json"),
-            objectName, modType, modPins, modParams, nullptr);
-        return cell;
+
+          if (objectName != modType) {
+            // Not a top module
+            nodes.push_back(module);
+            AstPin *modPins = nullptr;
+            AstPin *modParams = nullptr;
+            std::string fullname = vpi_get_str(vpiFullName, obj_h);
+            AstCell *cell = new AstCell(new FileLine("json"), new FileLine("json"),
+                objectName, modType, modPins, modParams, nullptr);
+            return cell;
+          } else {
+            // is a top module
+            return module;
+          }
         }
         // Unhandled relationships: will visit (and print) the object
         //visit_one_to_many({vpiProcess,
@@ -307,8 +314,9 @@ namespace UhdmAst {
       }
       case vpiNet: {
         AstBasicDType *dtype = nullptr;
+        //TODO: get type
         dtype = new AstBasicDType(new FileLine("uhdm"),
-                                  AstBasicDTypeKwd::LOGIC_IMPLICIT);
+                                  AstBasicDTypeKwd::LOGIC);
         if (const int n = vpi_get(vpiNetType, obj_h)) {
           std::cout << "Net type: " << n << std::endl;
         }
@@ -372,7 +380,6 @@ namespace UhdmAst {
       }
     case vpiInterface: {
       // Interface definition is represented by a module node
-      AstModule *elaboratedInterface = new AstModule(new FileLine("uhdm"), objectName);
       AstIface* elaboratedInterface = new AstIface(new FileLine("uhdm"), objectName);
       visit_one_to_many({
           vpiNet,
@@ -386,15 +393,20 @@ namespace UhdmAst {
         }
       });
       elaboratedInterface->name(objectName);
+      std::string modType = vpi_get_str(vpiDefName, obj_h);
+      if (objectName != modType) {
           //FIXME
-          nodes.push_back(elaboratedInterface);
+        //  nodes.push_back(elaboratedInterface);
 
-        std::string modType = vpi_get_str(vpiDefName, obj_h);
         AstPin *modPins = nullptr;
         AstPin *modParams = nullptr;
         AstCell *cell = new AstCell(new FileLine("json"), new FileLine("json"),
             objectName, modType, modPins, modParams, nullptr);
         return cell;
+      } else {
+        // is top level
+        return elaboratedInterface;
+      }
       // Unhandled relationships: will visit (and print) the object
       //visit_one_to_one({
       //    vpiParent,
