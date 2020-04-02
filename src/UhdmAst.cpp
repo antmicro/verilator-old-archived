@@ -158,11 +158,12 @@ namespace UhdmAst {
         break;
       }
       case vpiModule: {
-        AstModule *module = new AstModule(new FileLine("uhdm"), objectName);
 
         std::string modType = vpi_get_str(vpiDefName, obj_h);
         AstModule *module = new AstModule(new FileLine("uhdm"), modType);
 
+        AstPin *modPins = nullptr;
+        AstPin *modParams = nullptr;
         if (module != nullptr) {
           visit_one_to_many({vpiPort, vpiContAssign, vpiLogicNet},
               obj_h,
@@ -176,8 +177,27 @@ namespace UhdmAst {
           if (objectName != modType) {
             // Not a top module
             nodes.push_back(module);
-            AstPin *modPins = nullptr;
-            AstPin *modParams = nullptr;
+
+
+            // Get port assignments
+            vpiHandle itr = vpi_iterate(vpiPort, obj_h);
+            int np = 0;
+            while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
+              vpiHandle highConn = vpi_handle(vpiHighConn, vpi_child_obj);
+              if (highConn) {
+                std::string portName = vpi_get_str(vpiName, vpi_child_obj);
+                AstParseRef *ref = reinterpret_cast<AstParseRef *>(visit_object(highConn, visited));
+                AstPin *pin = new AstPin(new FileLine("json"), ++np, portName, ref);
+                if (!modPins)
+                    modPins = pin;
+                else
+                    modPins->addNextNull(pin);
+              }
+
+              vpi_free_object(vpi_child_obj);
+            }
+            vpi_free_object(itr);
+
             std::string fullname = vpi_get_str(vpiFullName, obj_h);
             AstCell *cell = new AstCell(new FileLine("json"), new FileLine("json"),
                 objectName, modType, modPins, modParams, nullptr);
@@ -316,7 +336,7 @@ namespace UhdmAst {
         AstBasicDType *dtype = nullptr;
         //TODO: get type
         dtype = new AstBasicDType(new FileLine("uhdm"),
-                                  AstBasicDTypeKwd::LOGIC);
+                                  AstBasicDTypeKwd::LOGIC_IMPLICIT);
         if (const int n = vpi_get(vpiNetType, obj_h)) {
           std::cout << "Net type: " << n << std::endl;
         }
