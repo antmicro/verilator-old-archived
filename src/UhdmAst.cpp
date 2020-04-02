@@ -305,10 +305,7 @@ namespace UhdmAst {
 
         break;
       }
-      case vpiLogicNet: {
-        // Handling of this node is not functional yet
-        break;
-
+      case vpiNet: {
         AstBasicDType *dtype = nullptr;
         dtype = new AstBasicDType(new FileLine("uhdm"),
                                   AstBasicDTypeKwd::LOGIC_IMPLICIT);
