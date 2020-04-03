@@ -1,5 +1,6 @@
 #include <vector>
 #include <functional>
+#include <algorithm>
 
 #include "headers/uhdm.h"
 
@@ -43,6 +44,10 @@ namespace UhdmAst {
     }
   }
 
+  void sanitize_str(std::string &s) {
+    std::replace(s.begin(), s.end(), '@','_');
+  }
+
   AstNode* visit_object (vpiHandle obj_h,
         std::set<const UHDM::BaseClass*> visited) {
     // Will keep current node
@@ -55,10 +60,12 @@ namespace UhdmAst {
     // For iterating over child objects
     vpiHandle itr;
 
-    if (const char* s = vpi_get_str(vpiName, obj_h)) {
-      objectName = s;
-    } else if (auto s = vpi_get_str(vpiDefName, obj_h)) {
-      objectName = s;
+    for (auto name : {vpiName, vpiFullName, vpiDefName}) {
+      if (auto s = vpi_get_str(name, obj_h)) {
+        objectName = s;
+        sanitize_str(objectName);
+        break;
+      }
     }
     if (unsigned int l = vpi_get(vpiLineNo, obj_h)) {
       lineNo = l;
@@ -82,8 +89,7 @@ namespace UhdmAst {
     switch(objectType) {
       case vpiDesign: {
 
-        //FIXME: Only one module for now
-        visit_one_to_many({UHDM::uhdmtopModules},
+        visit_one_to_many({UHDM::uhdmallInterfaces, UHDM::uhdmtopModules},
             obj_h,
             visited,
             [&](AstNode* module) {
@@ -114,8 +120,15 @@ namespace UhdmAst {
         vpiHandle highConn_h = vpi_handle(vpiHighConn, obj_h);
         vpiHandle actual_h = vpi_handle(vpiActual, highConn_h);
         auto actual_type = vpi_get(vpiType, actual_h);
-        auto cellName = vpi_get_str(vpiName, actual_h);
-        auto ifaceName = vpi_get_str(vpiDefName, actual_h);
+        std::string cellName, ifaceName;
+        if (auto s = vpi_get_str(vpiName, actual_h)) {
+          cellName = s;
+          sanitize_str(cellName);
+        }
+        if (auto s = vpi_get_str(vpiDefName, actual_h)) {
+          ifaceName = s;
+          sanitize_str(ifaceName);
+        }
         if (actual_type == vpiInterface) {
           dtype = new AstIfaceRefDType(new FileLine("uhdm"),
                                        cellName,
@@ -179,6 +192,7 @@ namespace UhdmAst {
       case vpiModule: {
 
         std::string modType = vpi_get_str(vpiDefName, obj_h);
+        sanitize_str(modType);
         AstModule *module = new AstModule(new FileLine("uhdm"), modType);
 
         AstPin *modPins = nullptr;
@@ -208,6 +222,7 @@ namespace UhdmAst {
               vpiHandle highConn = vpi_handle(vpiHighConn, vpi_child_obj);
               if (highConn) {
                 std::string portName = vpi_get_str(vpiName, vpi_child_obj);
+                sanitize_str(portName);
                 AstParseRef *ref = reinterpret_cast<AstParseRef *>(visit_object(highConn, visited));
                 AstPin *pin = new AstPin(new FileLine("json"), ++np, portName, ref);
                 if (!modPins)
@@ -221,6 +236,7 @@ namespace UhdmAst {
             vpi_free_object(itr);
 
             std::string fullname = vpi_get_str(vpiFullName, obj_h);
+            sanitize_str(fullname);
             AstCell *cell = new AstCell(new FileLine("json"), new FileLine("json"),
                 objectName, modType, modPins, modParams, nullptr);
             return cell;
@@ -382,10 +398,7 @@ namespace UhdmAst {
         //TODO: get type
         dtype = new AstBasicDType(new FileLine("uhdm"),
                                   AstBasicDTypeKwd::LOGIC_IMPLICIT);
-        if (const int n = vpi_get(vpiNetType, obj_h)) {
-          std::cout << "Net type: " << n << std::endl;
-        }
-        auto *v = new AstVar(new FileLine("uhdm"), AstVarType::WIRE, objectName, dtype);// dtype);
+        auto *v = new AstVar(new FileLine("uhdm"), AstVarType::WIRE, objectName, dtype);
         v->childDTypep(dtype);
         return v;
 
@@ -417,9 +430,6 @@ namespace UhdmAst {
         break;
       }
       case vpiClassDefn: {
-        if (const char* s = vpi_get_str(vpiFullName, obj_h)) {
-          std::cout << "|vpiFullName: " << s << std::endl;
-        }
 
         // Unhandled relationships: will visit (and print) the object
         //visit_one_to_many({vpiConcurrentAssertions,
@@ -459,6 +469,7 @@ namespace UhdmAst {
       });
       elaboratedInterface->name(objectName);
       std::string modType = vpi_get_str(vpiDefName, obj_h);
+      sanitize_str(modType);
       if (objectName != modType) {
           //FIXME
         //  nodes.push_back(elaboratedInterface);
