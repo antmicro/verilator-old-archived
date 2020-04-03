@@ -108,29 +108,48 @@ namespace UhdmAst {
         static unsigned numPorts;
         AstPort *port = nullptr;
         AstVar *var = nullptr;
-        AstBasicDType *dtype = nullptr;
+        AstNodeDType *dtype = nullptr;
 
-        dtype = new AstBasicDType(new FileLine("uhdm"),
-                                  AstBasicDTypeKwd::LOGIC_IMPLICIT);
-        port = new AstPort(new FileLine("uhdm"), ++numPorts, objectName);
-        var = new AstVar(new FileLine("uhdm"),
-                         AstVarType::PORT,
-                         objectName,
-                         dtype);
+        // Get actual type
+        vpiHandle highConn_h = vpi_handle(vpiHighConn, obj_h);
+        vpiHandle actual_h = vpi_handle(vpiActual, highConn_h);
+        auto actual_type = vpi_get(vpiType, actual_h);
+        auto cellName = vpi_get_str(vpiName, actual_h);
+        auto ifaceName = vpi_get_str(vpiDefName, actual_h);
+        if (actual_type == vpiInterface) {
+          dtype = new AstIfaceRefDType(new FileLine("uhdm"),
+                                       cellName,
+                                       ifaceName);
+          var = new AstVar(new FileLine("uhdm"),
+                           AstVarType::IFACEREF,
+                           objectName,
+                           dtype);
 
-        if (const int n = vpi_get(vpiDirection, obj_h)) {
-          if (n == vpiInput) {
-            var->declDirection(VDirection::INPUT);
-            var->direction(VDirection::INPUT);
-          } else if (n == vpiOutput) {
-            var->declDirection(VDirection::OUTPUT);
-            var->direction(VDirection::OUTPUT);
-          } else if (n == vpiInout) {
-            var->declDirection(VDirection::INOUT);
-            var->direction(VDirection::INOUT);
+        } else {
+          dtype = new AstBasicDType(new FileLine("uhdm"),
+                                    AstBasicDTypeKwd::LOGIC_IMPLICIT);
+          var = new AstVar(new FileLine("uhdm"),
+                           AstVarType::PORT,
+                           objectName,
+                           dtype);
+
+          if (const int n = vpi_get(vpiDirection, obj_h)) {
+            if (n == vpiInput) {
+              var->declDirection(VDirection::INPUT);
+              var->direction(VDirection::INPUT);
+            } else if (n == vpiOutput) {
+              var->declDirection(VDirection::OUTPUT);
+              var->direction(VDirection::OUTPUT);
+            } else if (n == vpiInout) {
+              var->declDirection(VDirection::INOUT);
+              var->direction(VDirection::INOUT);
+            }
           }
+
         }
 
+
+        port = new AstPort(new FileLine("uhdm"), ++numPorts, objectName);
         port->addNextNull(var);
         var->childDTypep(dtype);
 
@@ -165,9 +184,10 @@ namespace UhdmAst {
         AstPin *modPins = nullptr;
         AstPin *modParams = nullptr;
         if (module != nullptr) {
-          visit_one_to_many({vpiModule,
+          visit_one_to_many({
               vpiInterface,
               vpiPort, vpiContAssign,
+              vpiModule,
               },
               obj_h,
               visited,
