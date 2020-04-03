@@ -165,14 +165,16 @@ namespace UhdmAst {
         AstPin *modPins = nullptr;
         AstPin *modParams = nullptr;
         if (module != nullptr) {
-          visit_one_to_many({vpiPort, vpiContAssign, vpiLogicNet},
+          visit_one_to_many({vpiModule,
+              vpiInterface,
+              vpiPort, vpiContAssign,
+              },
               obj_h,
               visited,
               [&](AstNode* node){
                 if (node != nullptr)
                   module->addStmtp(node);
               });
-          //FIXME
 
           if (objectName != modType) {
             // Not a top module
