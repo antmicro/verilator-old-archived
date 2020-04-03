@@ -224,7 +224,7 @@ namespace UhdmAst {
                 std::string portName = vpi_get_str(vpiName, vpi_child_obj);
                 sanitize_str(portName);
                 AstParseRef *ref = reinterpret_cast<AstParseRef *>(visit_object(highConn, visited));
-                AstPin *pin = new AstPin(new FileLine("json"), ++np, portName, ref);
+                AstPin *pin = new AstPin(new FileLine("uhdm"), ++np, portName, ref);
                 if (!modPins)
                     modPins = pin;
                 else
@@ -237,7 +237,7 @@ namespace UhdmAst {
 
             std::string fullname = vpi_get_str(vpiFullName, obj_h);
             sanitize_str(fullname);
-            AstCell *cell = new AstCell(new FileLine("json"), new FileLine("json"),
+            AstCell *cell = new AstCell(new FileLine("uhdm"), new FileLine("uhdm"),
                 objectName, modType, modPins, modParams, nullptr);
             return cell;
           } else {
@@ -341,18 +341,18 @@ namespace UhdmAst {
           //TODO: Handle >1 dot
           std::string lhs = objectName.substr(0, dot_pos);
           std::string rhs = objectName.substr(dot_pos + 1, objectName.length());
-          AstParseRef* lhsNode = new AstParseRef(new FileLine("UHDM"),
+          AstParseRef* lhsNode = new AstParseRef(new FileLine("uhdm"),
                                                  AstParseRefExp::en::PX_TEXT,
                                                  lhs,
                                                  nullptr,
                                                  nullptr);
-          AstParseRef* rhsNode = new AstParseRef(new FileLine("UHDM"),
+          AstParseRef* rhsNode = new AstParseRef(new FileLine("uhdm"),
                                                  AstParseRefExp::en::PX_TEXT,
                                                  rhs,
                                                  nullptr,
                                                  nullptr);
 
-          return new AstDot(new FileLine("UHDM"), lhsNode, rhsNode);
+          return new AstDot(new FileLine("uhdm"), lhsNode, rhsNode);
         } else {
           bool isLvalue = false;
           vpiHandle actual = vpi_handle(vpiActual, obj_h);
@@ -371,7 +371,7 @@ namespace UhdmAst {
             }
             vpi_free_object(actual);
           }
-          return new AstParseRef(new FileLine("UHDM"),
+          return new AstParseRef(new FileLine("uhdm"),
                                                  AstParseRefExp::en::PX_TEXT,
                                                  objectName,
                                                  nullptr,
@@ -476,7 +476,7 @@ namespace UhdmAst {
 
         AstPin *modPins = nullptr;
         AstPin *modParams = nullptr;
-        AstCell *cell = new AstCell(new FileLine("json"), new FileLine("json"),
+        AstCell *cell = new AstCell(new FileLine("uhdm"), new FileLine("uhdm"),
             objectName, modType, modPins, modParams, nullptr);
         return cell;
       } else {
