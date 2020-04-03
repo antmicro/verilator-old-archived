@@ -333,7 +333,11 @@ namespace UhdmAst {
             }
             vpi_free_object(actual);
           }
-          node = new AstVarRef(new FileLine("uhdm"), objectName, isLvalue);
+          return new AstParseRef(new FileLine("UHDM"),
+                                                 AstParseRefExp::en::PX_TEXT,
+                                                 objectName,
+                                                 nullptr,
+                                                 nullptr);
           return node;
         }
 
@@ -359,7 +363,7 @@ namespace UhdmAst {
         if (const int n = vpi_get(vpiNetType, obj_h)) {
           std::cout << "Net type: " << n << std::endl;
         }
-        auto *v = new AstVar(new FileLine("uhdm"), AstVarType::VAR, objectName, dtype);
+        auto *v = new AstVar(new FileLine("uhdm"), AstVarType::WIRE, objectName, dtype);// dtype);
         v->childDTypep(dtype);
         return v;
 
