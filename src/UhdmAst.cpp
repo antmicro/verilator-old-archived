@@ -118,27 +118,32 @@ namespace UhdmAst {
 
         // Get actual type
         vpiHandle highConn_h = vpi_handle(vpiHighConn, obj_h);
-        vpiHandle actual_h = vpi_handle(vpiActual, highConn_h);
-        auto actual_type = vpi_get(vpiType, actual_h);
-        std::string cellName, ifaceName;
-        if (auto s = vpi_get_str(vpiName, actual_h)) {
-          cellName = s;
-          sanitize_str(cellName);
-        }
-        if (auto s = vpi_get_str(vpiDefName, actual_h)) {
-          ifaceName = s;
-          sanitize_str(ifaceName);
-        }
-        if (actual_type == vpiInterface) {
-          dtype = new AstIfaceRefDType(new FileLine("uhdm"),
-                                       cellName,
-                                       ifaceName);
-          var = new AstVar(new FileLine("uhdm"),
-                           AstVarType::IFACEREF,
-                           objectName,
-                           dtype);
+        if (highConn_h != nullptr) {
+          vpiHandle actual_h = vpi_handle(vpiActual, highConn_h);
+          auto actual_type = vpi_get(vpiType, actual_h);
+          std::string cellName, ifaceName;
+          if (auto s = vpi_get_str(vpiName, actual_h)) {
+            cellName = s;
+            sanitize_str(cellName);
+          }
+          if (auto s = vpi_get_str(vpiDefName, actual_h)) {
+            ifaceName = s;
+            sanitize_str(ifaceName);
+          }
+          if (actual_type == vpiInterface || actual_type == vpiModport) {
+            dtype = new AstIfaceRefDType(new FileLine("uhdm"),
+                                         cellName,
+                                         ifaceName);
+            var = new AstVar(new FileLine("uhdm"),
+                             AstVarType::IFACEREF,
+                             objectName,
+                             dtype);
+            port = new AstPort(new FileLine("uhdm"), ++numPorts, objectName);
+            port->addNextNull(var);
+            var->childDTypep(dtype);
+            return port;
 
-        } else {
+        }
           dtype = new AstBasicDType(new FileLine("uhdm"),
                                     AstBasicDTypeKwd::LOGIC_IMPLICIT);
           var = new AstVar(new FileLine("uhdm"),
@@ -150,6 +155,7 @@ namespace UhdmAst {
             if (n == vpiInput) {
               var->declDirection(VDirection::INPUT);
               var->direction(VDirection::INPUT);
+              var->varType(AstVarType::WIRE);
             } else if (n == vpiOutput) {
               var->declDirection(VDirection::OUTPUT);
               var->direction(VDirection::OUTPUT);
@@ -159,7 +165,6 @@ namespace UhdmAst {
             }
           }
 
-        }
 
 
         port = new AstPort(new FileLine("uhdm"), ++numPorts, objectName);
@@ -337,6 +342,7 @@ namespace UhdmAst {
       }
       case vpiRefObj: {
         size_t dot_pos = objectName.find('.');
+        size_t dot_pos = objectName.rfind('.');
         if (dot_pos != std::string::npos) {
           //TODO: Handle >1 dot
           std::string lhs = objectName.substr(0, dot_pos);
