@@ -9,18 +9,18 @@
 
 namespace UhdmAst {
 
-  //FIXME: quick hack to global
-    std::vector<AstNodeModule*> nodes;
   // Walks through one-to-many relationships from given parent
   // node through the VPI interface, visiting child nodes belonging to
   // ChildrenNodeTypes that are present in the given object.
   void visit_one_to_many (const std::vector<int> childrenNodeTypes,
-                          vpiHandle parentHandle, std::set<const UHDM::BaseClass*> visited,
+                          vpiHandle parentHandle,
+                          std::set<const UHDM::BaseClass*> visited,
+                          std::vector<AstNodeModule*>* top_nodes,
                           const std::function<void(AstNode*)> &f) {
     for (auto child : childrenNodeTypes) {
       vpiHandle itr = vpi_iterate(child, parentHandle);
       while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
-        auto *childNode = visit_object(vpi_child_obj, visited);
+        auto *childNode = visit_object(vpi_child_obj, visited, top_nodes);
         f(childNode);
         vpi_free_object(vpi_child_obj);
       }
@@ -32,12 +32,14 @@ namespace UhdmAst {
   // node through the VPI interface, visiting child nodes belonging to
   // ChildrenNodeTypes that are present in the given object.
   void visit_one_to_one (const std::vector<int> childrenNodeTypes,
-                         vpiHandle parentHandle, std::set<const UHDM::BaseClass*> visited,
-                          const std::function<void(AstNode*)> &f) {
+                         vpiHandle parentHandle,
+                         std::set<const UHDM::BaseClass*> visited,
+                         std::vector<AstNodeModule*>* top_nodes,
+                         const std::function<void(AstNode*)> &f) {
     for (auto child : childrenNodeTypes) {
       vpiHandle itr = vpi_handle(child, parentHandle);
       if (itr) {
-        auto *childNode = visit_object(itr, visited);
+        auto *childNode = visit_object(itr, visited, top_nodes);
         f(childNode);
       }
       vpi_free_object(itr);
@@ -49,7 +51,8 @@ namespace UhdmAst {
   }
 
   AstNode* visit_object (vpiHandle obj_h,
-        std::set<const UHDM::BaseClass*> visited) {
+        std::set<const UHDM::BaseClass*> visited,
+        std::vector<AstNodeModule*>* top_nodes) {
     // Will keep current node
     AstNode* node = nullptr;
 
@@ -92,6 +95,7 @@ namespace UhdmAst {
         visit_one_to_many({UHDM::uhdmallInterfaces, UHDM::uhdmtopModules},
             obj_h,
             visited,
+            top_nodes,
             [&](AstNode* module) {
               if (module != nullptr) {
                 node = module;
@@ -142,30 +146,28 @@ namespace UhdmAst {
             port->addNextNull(var);
             var->childDTypep(dtype);
             return port;
-
-        }
-          dtype = new AstBasicDType(new FileLine("uhdm"),
-                                    AstBasicDTypeKwd::LOGIC_IMPLICIT);
-          var = new AstVar(new FileLine("uhdm"),
-                           AstVarType::PORT,
-                           objectName,
-                           dtype);
-
-          if (const int n = vpi_get(vpiDirection, obj_h)) {
-            if (n == vpiInput) {
-              var->declDirection(VDirection::INPUT);
-              var->direction(VDirection::INPUT);
-              var->varType(AstVarType::WIRE);
-            } else if (n == vpiOutput) {
-              var->declDirection(VDirection::OUTPUT);
-              var->direction(VDirection::OUTPUT);
-            } else if (n == vpiInout) {
-              var->declDirection(VDirection::INOUT);
-              var->direction(VDirection::INOUT);
-            }
           }
+        }
+        dtype = new AstBasicDType(new FileLine("uhdm"),
+                                  AstBasicDTypeKwd::LOGIC_IMPLICIT);
+        var = new AstVar(new FileLine("uhdm"),
+                         AstVarType::PORT,
+                         objectName,
+                         dtype);
 
-
+        if (const int n = vpi_get(vpiDirection, obj_h)) {
+          if (n == vpiInput) {
+            var->declDirection(VDirection::INPUT);
+            var->direction(VDirection::INPUT);
+            var->varType(AstVarType::WIRE);
+          } else if (n == vpiOutput) {
+            var->declDirection(VDirection::OUTPUT);
+            var->direction(VDirection::OUTPUT);
+          } else if (n == vpiInout) {
+            var->declDirection(VDirection::INOUT);
+            var->direction(VDirection::INOUT);
+          }
+        }
 
         port = new AstPort(new FileLine("uhdm"), ++numPorts, objectName);
         port->addNextNull(var);
@@ -210,6 +212,7 @@ namespace UhdmAst {
               },
               obj_h,
               visited,
+              top_nodes,
               [&](AstNode* node){
                 if (node != nullptr)
                   module->addStmtp(node);
@@ -217,8 +220,7 @@ namespace UhdmAst {
 
           if (objectName != modType) {
             // Not a top module
-            nodes.push_back(module);
-
+            top_nodes->push_back(module);
 
             // Get port assignments
             vpiHandle itr = vpi_iterate(vpiPort, obj_h);
@@ -228,7 +230,7 @@ namespace UhdmAst {
               if (highConn) {
                 std::string portName = vpi_get_str(vpiName, vpi_child_obj);
                 sanitize_str(portName);
-                AstParseRef *ref = reinterpret_cast<AstParseRef *>(visit_object(highConn, visited));
+                AstParseRef *ref = reinterpret_cast<AstParseRef *>(visit_object(highConn, visited, top_nodes));
                 AstPin *pin = new AstPin(new FileLine("uhdm"), ++np, portName, ref);
                 if (!modPins)
                     modPins = pin;
@@ -313,6 +315,7 @@ namespace UhdmAst {
         visit_one_to_one({vpiRhs},
             obj_h,
             visited,
+            top_nodes,
             [&](AstNode* child){
               rvalue = child;
             });
@@ -321,6 +324,7 @@ namespace UhdmAst {
         visit_one_to_one({vpiLhs},
             obj_h,
             visited,
+            top_nodes,
             [&](AstNode* child){
               lvalue = child;
             });
@@ -341,7 +345,6 @@ namespace UhdmAst {
         break;
       }
       case vpiRefObj: {
-        size_t dot_pos = objectName.find('.');
         size_t dot_pos = objectName.rfind('.');
         if (dot_pos != std::string::npos) {
           //TODO: Handle >1 dot
@@ -468,6 +471,7 @@ namespace UhdmAst {
           },
           obj_h,
           visited,
+          top_nodes,
           [&](AstNode* port){
         if(port) {
           elaboratedInterface->addStmtp(port);
@@ -478,7 +482,7 @@ namespace UhdmAst {
       sanitize_str(modType);
       if (objectName != modType) {
           //FIXME
-        //  nodes.push_back(elaboratedInterface);
+        //  top_nodes.push_back(elaboratedInterface);
 
         AstPin *modPins = nullptr;
         AstPin *modParams = nullptr;
@@ -543,6 +547,7 @@ namespace UhdmAst {
       visit_one_to_many({vpiIODecl},
           obj_h,
           visited,
+          top_nodes,
           [&](AstNode* net){
         if(net) {
           if (modport_vars == nullptr) {
@@ -582,6 +587,7 @@ namespace UhdmAst {
 
   std::vector<AstNodeModule*> visit_designs (const std::vector<vpiHandle>& designs) {
     std::set<const UHDM::BaseClass*> visited;
+    std::vector<AstNodeModule*> top_nodes;
     for (auto design : designs) {
         visit_one_to_many({
             UHDM::uhdmallInterfaces,
@@ -589,15 +595,16 @@ namespace UhdmAst {
             },
             design,
             visited,
+            &top_nodes,
             [&](AstNode* module) {
               if (module != nullptr) {
               // Top level nodes need to be NodeModules (created from design)
               // This is true as we visit only top modules and interfaces (with the same AST node) above
-              nodes.push_back(reinterpret_cast<AstNodeModule*>(module));
+              top_nodes.push_back(reinterpret_cast<AstNodeModule*>(module));
               }
             });
     }
-    return nodes;
+    return top_nodes;
   }
 
 }
