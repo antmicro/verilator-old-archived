@@ -203,9 +203,45 @@ namespace UhdmAst {
         std::string modType = vpi_get_str(vpiDefName, obj_h);
         sanitize_str(modType);
 
+        AstModule *module;
+
+        // Check if we have encountered this object before
+        auto it = top_nodes->find(modType);
+        if (it != top_nodes->end()) {
+          // Was created before, fill missing
+          module = reinterpret_cast<AstModule*>(it->second);
+          visit_one_to_many({
+              vpiInterface,
+              vpiModule,
+              vpiContAssign,
+              },
+              obj_h,
+              visited,
+              top_nodes,
+              [&](AstNode* node){
+                if (node != nullptr)
+                  module->addStmtp(node);
+              });
+        } else {
+          // Encountered for the first time
+          module = new AstModule(new FileLine("uhdm"), modType);
+          visit_one_to_many({
+              vpiPort,
+              vpiModule,
+              vpiContAssign,
+              },
+              obj_h,
+              visited,
+              top_nodes,
+              [&](AstNode* node){
+                if (node != nullptr)
+                  module->addStmtp(node);
+              });
+        }
+        (*top_nodes)[module->name()] = module;
+
         if (objectName != modType) {
-          // Not a top module
-          //top_nodes->push_back(module);
+          // Not a top module, create instance
           AstPin *modPins = nullptr;
           AstPin *modParams = nullptr;
 
@@ -234,40 +270,6 @@ namespace UhdmAst {
           AstCell *cell = new AstCell(new FileLine("uhdm"), new FileLine("uhdm"),
               objectName, modType, modPins, modParams, nullptr);
           return cell;
-        } else {
-          // is a top module
-          AstModule *module;
-
-          // Check if we have encountered this object before
-          auto it = top_nodes->find(objectName);
-          if (it != top_nodes->end()) {
-            module = reinterpret_cast<AstModule*>(it->second);
-            visit_one_to_many({
-                vpiInterface,
-                vpiModule,
-                },
-                obj_h,
-                visited,
-                top_nodes,
-                [&](AstNode* node){
-                  if (node != nullptr)
-                    module->addStmtp(node);
-                });
-          } else {
-            module = new AstModule(new FileLine("uhdm"), modType);
-            visit_one_to_many({
-                vpiPort, vpiContAssign,
-                },
-                obj_h,
-                visited,
-                top_nodes,
-                [&](AstNode* node){
-                  if (node != nullptr)
-                    module->addStmtp(node);
-                });
-          }
-
-          return module;
         }
         // Unhandled relationships: will visit (and print) the object
         //visit_one_to_many({vpiProcess,
@@ -402,7 +404,6 @@ namespace UhdmAst {
                                                  objectName,
                                                  nullptr,
                                                  nullptr);
-          return node;
         }
 
         // Unhandled relationships: will visit (and print) the object
@@ -498,9 +499,6 @@ namespace UhdmAst {
       std::string modType = vpi_get_str(vpiDefName, obj_h);
       sanitize_str(modType);
       if (objectName != modType) {
-          //FIXME
-        //  top_nodes.push_back(elaboratedInterface);
-
         AstPin *modPins = nullptr;
         AstPin *modParams = nullptr;
         AstCell *cell = new AstCell(new FileLine("uhdm"), new FileLine("uhdm"),
