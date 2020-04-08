@@ -15,7 +15,7 @@ namespace UhdmAst {
   void visit_one_to_many (const std::vector<int> childrenNodeTypes,
                           vpiHandle parentHandle,
                           std::set<const UHDM::BaseClass*> visited,
-                          std::vector<AstNodeModule*>* top_nodes,
+                          std::map<std::string, AstNodeModule*>* top_nodes,
                           const std::function<void(AstNode*)> &f) {
     for (auto child : childrenNodeTypes) {
       vpiHandle itr = vpi_iterate(child, parentHandle);
@@ -34,7 +34,7 @@ namespace UhdmAst {
   void visit_one_to_one (const std::vector<int> childrenNodeTypes,
                          vpiHandle parentHandle,
                          std::set<const UHDM::BaseClass*> visited,
-                         std::vector<AstNodeModule*>* top_nodes,
+                         std::map<std::string, AstNodeModule*>* top_nodes,
                          const std::function<void(AstNode*)> &f) {
     for (auto child : childrenNodeTypes) {
       vpiHandle itr = vpi_handle(child, parentHandle);
@@ -52,7 +52,7 @@ namespace UhdmAst {
 
   AstNode* visit_object (vpiHandle obj_h,
         std::set<const UHDM::BaseClass*> visited,
-        std::vector<AstNodeModule*>* top_nodes) {
+        std::map<std::string, AstNodeModule*>* top_nodes) {
     // Will keep current node
     AstNode* node = nullptr;
 
@@ -234,12 +234,14 @@ namespace UhdmAst {
           return cell;
         } else {
           // is a top module
-          AstModule *module = new AstModule(new FileLine("uhdm"), modType);
+          AstModule *module;
 
-          if (module != nullptr) {
+          // Check if we have encountered this object before
+          auto it = top_nodes->find(objectName);
+          if (it != top_nodes->end()) {
+            module = reinterpret_cast<AstModule*>(it->second);
             visit_one_to_many({
                 vpiInterface,
-                vpiPort, vpiContAssign,
                 vpiModule,
                 },
                 obj_h,
@@ -249,8 +251,21 @@ namespace UhdmAst {
                   if (node != nullptr)
                     module->addStmtp(node);
                 });
-              return module;
+          } else {
+            module = new AstModule(new FileLine("uhdm"), modType);
+            visit_one_to_many({
+                vpiPort, vpiContAssign,
+                },
+                obj_h,
+                visited,
+                top_nodes,
+                [&](AstNode* node){
+                  if (node != nullptr)
+                    module->addStmtp(node);
+                });
           }
+
+          return module;
         }
         // Unhandled relationships: will visit (and print) the object
         //visit_one_to_many({vpiProcess,
@@ -587,10 +602,11 @@ namespace UhdmAst {
 
   std::vector<AstNodeModule*> visit_designs (const std::vector<vpiHandle>& designs) {
     std::set<const UHDM::BaseClass*> visited;
-    std::vector<AstNodeModule*> top_nodes;
+    std::map<std::string, AstNodeModule*> top_nodes;
     for (auto design : designs) {
         visit_one_to_many({
             UHDM::uhdmallInterfaces,
+            UHDM::uhdmallModules,
             UHDM::uhdmtopModules
             },
             design,
@@ -600,11 +616,14 @@ namespace UhdmAst {
               if (module != nullptr) {
               // Top level nodes need to be NodeModules (created from design)
               // This is true as we visit only top modules and interfaces (with the same AST node) above
-              top_nodes.push_back(reinterpret_cast<AstNodeModule*>(module));
+              top_nodes[module->name()] = (reinterpret_cast<AstNodeModule*>(module));
               }
             });
     }
-    return top_nodes;
+    std::vector<AstNodeModule*> nodes;
+    for (auto node : top_nodes)
+              nodes.push_back(node.second);
+    return nodes;
   }
 
 }
