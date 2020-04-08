@@ -121,20 +121,22 @@ namespace UhdmAst {
         AstNodeDType *dtype = nullptr;
 
         // Get actual type
-        vpiHandle highConn_h = vpi_handle(vpiHighConn, obj_h);
-        if (highConn_h != nullptr) {
-          vpiHandle actual_h = vpi_handle(vpiActual, highConn_h);
+        vpiHandle lowConn_h = vpi_handle(vpiLowConn, obj_h);
+        if (lowConn_h != nullptr) {
+          vpiHandle actual_h = vpi_handle(vpiActual, lowConn_h);
           auto actual_type = vpi_get(vpiType, actual_h);
-          std::string cellName, ifaceName;
-          if (auto s = vpi_get_str(vpiName, actual_h)) {
-            cellName = s;
-            sanitize_str(cellName);
-          }
-          if (auto s = vpi_get_str(vpiDefName, actual_h)) {
-            ifaceName = s;
-            sanitize_str(ifaceName);
-          }
-          if (actual_type == vpiInterface || actual_type == vpiModport) {
+          if (actual_type == vpiModport) {
+            vpiHandle iface_h = vpi_handle(vpiInterface, actual_h);
+
+            std::string cellName, ifaceName;
+            if (auto s = vpi_get_str(vpiName, actual_h)) {
+              cellName = s;
+              sanitize_str(cellName);
+            }
+            if (auto s = vpi_get_str(vpiDefName, iface_h)) {
+              ifaceName = s;
+              sanitize_str(ifaceName);
+            }
             dtype = new AstIfaceRefDType(new FileLine("uhdm"),
                                          cellName,
                                          ifaceName);
