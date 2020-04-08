@@ -200,56 +200,56 @@ namespace UhdmAst {
 
         std::string modType = vpi_get_str(vpiDefName, obj_h);
         sanitize_str(modType);
-        AstModule *module = new AstModule(new FileLine("uhdm"), modType);
 
-        AstPin *modPins = nullptr;
-        AstPin *modParams = nullptr;
-        if (module != nullptr) {
-          visit_one_to_many({
-              vpiInterface,
-              vpiPort, vpiContAssign,
-              vpiModule,
-              },
-              obj_h,
-              visited,
-              top_nodes,
-              [&](AstNode* node){
-                if (node != nullptr)
-                  module->addStmtp(node);
-              });
+        if (objectName != modType) {
+          // Not a top module
+          //top_nodes->push_back(module);
+          AstPin *modPins = nullptr;
+          AstPin *modParams = nullptr;
 
-          if (objectName != modType) {
-            // Not a top module
-            top_nodes->push_back(module);
-
-            // Get port assignments
-            vpiHandle itr = vpi_iterate(vpiPort, obj_h);
-            int np = 0;
-            while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
-              vpiHandle highConn = vpi_handle(vpiHighConn, vpi_child_obj);
-              if (highConn) {
-                std::string portName = vpi_get_str(vpiName, vpi_child_obj);
-                sanitize_str(portName);
-                AstParseRef *ref = reinterpret_cast<AstParseRef *>(visit_object(highConn, visited, top_nodes));
-                AstPin *pin = new AstPin(new FileLine("uhdm"), ++np, portName, ref);
-                if (!modPins)
-                    modPins = pin;
-                else
-                    modPins->addNextNull(pin);
-              }
-
-              vpi_free_object(vpi_child_obj);
+          // Get port assignments
+          vpiHandle itr = vpi_iterate(vpiPort, obj_h);
+          int np = 0;
+          while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
+            vpiHandle highConn = vpi_handle(vpiHighConn, vpi_child_obj);
+            if (highConn) {
+              std::string portName = vpi_get_str(vpiName, vpi_child_obj);
+              sanitize_str(portName);
+              AstParseRef *ref = reinterpret_cast<AstParseRef *>(visit_object(highConn, visited, top_nodes));
+              AstPin *pin = new AstPin(new FileLine("uhdm"), ++np, portName, ref);
+              if (!modPins)
+                  modPins = pin;
+              else
+                  modPins->addNextNull(pin);
             }
-            vpi_free_object(itr);
 
-            std::string fullname = vpi_get_str(vpiFullName, obj_h);
-            sanitize_str(fullname);
-            AstCell *cell = new AstCell(new FileLine("uhdm"), new FileLine("uhdm"),
-                objectName, modType, modPins, modParams, nullptr);
-            return cell;
-          } else {
-            // is a top module
-            return module;
+            vpi_free_object(vpi_child_obj);
+          }
+          vpi_free_object(itr);
+
+          std::string fullname = vpi_get_str(vpiFullName, obj_h);
+          sanitize_str(fullname);
+          AstCell *cell = new AstCell(new FileLine("uhdm"), new FileLine("uhdm"),
+              objectName, modType, modPins, modParams, nullptr);
+          return cell;
+        } else {
+          // is a top module
+          AstModule *module = new AstModule(new FileLine("uhdm"), modType);
+
+          if (module != nullptr) {
+            visit_one_to_many({
+                vpiInterface,
+                vpiPort, vpiContAssign,
+                vpiModule,
+                },
+                obj_h,
+                visited,
+                top_nodes,
+                [&](AstNode* node){
+                  if (node != nullptr)
+                    module->addStmtp(node);
+                });
+              return module;
           }
         }
         // Unhandled relationships: will visit (and print) the object
