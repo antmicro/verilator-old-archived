@@ -229,6 +229,7 @@ namespace UhdmAst {
               vpiPort,
               vpiModule,
               vpiContAssign,
+              vpiProcess,
               },
               obj_h,
               visited,
@@ -592,7 +593,10 @@ namespace UhdmAst {
       // What we can see (but don't support yet)
       case vpiClassObj:
       case vpiPackage:
+        break; // Be silent
       default: {
+        // Notify we have something unhandled
+        std::cout << "Unhandled type: " << objectType << std::endl;
         break;
       }
     }
