@@ -590,6 +590,70 @@ namespace UhdmAst {
         AstModportVarRef* io_node = new AstModportVarRef(new FileLine("uhdm"), objectName, dir);
         return io_node;
       }
+      case vpiAlways: {
+        VAlwaysKwd alwaysType;
+        AstSenTree* senTree = nullptr;
+        AstNode* body = nullptr;
+
+        // Which always type is it?
+        switch(vpi_get(vpiAlwaysType, obj_h)) {
+            case vpiAlways: {
+              alwaysType = VAlwaysKwd::ALWAYS;
+              break;
+            }
+            case vpiAlwaysFF: {
+              alwaysType = VAlwaysKwd::ALWAYS_FF;
+              break;
+            }
+            case vpiAlwaysLatch: {
+              alwaysType = VAlwaysKwd::ALWAYS_LATCH;
+              break;
+            }
+            case vpiAlwaysComb: {
+              alwaysType = VAlwaysKwd::ALWAYS_COMB;
+              break;
+            }
+            default: {
+              std::cout << "Unhandled always type" << std::endl;
+              break;
+            }
+        }
+
+        // Sensitivity list
+        vpiHandle event_control_h = vpi_handle(vpiStmt, obj_h);
+        if (event_control_h != nullptr) {
+          vpiHandle condition_h = vpi_handle(vpiCondition, event_control_h);
+          AstEdgeType edge;
+          auto edge_t = vpi_get(vpiOpType, condition_h);
+          switch(edge_t) {
+            case vpiPosedgeOp: {
+              edge = AstEdgeType::ET_POSEDGE;
+              break;
+            }
+            case vpiNegedgeOp: {
+              edge = AstEdgeType::ET_NEGEDGE;
+              break;
+            }
+            default: {
+              std::cout << "\t! Missing edge type " << edge_t << std::endl;
+              break;
+            }
+          }
+          AstNode* operand = nullptr;
+          visit_one_to_many({vpiOperand}, condition_h, visited, top_nodes,
+            [&](AstNode* node){
+              if (operand == nullptr) {
+                operand = node;
+              } else {
+                operand->addNextNull(node);
+              }
+            });
+
+          AstSenItem* root = new AstSenItem(new FileLine("uhdm"), edge, operand);
+          senTree = new AstSenTree(new FileLine("uhdm"), root);
+        }
+        return new AstAlways(new FileLine("uhdm"), alwaysType, senTree, body);
+      }
       // What we can see (but don't support yet)
       case vpiClassObj:
       case vpiPackage:
