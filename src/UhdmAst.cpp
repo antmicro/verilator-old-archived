@@ -480,115 +480,115 @@ namespace UhdmAst {
 
         break;
       }
-    case vpiInterface: {
-      // Interface definition is represented by a module node
-      AstIface* elaboratedInterface = new AstIface(new FileLine("uhdm"), objectName);
-      visit_one_to_many({
-          vpiNet,
-          vpiModport
-          },
-          obj_h,
-          visited,
-          top_nodes,
-          [&](AstNode* port){
-        if(port) {
-          elaboratedInterface->addStmtp(port);
+      case vpiInterface: {
+        // Interface definition is represented by a module node
+        AstIface* elaboratedInterface = new AstIface(new FileLine("uhdm"), objectName);
+        visit_one_to_many({
+            vpiNet,
+            vpiModport
+            },
+            obj_h,
+            visited,
+            top_nodes,
+            [&](AstNode* port){
+          if(port) {
+            elaboratedInterface->addStmtp(port);
+          }
+        });
+        elaboratedInterface->name(objectName);
+        std::string modType = vpi_get_str(vpiDefName, obj_h);
+        sanitize_str(modType);
+        if (objectName != modType) {
+          AstPin *modPins = nullptr;
+          AstPin *modParams = nullptr;
+          AstCell *cell = new AstCell(new FileLine("uhdm"), new FileLine("uhdm"),
+              objectName, modType, modPins, modParams, nullptr);
+          return cell;
+        } else {
+          // is top level
+          return elaboratedInterface;
         }
-      });
-      elaboratedInterface->name(objectName);
-      std::string modType = vpi_get_str(vpiDefName, obj_h);
-      sanitize_str(modType);
-      if (objectName != modType) {
-        AstPin *modPins = nullptr;
-        AstPin *modParams = nullptr;
-        AstCell *cell = new AstCell(new FileLine("uhdm"), new FileLine("uhdm"),
-            objectName, modType, modPins, modParams, nullptr);
-        return cell;
-      } else {
-        // is top level
-        return elaboratedInterface;
+        // Unhandled relationships: will visit (and print) the object
+        //visit_one_to_one({
+        //    vpiParent,
+        //    vpiInstanceArray,
+        //    vpiGlobalClocking,
+        //    vpiDefaultClocking,
+        //    vpiDefaultDisableIff,
+        //    vpiInstance,
+        //    vpiModule
+        //    },
+        //    obj_h,
+        //    visited,
+        //    [](AST::AstNode*){});
+        //visit_one_to_many({
+        //    vpiProcess,
+        //    vpiInterfaceTfDecl,
+        //    vpiModPath,
+        //    vpiContAssign,
+        //    vpiInterface,
+        //    vpiInterfaceArray,
+        //    vpiPort,
+        //    vpiTaskFunc,
+        //    vpiArrayNet,
+        //    vpiAssertion,
+        //    vpiClassDefn,
+        //    vpiProgram,
+        //    vpiProgramArray,
+        //    vpiSpecParam,
+        //    vpiConcurrentAssertions,
+        //    vpiVariables,
+        //    vpiParameter,
+        //    vpiInternalScope,
+        //    vpiTypedef,
+        //    vpiPropertyDecl,
+        //    vpiSequenceDecl,
+        //    vpiNamedEvent,
+        //    vpiNamedEventArray,
+        //    vpiVirtualInterfaceVar,
+        //    vpiReg,
+        //    vpiRegArray,
+        //    vpiMemory,
+        //    vpiLetDecl,
+        //    vpiImport,
+        //    },
+        //    obj_h,
+        //    visited,
+        //    [](AST::AstNode*){});
+        break;
       }
-      // Unhandled relationships: will visit (and print) the object
-      //visit_one_to_one({
-      //    vpiParent,
-      //    vpiInstanceArray,
-      //    vpiGlobalClocking,
-      //    vpiDefaultClocking,
-      //    vpiDefaultDisableIff,
-      //    vpiInstance,
-      //    vpiModule
-      //    },
-      //    obj_h,
-      //    visited,
-      //    [](AST::AstNode*){});
-      //visit_one_to_many({
-      //    vpiProcess,
-      //    vpiInterfaceTfDecl,
-      //    vpiModPath,
-      //    vpiContAssign,
-      //    vpiInterface,
-      //    vpiInterfaceArray,
-      //    vpiPort,
-      //    vpiTaskFunc,
-      //    vpiArrayNet,
-      //    vpiAssertion,
-      //    vpiClassDefn,
-      //    vpiProgram,
-      //    vpiProgramArray,
-      //    vpiSpecParam,
-      //    vpiConcurrentAssertions,
-      //    vpiVariables,
-      //    vpiParameter,
-      //    vpiInternalScope,
-      //    vpiTypedef,
-      //    vpiPropertyDecl,
-      //    vpiSequenceDecl,
-      //    vpiNamedEvent,
-      //    vpiNamedEventArray,
-      //    vpiVirtualInterfaceVar,
-      //    vpiReg,
-      //    vpiRegArray,
-      //    vpiMemory,
-      //    vpiLetDecl,
-      //    vpiImport,
-      //    },
-      //    obj_h,
-      //    visited,
-      //    [](AST::AstNode*){});
-      break;
-    }
-    case vpiModport: {
-      AstNode* modport_vars = nullptr;
-      visit_one_to_many({vpiIODecl},
-          obj_h,
-          visited,
-          top_nodes,
-          [&](AstNode* net){
-        if(net) {
-          if (modport_vars == nullptr) {
-            modport_vars = net;
-          } else {
-            modport_vars->addNext(net);
+      case vpiModport: {
+        AstNode* modport_vars = nullptr;
+        visit_one_to_many({vpiIODecl},
+            obj_h,
+            visited,
+            top_nodes,
+            [&](AstNode* net){
+          if(net) {
+            if (modport_vars == nullptr) {
+              modport_vars = net;
+            } else {
+              modport_vars->addNext(net);
+            }
+          }
+        });
+        AstModport *node = new AstModport(new FileLine("uhdm"), objectName, modport_vars);
+        return node;
+      }
+      case vpiIODecl: {
+       VDirection dir;
+        if (const int n = vpi_get(vpiDirection, obj_h)) {
+          if (n == vpiInput) {
+            dir = VDirection::INPUT;
+          } else if (n == vpiOutput) {
+            dir = VDirection::OUTPUT;
+          } else if (n == vpiInout) {
+            dir = VDirection::INOUT;
           }
         }
-      });
-      AstModport *node = new AstModport(new FileLine("uhdm"), objectName, modport_vars);
-      return node;
-    }
-    case vpiIODecl: {
-     VDirection dir;
-      if (const int n = vpi_get(vpiDirection, obj_h)) {
-        if (n == vpiInput) {
-          dir = VDirection::INPUT;
-        } else if (n == vpiOutput) {
-          dir = VDirection::OUTPUT;
-        } else if (n == vpiInout) {
-          dir = VDirection::INOUT;
-        }
+        AstModportVarRef* io_node = new AstModportVarRef(new FileLine("uhdm"), objectName, dir);
+        return io_node;
       }
-      AstModportVarRef* io_node = new AstModportVarRef(new FileLine("uhdm"), objectName, dir);
-      return io_node;
-    }
       // What we can see (but don't support yet)
       case vpiClassObj:
       case vpiPackage:
