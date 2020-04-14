@@ -651,7 +651,14 @@ namespace UhdmAst {
 
           AstSenItem* root = new AstSenItem(new FileLine("uhdm"), edge, operand);
           senTree = new AstSenTree(new FileLine("uhdm"), root);
+
+          // Body of statements
+          visit_one_to_one({vpiStmt}, event_control_h, visited, top_nodes,
+            [&](AstNode* node){
+              body = node;
+            });
         }
+
         return new AstAlways(new FileLine("uhdm"), alwaysType, senTree, body);
       }
       // What we can see (but don't support yet)
