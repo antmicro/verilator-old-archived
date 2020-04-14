@@ -661,6 +661,18 @@ namespace UhdmAst {
 
         return new AstAlways(new FileLine("uhdm"), alwaysType, senTree, body);
       }
+      case vpiBegin: {
+        AstNode* body = nullptr;
+        visit_one_to_many({vpiStmt}, obj_h, visited, top_nodes,
+          [&](AstNode* node){
+            if (body == nullptr) {
+              body = node;
+            } else {
+              body->addNextNull(node);
+            }
+          });
+        return new AstBegin(new FileLine("uhdm"), objectName, body);
+      }
       // What we can see (but don't support yet)
       case vpiClassObj:
       case vpiPackage:
