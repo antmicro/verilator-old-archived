@@ -327,6 +327,7 @@ namespace UhdmAst {
 
         break;
       }
+      case vpiAssignment:
       case vpiContAssign: {
         AstNode* lvalue = nullptr;
         AstNode* rvalue = nullptr;
@@ -350,7 +351,7 @@ namespace UhdmAst {
             });
 
         if (lvalue && rvalue) {
-          return new AstAssignW(new FileLine("uhdm"), lvalue, rvalue);
+          return new AstAssign(new FileLine("uhdm"), lvalue, rvalue);
         }
         // Unhandled relationships: will visit (and print) the object
         //visit_one_to_one({vpiDelay},
@@ -713,7 +714,20 @@ namespace UhdmAst {
         }
         return nullptr;
       }
-      case vpiAssignment: {
+      case vpiConstant: {
+        auto type = vpi_get(vpiConstType, obj_h);
+        s_vpi_value val;
+        vpi_get_value(obj_h, &val);
+        switch (val.format) {
+          case vpiIntVal: {
+            AstConst::Unsized32 u;
+            return new AstConst(new FileLine("uhdm"), AstConst::Unsized32(), (val.value.integer));
+          }
+          default: {
+            std::cout << "\t! Encountered unhandled constant type" << std::endl;
+            break;
+          }
+        }
         return nullptr;
       }
 
