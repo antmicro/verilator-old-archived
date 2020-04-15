@@ -673,6 +673,28 @@ namespace UhdmAst {
           });
         return new AstBegin(new FileLine("uhdm"), objectName, body);
       }
+      case vpiIf:
+      case vpiIfElse: {
+        AstNode* condition;
+        AstNode* statement;
+        AstNode* elseStatement;
+
+        visit_one_to_one({vpiCondition}, obj_h, visited, top_nodes,
+          [&](AstNode* node){
+            condition = node;
+          });
+        visit_one_to_one({vpiStmt}, obj_h, visited, top_nodes,
+          [&](AstNode* node){
+            statement = node;
+          });
+        if (objectType == vpiIfElse) {
+          visit_one_to_one({vpiElseStmt}, obj_h, visited, top_nodes,
+            [&](AstNode* node){
+              elseStatement = node;
+            });
+        }
+        return new AstIf(new FileLine("uhdm"), condition, statement, elseStatement);
+      }
       // What we can see (but don't support yet)
       case vpiClassObj:
       case vpiPackage:
