@@ -695,6 +695,28 @@ namespace UhdmAst {
         }
         return new AstIf(new FileLine("uhdm"), condition, statement, elseStatement);
       }
+      case vpiOperation: {
+        AstNode* operand;
+        auto operation = vpi_get(vpiOpType, obj_h);
+        switch (operation) {
+          case vpiNotOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+            [&](AstNode* node){
+              operand = node;
+            });
+            return new AstLogNot(new FileLine("uhdm"), operand);
+          }
+          default: {
+            std::cout << "\t! Encountered unhandled operation" << std::endl;
+            break;
+          }
+        }
+        return nullptr;
+      }
+      case vpiAssignment: {
+        return nullptr;
+      }
+
       // What we can see (but don't support yet)
       case vpiClassObj:
       case vpiPackage:
