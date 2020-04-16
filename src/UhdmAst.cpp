@@ -351,7 +351,10 @@ namespace UhdmAst {
             });
 
         if (lvalue && rvalue) {
-          return new AstAssign(new FileLine("uhdm"), lvalue, rvalue);
+          if (objectType == vpiAssignment)
+            return new AstAssign(new FileLine("uhdm"), lvalue, rvalue);
+          else if (objectType == vpiContAssign)
+            return new AstAssignW(new FileLine("uhdm"), lvalue, rvalue);
         }
         // Unhandled relationships: will visit (and print) the object
         //visit_one_to_one({vpiDelay},
