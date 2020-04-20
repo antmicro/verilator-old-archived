@@ -626,35 +626,12 @@ namespace UhdmAst {
         // Sensitivity list
         vpiHandle event_control_h = vpi_handle(vpiStmt, obj_h);
         if (event_control_h != nullptr) {
-          vpiHandle condition_h = vpi_handle(vpiCondition, event_control_h);
-          AstEdgeType edge;
-          auto edge_t = vpi_get(vpiOpType, condition_h);
-          switch(edge_t) {
-            case vpiPosedgeOp: {
-              edge = AstEdgeType::ET_POSEDGE;
-              break;
-            }
-            case vpiNegedgeOp: {
-              edge = AstEdgeType::ET_NEGEDGE;
-              break;
-            }
-            default: {
-              std::cout << "\t! Missing edge type " << edge_t << std::endl;
-              break;
-            }
-          }
-          AstNode* operand = nullptr;
-          visit_one_to_many({vpiOperand}, condition_h, visited, top_nodes,
+          AstNodeSenItem* senItemRoot;
+          visit_one_to_one({vpiCondition}, event_control_h, visited, top_nodes,
             [&](AstNode* node){
-              if (operand == nullptr) {
-                operand = node;
-              } else {
-                operand->addNextNull(node);
-              }
+              senItemRoot = reinterpret_cast<AstNodeSenItem*>(node);
             });
-
-          AstSenItem* root = new AstSenItem(new FileLine("uhdm"), edge, operand);
-          senTree = new AstSenTree(new FileLine("uhdm"), root);
+          senTree = new AstSenTree(new FileLine("uhdm"), senItemRoot);
 
           // Body of statements
           visit_one_to_one({vpiStmt}, event_control_h, visited, top_nodes,
@@ -700,7 +677,7 @@ namespace UhdmAst {
         return new AstIf(new FileLine("uhdm"), condition, statement, elseStatement);
       }
       case vpiOperation: {
-        AstNode* operand;
+        AstNode* operand = nullptr;
         auto operation = vpi_get(vpiOpType, obj_h);
         switch (operation) {
           case vpiNotOp: {
@@ -709,6 +686,37 @@ namespace UhdmAst {
               operand = node;
             });
             return new AstLogNot(new FileLine("uhdm"), operand);
+          }
+          case vpiEventOrOp: {
+            // Do not create a separate node
+            // Chain operand nodes instead
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (operand == nullptr) {
+                  operand = node;
+                } else {
+                  operand->addNextNull(node);
+                }
+              });
+            return operand;
+          }
+          case vpiPosedgeOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+            [&](AstNode* node){
+              operand = node;
+            });
+            return new AstSenItem(new FileLine("uhdm"),
+                                  AstEdgeType::ET_POSEDGE,
+                                  operand);
+          }
+          case vpiNegedgeOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+            [&](AstNode* node){
+              operand = node;
+            });
+            return new AstSenItem(new FileLine("uhdm"),
+                                  AstEdgeType::ET_NEGEDGE,
+                                  operand);
           }
           default: {
             std::cout << "\t! Encountered unhandled operation" << std::endl;
