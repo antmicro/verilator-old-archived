@@ -102,17 +102,6 @@ namespace UhdmAst {
               }
             });
         return node;
-        // Unhandled relationships: will visit (and print) the object
-        //visit_one_to_many({UHDM::uhdmtopModules,
-        //                   UHDM::uhdmallPrograms,
-        //                   UHDM::uhdmallPackages,
-        //                   UHDM::uhdmallClasses,
-        //                   UHDM::uhdmallInterfaces,
-        //                   UHDM::uhdmallUdps},
-        //                  obj_h,
-        //                  visited,
-        //                  [](AstNode* node){});
-
       }
       case vpiPort: {
         static unsigned numPorts;
@@ -182,20 +171,6 @@ namespace UhdmAst {
         if (port) {
           return port;
         }
-        // Unhandled relationships: will visit (and print) the object
-        //visit_one_to_many({vpiBit},
-        //                  obj_h,
-        //                  visited,
-        //                  [](AstNode*){});
-        //visit_one_to_one({vpiTypedef,
-        //                  vpiInstance,
-        //                  vpiModule,
-        //                  vpiHighConn,
-        //                  vpiLowConn},
-        //                 obj_h,
-        //                 visited,
-        //                 [](AstNode*){});
-
         break;
       }
       case vpiModule: {
@@ -272,59 +247,6 @@ namespace UhdmAst {
               objectName, modType, modPins, modParams, nullptr);
           return cell;
         }
-        // Unhandled relationships: will visit (and print) the object
-        //visit_one_to_many({vpiProcess,
-        //                   vpiPrimitive,
-        //                   vpiPrimitiveArray,
-        //                   vpiInterface,
-        //                   vpiInterfaceArray,
-        //                   vpiModule,
-        //                   vpiModuleArray,
-        //                   vpiModPath,
-        //                   vpiTchk,
-        //                   vpiDefParam,
-        //                   vpiIODecl,
-        //                   vpiAliasStmt,
-        //                   vpiClockingBlock,
-        //                   vpiTaskFunc,
-        //                   vpiNet,
-        //                   vpiArrayNet,
-        //                   vpiAssertion,
-        //                   vpiClassDefn,
-        //                   vpiProgram,
-        //                   vpiProgramArray,
-        //                   vpiSpecParam,
-        //                   vpiConcurrentAssertions,
-        //                   vpiVariables,
-        //                   vpiParameter,
-        //                   vpiInternalScope,
-        //                   vpiTypedef,
-        //                   vpiPropertyDecl,
-        //                   vpiSequenceDecl,
-        //                   vpiNamedEvent,
-        //                   vpiNamedEventArray,
-        //                   vpiVirtualInterfaceVar,
-        //                   vpiReg,
-        //                   vpiRegArray,
-        //                   vpiMemory,
-        //                   vpiLetDecl,
-        //                   vpiImport
-        //                  },
-        //                  obj_h,
-        //                  visited,
-        //                  [](AstNode* node){});
-        //visit_one_to_one({vpiDefaultDisableIff,
-        //                  vpiInstanceArray,
-        //                  vpiGlobalClocking,
-        //                  vpiDefaultClocking,
-        //                  vpiModuleArray,
-        //                  vpiInstance,
-        //                  vpiModule  // TODO: Both here and in one-to-many?
-        //                 },
-        //                 obj_h,
-        //                 visited,
-        //                 [](AstNode*){});
-
         break;
       }
       case vpiAssignment:
@@ -356,16 +278,6 @@ namespace UhdmAst {
           else if (objectType == vpiContAssign)
             return new AstAssignW(new FileLine("uhdm"), lvalue, rvalue);
         }
-        // Unhandled relationships: will visit (and print) the object
-        //visit_one_to_one({vpiDelay},
-        //                 obj_h,
-        //                 visited,
-        //                 [](AstNode*){});
-        //visit_one_to_many({vpiBit},
-        //                  obj_h,
-        //                  visited,
-        //                  [](AstNode*){});
-
         break;
       }
       case vpiRefObj: {
@@ -410,19 +322,6 @@ namespace UhdmAst {
                                                  nullptr,
                                                  nullptr);
         }
-
-        // Unhandled relationships: will visit (and print) the object
-        //visit_one_to_one({vpiInstance,
-        //                  vpiTaskFunc,
-        //                  vpiTypespec},
-        //                 obj_h,
-        //                 visited,
-        //                 [](AstNode*){});
-        //visit_one_to_many({vpiPortInst},
-        //                  obj_h,
-        //                  visited,
-        //                  [](AstNode*){});
-
         break;
       }
       case vpiNet: {
@@ -433,56 +332,8 @@ namespace UhdmAst {
         auto *v = new AstVar(new FileLine("uhdm"), AstVarType::WIRE, objectName, dtype);
         v->childDTypep(dtype);
         return v;
-
-        // Unhandled relationships: will visit (and print) the object
-        //visit_one_to_one({vpiLeftRange,
-        //                  vpiRightRange,
-        //                  vpiSimNet,
-        //                  vpiModule,
-        //                  vpiTypespec
-        //                 },
-        //                 obj_h,
-        //                 visited,
-        //                 [](AstNode*){});
-        //visit_one_to_many({vpiRange,
-        //                   vpiBit,
-        //                   vpiPortInst,
-        //                   vpiDriver,
-        //                   vpiLoad,
-        //                   vpiLocalDriver,
-        //                   vpiLocalLoad,
-        //                   vpiPrimTerm,
-        //                   vpiContAssign,
-        //                   vpiPathTerm,
-        //                   vpiTchkTerm
-        //                  },
-        //                  obj_h,
-        //                  visited,
-        //                  [](AstNode*){});
-        break;
       }
       case vpiClassDefn: {
-
-        // Unhandled relationships: will visit (and print) the object
-        //visit_one_to_many({vpiConcurrentAssertions,
-        //                   vpiVariables,
-        //                   vpiParameter,
-        //                   vpiInternalScope,
-        //                   vpiTypedef,
-        //                   vpiPropertyDecl,
-        //                   vpiSequenceDecl,
-        //                   vpiNamedEvent,
-        //                   vpiNamedEventArray,
-        //                   vpiVirtualInterfaceVar,
-        //                   vpiReg,
-        //                   vpiRegArray,
-        //                   vpiMemory,
-        //                   vpiLetDecl,
-        //                   vpiImport},
-        //                  obj_h,
-        //                  visited,
-        //                  [](AstNode*){});
-
         break;
       }
       case vpiInterface: {
@@ -513,53 +364,6 @@ namespace UhdmAst {
           // is top level
           return elaboratedInterface;
         }
-        // Unhandled relationships: will visit (and print) the object
-        //visit_one_to_one({
-        //    vpiParent,
-        //    vpiInstanceArray,
-        //    vpiGlobalClocking,
-        //    vpiDefaultClocking,
-        //    vpiDefaultDisableIff,
-        //    vpiInstance,
-        //    vpiModule
-        //    },
-        //    obj_h,
-        //    visited,
-        //    [](AST::AstNode*){});
-        //visit_one_to_many({
-        //    vpiProcess,
-        //    vpiInterfaceTfDecl,
-        //    vpiModPath,
-        //    vpiContAssign,
-        //    vpiInterface,
-        //    vpiInterfaceArray,
-        //    vpiPort,
-        //    vpiTaskFunc,
-        //    vpiArrayNet,
-        //    vpiAssertion,
-        //    vpiClassDefn,
-        //    vpiProgram,
-        //    vpiProgramArray,
-        //    vpiSpecParam,
-        //    vpiConcurrentAssertions,
-        //    vpiVariables,
-        //    vpiParameter,
-        //    vpiInternalScope,
-        //    vpiTypedef,
-        //    vpiPropertyDecl,
-        //    vpiSequenceDecl,
-        //    vpiNamedEvent,
-        //    vpiNamedEventArray,
-        //    vpiVirtualInterfaceVar,
-        //    vpiReg,
-        //    vpiRegArray,
-        //    vpiMemory,
-        //    vpiLetDecl,
-        //    vpiImport,
-        //    },
-        //    obj_h,
-        //    visited,
-        //    [](AST::AstNode*){});
         break;
       }
       case vpiModport: {
