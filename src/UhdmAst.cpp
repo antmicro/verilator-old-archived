@@ -137,6 +137,28 @@ namespace UhdmAst {
             port->addNextNull(var);
             var->childDTypep(dtype);
             return port;
+          } else if (actual_type == vpiInterface) {
+            std::string cellName, ifaceName;
+            vpiHandle iface_h = actual_h;
+            if (auto s = vpi_get_str(vpiName, actual_h)) {
+              cellName = s;
+              sanitize_str(cellName);
+            }
+            if (auto s = vpi_get_str(vpiDefName, iface_h)) {
+              ifaceName = s;
+              sanitize_str(ifaceName);
+            }
+            port = new AstPort(new FileLine("uhdm"), ++numPorts, objectName);
+            dtype = new AstIfaceRefDType(new FileLine("uhdm"),
+                                         cellName,
+                                         ifaceName);
+            var = new AstVar(new FileLine("uhdm"),
+                             AstVarType::IFACEREF,
+                             objectName,
+                             dtype);
+            var->childDTypep(dtype);
+            port->addNextNull(var);
+            return port;
           }
         }
         dtype = new AstBasicDType(new FileLine("uhdm"),
