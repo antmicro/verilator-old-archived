@@ -677,46 +677,91 @@ namespace UhdmAst {
         return new AstIf(new FileLine("uhdm"), condition, statement, elseStatement);
       }
       case vpiOperation: {
-        AstNode* operand = nullptr;
+        AstNode* rhs = nullptr;
+        AstNode* lhs = nullptr;
         auto operation = vpi_get(vpiOpType, obj_h);
         switch (operation) {
           case vpiNotOp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
             [&](AstNode* node){
-              operand = node;
+              rhs = node;
             });
-            return new AstLogNot(new FileLine("uhdm"), operand);
+            return new AstNot(new FileLine("uhdm"), rhs);
+          }
+          case vpiBitAndOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (rhs == nullptr) {
+                  rhs = node;
+                } else {
+                  lhs = node;
+                }
+              });
+            return new AstAnd(new FileLine("uhdm"), lhs, rhs);
+          }
+          case vpiBitOrOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (rhs == nullptr) {
+                  rhs = node;
+                } else {
+                  lhs = node;
+                }
+              });
+            return new AstOr(new FileLine("uhdm"), lhs, rhs);
+          }
+          case vpiBitXorOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (rhs == nullptr) {
+                  rhs = node;
+                } else {
+                  lhs = node;
+                }
+              });
+            return new AstXor(new FileLine("uhdm"), lhs, rhs);
+          }
+          case vpiBitXnorOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (rhs == nullptr) {
+                  rhs = node;
+                } else {
+                  lhs = node;
+                }
+              });
+            return new AstXnor(new FileLine("uhdm"), lhs, rhs);
           }
           case vpiEventOrOp: {
             // Do not create a separate node
             // Chain operand nodes instead
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
               [&](AstNode* node){
-                if (operand == nullptr) {
-                  operand = node;
+                if (rhs == nullptr) {
+                  rhs = node;
                 } else {
-                  operand->addNextNull(node);
+                  rhs->addNextNull(node);
                 }
               });
-            return operand;
+            return rhs;
           }
           case vpiPosedgeOp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
             [&](AstNode* node){
-              operand = node;
+              rhs = node;
             });
             return new AstSenItem(new FileLine("uhdm"),
                                   AstEdgeType::ET_POSEDGE,
-                                  operand);
+                                  rhs);
           }
           case vpiNegedgeOp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
             [&](AstNode* node){
-              operand = node;
+              rhs = node;
             });
             return new AstSenItem(new FileLine("uhdm"),
                                   AstEdgeType::ET_NEGEDGE,
-                                  operand);
+                                  rhs);
           }
           default: {
             std::cout << "\t! Encountered unhandled operation" << std::endl;
