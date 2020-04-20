@@ -114,32 +114,15 @@ namespace UhdmAst {
         if (lowConn_h != nullptr) {
           vpiHandle actual_h = vpi_handle(vpiActual, lowConn_h);
           auto actual_type = vpi_get(vpiType, actual_h);
+          vpiHandle iface_h = nullptr;
           if (actual_type == vpiModport) {
-            vpiHandle iface_h = vpi_handle(vpiInterface, actual_h);
-
-            std::string cellName, ifaceName;
-            if (auto s = vpi_get_str(vpiName, actual_h)) {
-              cellName = s;
-              sanitize_str(cellName);
-            }
-            if (auto s = vpi_get_str(vpiDefName, iface_h)) {
-              ifaceName = s;
-              sanitize_str(ifaceName);
-            }
-            dtype = new AstIfaceRefDType(new FileLine("uhdm"),
-                                         cellName,
-                                         ifaceName);
-            var = new AstVar(new FileLine("uhdm"),
-                             AstVarType::IFACEREF,
-                             objectName,
-                             dtype);
-            port = new AstPort(new FileLine("uhdm"), ++numPorts, objectName);
-            port->addNextNull(var);
-            var->childDTypep(dtype);
-            return port;
+            iface_h = vpi_handle(vpiInterface, actual_h);
           } else if (actual_type == vpiInterface) {
+            iface_h = actual_h;
+          }
+          if (iface_h != nullptr) {
+            // Only if was set above
             std::string cellName, ifaceName;
-            vpiHandle iface_h = actual_h;
             if (auto s = vpi_get_str(vpiName, actual_h)) {
               cellName = s;
               sanitize_str(cellName);
@@ -148,7 +131,6 @@ namespace UhdmAst {
               ifaceName = s;
               sanitize_str(ifaceName);
             }
-            port = new AstPort(new FileLine("uhdm"), ++numPorts, objectName);
             dtype = new AstIfaceRefDType(new FileLine("uhdm"),
                                          cellName,
                                          ifaceName);
@@ -156,8 +138,9 @@ namespace UhdmAst {
                              AstVarType::IFACEREF,
                              objectName,
                              dtype);
-            var->childDTypep(dtype);
+            port = new AstPort(new FileLine("uhdm"), ++numPorts, objectName);
             port->addNextNull(var);
+            var->childDTypep(dtype);
             return port;
           }
         }
