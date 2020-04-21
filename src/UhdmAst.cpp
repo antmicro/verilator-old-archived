@@ -194,6 +194,8 @@ namespace UhdmAst {
               vpiInterface,
               vpiModule,
               vpiContAssign,
+              //vpiParamAssign,  - obtain value when visiting parameter below
+              vpiParameter,
               },
               obj_h,
               visited,
@@ -210,6 +212,7 @@ namespace UhdmAst {
               vpiModule,
               vpiContAssign,
               vpiProcess,
+              //vpiParameter,  - wait for instantiation to get the assigned value
               },
               obj_h,
               visited,
@@ -338,8 +341,29 @@ namespace UhdmAst {
         v->childDTypep(dtype);
         return v;
       }
-      case vpiClassDefn: {
-        break;
+      case vpiParameter: {
+        auto* dtype = new AstBasicDType(new FileLine("uhdm"),
+                                        AstBasicDTypeKwd::LOGIC_IMPLICIT);
+        auto* parameter = new AstVar(new FileLine("uhdm"),
+                               AstVarType::GPARAM,
+                               objectName,
+                               dtype);
+        AstNode* parameter_value = nullptr;
+        s_vpi_value val;
+        vpi_get_value(obj_h, &val);
+        switch (val.format) {
+          case vpiIntVal: {
+            parameter_value = new AstConst(new FileLine("uhdm"), AstConst::Unsized32(), (val.value.integer));
+            break;
+          }
+          default: {
+            std::cout << "\t! Encountered unhandled parameter value type" << std::endl;
+            break;
+          }
+        }
+        parameter->childDTypep(dtype);
+        parameter->valuep(parameter_value);
+        return parameter;
       }
       case vpiInterface: {
         // Interface definition is represented by a module node
@@ -585,7 +609,6 @@ namespace UhdmAst {
         vpi_get_value(obj_h, &val);
         switch (val.format) {
           case vpiIntVal: {
-            AstConst::Unsized32 u;
             return new AstConst(new FileLine("uhdm"), AstConst::Unsized32(), (val.value.integer));
           }
           default: {
@@ -598,6 +621,7 @@ namespace UhdmAst {
 
       // What we can see (but don't support yet)
       case vpiClassObj:
+      case vpiClassDefn:
       case vpiPackage:
         break; // Be silent
       default: {
