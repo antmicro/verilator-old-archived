@@ -107,7 +107,7 @@ namespace UhdmAst {
         static unsigned numPorts;
         AstPort *port = nullptr;
         AstVar *var = nullptr;
-        AstNodeDType *dtype = nullptr;
+        AstRange* rangeNode = nullptr;
 
         // Get actual type
         vpiHandle lowConn_h = vpi_handle(vpiLowConn, obj_h);
@@ -131,7 +131,7 @@ namespace UhdmAst {
               ifaceName = s;
               sanitize_str(ifaceName);
             }
-            dtype = new AstIfaceRefDType(new FileLine("uhdm"),
+            auto* dtype = new AstIfaceRefDType(new FileLine("uhdm"),
                                          cellName,
                                          ifaceName);
             var = new AstVar(new FileLine("uhdm"),
@@ -143,9 +143,24 @@ namespace UhdmAst {
             var->childDTypep(dtype);
             return port;
           }
+          // Get range from actual
+          AstNode* msbNode = nullptr;
+          AstNode* lsbNode = nullptr;
+          auto leftRange_h  = vpi_handle(vpiLeftRange, actual_h);
+          if (leftRange_h) {
+            msbNode = visit_object(leftRange_h, visited, top_nodes);
+          }
+          auto rightRange_h  = vpi_handle(vpiRightRange, actual_h);
+          if (rightRange_h) {
+            lsbNode = visit_object(rightRange_h, visited, top_nodes);
+          }
+          if (msbNode && lsbNode) {
+            rangeNode = new AstRange(new FileLine("uhdm"), msbNode, lsbNode);
+          }
         }
-        dtype = new AstBasicDType(new FileLine("uhdm"),
+        auto* dtype = new AstBasicDType(new FileLine("uhdm"),
                                   AstBasicDTypeKwd::LOGIC_IMPLICIT);
+        dtype->rangep(rangeNode);
         var = new AstVar(new FileLine("uhdm"),
                          AstVarType::PORT,
                          objectName,
