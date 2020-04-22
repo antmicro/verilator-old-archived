@@ -370,7 +370,8 @@ namespace UhdmAst {
         AstIface* elaboratedInterface = new AstIface(new FileLine("uhdm"), objectName);
         visit_one_to_many({
             vpiNet,
-            vpiModport
+            vpiModport,
+            vpiParameter,
             },
             obj_h,
             visited,
@@ -385,7 +386,47 @@ namespace UhdmAst {
         sanitize_str(modType);
         if (objectName != modType) {
           AstPin *modPins = nullptr;
+          vpiHandle itr = vpi_iterate(vpiPort, obj_h);
+          int np = 0;
+          while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
+            vpiHandle highConn = vpi_handle(vpiHighConn, vpi_child_obj);
+            if (highConn) {
+              std::string portName = vpi_get_str(vpiName, vpi_child_obj);
+              sanitize_str(portName);
+              AstParseRef *ref = reinterpret_cast<AstParseRef *>(visit_object(highConn, visited, top_nodes));
+              AstPin *pin = new AstPin(new FileLine("uhdm"), ++np, portName, ref);
+              if (!modPins)
+                  modPins = pin;
+              else
+                  modPins->addNextNull(pin);
+            }
+
+            vpi_free_object(vpi_child_obj);
+          }
+          vpi_free_object(itr);
+
           AstPin *modParams = nullptr;
+          itr = vpi_iterate(vpiParameter, obj_h);
+          np = 0;
+          while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
+            std::string portName = vpi_get_str(vpiName, vpi_child_obj);
+            sanitize_str(portName);
+
+            AstParseRef *ref = new AstParseRef(new FileLine("uhdm"),
+                                               AstParseRefExp::en::PX_TEXT,
+                                               portName,
+                                               nullptr,
+                                               nullptr);
+            AstPin *pin = new AstPin(new FileLine("uhdm"), ++np, portName, ref);
+            if (!modParams)
+                modParams = pin;
+            else
+                modParams->addNextNull(pin);
+
+            vpi_free_object(vpi_child_obj);
+          }
+          vpi_free_object(itr);
+
           AstCell *cell = new AstCell(new FileLine("uhdm"), new FileLine("uhdm"),
               objectName, modType, modPins, modParams, nullptr);
           return cell;
