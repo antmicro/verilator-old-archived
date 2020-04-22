@@ -368,9 +368,9 @@ namespace UhdmAst {
       case vpiInterface: {
         // Interface definition is represented by a module node
         AstIface* elaboratedInterface = new AstIface(new FileLine("uhdm"), objectName);
+        bool hasModports = false;
         visit_one_to_many({
-            vpiNet,
-            vpiModport,
+            vpiPort,
             vpiParameter,
             },
             obj_h,
@@ -381,6 +381,21 @@ namespace UhdmAst {
             elaboratedInterface->addStmtp(port);
           }
         });
+        visit_one_to_many({vpiModport}, obj_h, visited, top_nodes, [&](AstNode* port){
+          if(port) {
+            hasModports = true;
+            elaboratedInterface->addStmtp(port);
+          }
+        });
+        if (hasModports) {
+          // Only then create the nets, as they won't be connected otherwise
+          visit_one_to_many({vpiNet}, obj_h, visited, top_nodes, [&](AstNode* port){
+            if(port) {
+              elaboratedInterface->addStmtp(port);
+            }
+          });
+        }
+
         elaboratedInterface->name(objectName);
         std::string modType = vpi_get_str(vpiDefName, obj_h);
         sanitize_str(modType);
