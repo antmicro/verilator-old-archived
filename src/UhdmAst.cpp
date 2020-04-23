@@ -576,6 +576,14 @@ namespace UhdmAst {
           });
         return new AstInitial(new FileLine("uhdm"), body);
       }
+      case vpiFinal: {
+        AstNode* body = nullptr;
+        visit_one_to_one({vpiStmt}, obj_h, visited, top_nodes,
+          [&](AstNode* node){
+            body = node;
+          });
+        return new AstFinal(new FileLine("uhdm"), body);
+      }
       case vpiNamedBegin:
       case vpiBegin: {
         AstNode* body = nullptr;
