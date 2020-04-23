@@ -568,6 +568,7 @@ namespace UhdmAst {
 
         return new AstAlways(new FileLine("uhdm"), alwaysType, senTree, body);
       }
+      case vpiNamedBegin:
       case vpiBegin: {
         AstNode* body = nullptr;
         visit_one_to_many({vpiStmt}, obj_h, visited, top_nodes,
