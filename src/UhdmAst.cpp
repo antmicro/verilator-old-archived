@@ -599,7 +599,12 @@ namespace UhdmAst {
           AstNodeSenItem* senItemRoot;
           visit_one_to_one({vpiCondition}, event_control_h, visited, top_nodes,
             [&](AstNode* node){
-              senItemRoot = reinterpret_cast<AstNodeSenItem*>(node);
+              if (node->type() == AstType::en::atSenItem)
+                senItemRoot = reinterpret_cast<AstNodeSenItem*>(node);
+              else // wrap this in a AstSenItem
+                senItemRoot = new AstSenItem(new FileLine("uhdm"),
+                                             AstEdgeType::ET_ANYEDGE,
+                                             node);
             });
           senTree = new AstSenTree(new FileLine("uhdm"), senItemRoot);
 
