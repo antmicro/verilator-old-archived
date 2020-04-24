@@ -846,7 +846,7 @@ namespace UhdmAst {
         vpi_get_value(obj_h, &val);
         switch (val.format) {
           case vpiIntVal: {
-            return new AstConst(new FileLine("uhdm"), AstConst::Unsized32(), (val.value.integer));
+            return new AstConst(new FileLine("uhdm"), AstConst::Signed32(), (val.value.integer));
           }
           default: {
             std::cout << "\t! Encountered unhandled constant type" << std::endl;
