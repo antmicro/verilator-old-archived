@@ -209,8 +209,6 @@ namespace UhdmAst {
               vpiInterface,
               vpiModule,
               vpiContAssign,
-              //vpiParamAssign,  - obtain value when visiting parameter below
-              vpiParameter,
               },
               obj_h,
               visited,
@@ -227,7 +225,7 @@ namespace UhdmAst {
               vpiModule,
               vpiContAssign,
               vpiProcess,
-              //vpiParameter,  - wait for instantiation to get the assigned value
+              vpiParamAssign,
               },
               obj_h,
               visited,
@@ -406,28 +404,46 @@ namespace UhdmAst {
         v->childDTypep(dtype);
         return v;
       }
+      case vpiParamAssign: {
+        AstVar* parameter = nullptr;
+        AstNode* parameter_value = nullptr;
+        visit_one_to_one({vpiLhs}, obj_h, visited, top_nodes,
+            [&](AstNode* node){
+              parameter = reinterpret_cast<AstVar*>(node);
+            });
+        visit_one_to_one({vpiRhs}, obj_h, visited, top_nodes,
+            [&](AstNode* node){
+              parameter_value = node;
+            });
+
+        parameter->valuep(parameter_value);
+
+        return parameter;
+      }
       case vpiParameter: {
+        AstNode* msbNode = nullptr;
+        AstNode* lsbNode = nullptr;
+        AstRange* rangeNode = nullptr;
+        auto leftRange_h  = vpi_handle(vpiLeftRange, obj_h);
+        if (leftRange_h) {
+          msbNode = visit_object(leftRange_h, visited, top_nodes);
+        }
+        auto rightRange_h  = vpi_handle(vpiRightRange, obj_h);
+        if (rightRange_h) {
+          lsbNode = visit_object(rightRange_h, visited, top_nodes);
+        }
+        if (msbNode && lsbNode) {
+          rangeNode = new AstRange(new FileLine("uhdm"), msbNode, lsbNode);
+        }
+
         auto* dtype = new AstBasicDType(new FileLine("uhdm"),
                                         AstBasicDTypeKwd::LOGIC_IMPLICIT);
+        dtype->rangep(rangeNode);
         auto* parameter = new AstVar(new FileLine("uhdm"),
                                AstVarType::GPARAM,
                                objectName,
                                dtype);
-        AstNode* parameter_value = nullptr;
-        s_vpi_value val;
-        vpi_get_value(obj_h, &val);
-        switch (val.format) {
-          case vpiIntVal: {
-            parameter_value = new AstConst(new FileLine("uhdm"), AstConst::Unsized32(), (val.value.integer));
-            break;
-          }
-          default: {
-            std::cout << "\t! Encountered unhandled parameter value type" << std::endl;
-            break;
-          }
-        }
         parameter->childDTypep(dtype);
-        parameter->valuep(parameter_value);
         return parameter;
       }
       case vpiInterface: {
