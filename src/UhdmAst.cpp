@@ -731,14 +731,14 @@ namespace UhdmAst {
         AstNode* lhs = nullptr;
         auto operation = vpi_get(vpiOpType, obj_h);
         switch (operation) {
-          case vpiNotOp: {
+          case vpiBitNegOp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
             [&](AstNode* node){
               rhs = node;
             });
             return new AstNot(new FileLine("uhdm"), rhs);
           }
-          case vpiBitNegOp: {
+          case vpiNotOp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
             [&](AstNode* node){
               lhs = node;
@@ -823,10 +823,10 @@ namespace UhdmAst {
           case vpiEqOp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
               [&](AstNode* node){
-                if (rhs == nullptr) {
-                  rhs = node;
-                } else {
+                if (lhs == nullptr) {
                   lhs = node;
+                } else {
+                  rhs = node;
                 }
               });
             return new AstEq(new FileLine("uhdm"), lhs, rhs);
