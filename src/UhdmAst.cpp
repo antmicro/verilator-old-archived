@@ -619,6 +619,64 @@ namespace UhdmAst {
         }
         return new AstIf(new FileLine("uhdm"), condition, statement, elseStatement);
       }
+      case vpiCase: {
+        VCaseType case_type;
+        switch (vpi_get(vpiCaseType, obj_h)) {
+        //switch (case_type) {
+          case vpiCaseExact: {
+            case_type = VCaseType::en::CT_CASE;
+            break;
+          }
+          case vpiCaseX: {
+            case_type = VCaseType::en::CT_CASEX;
+            break;
+          }
+          case vpiCaseZ: {
+            case_type = VCaseType::en::CT_CASEZ;
+            break;
+          }
+          default: {
+            // Should never be reached
+            break;
+          }
+        }
+        AstNode* conditionNode = nullptr;
+        visit_one_to_one({vpiCondition}, obj_h, visited, top_nodes,
+          [&](AstNode* node){
+            conditionNode = node;
+          });
+        AstNode* itemNodes = nullptr;
+        visit_one_to_many({vpiCaseItem}, obj_h, visited, top_nodes,
+            [&](AstNode* item){
+              if (item) {
+                if (itemNodes == nullptr) {
+                  itemNodes = item;
+                } else {
+                  itemNodes->addNextNull(item);
+                }
+              }
+            });
+        return new AstCase(new FileLine("uhdm"), case_type, conditionNode, itemNodes);
+      }
+      case vpiCaseItem: {
+        AstNode* expressionNode = nullptr;
+        visit_one_to_many({vpiExpr}, obj_h, visited, top_nodes,
+            [&](AstNode* item){
+              if (item) {
+                if (expressionNode == nullptr) {
+                  expressionNode = item;
+                } else {
+                  expressionNode->addNextNull(item);
+                }
+              }
+            });
+        AstNode* bodyNode = nullptr;
+        visit_one_to_one({vpiStmt}, obj_h, visited, top_nodes,
+          [&](AstNode* node){
+            bodyNode = node;
+          });
+        return new AstCaseItem(new FileLine("uhdm"), expressionNode, bodyNode);
+      }
       case vpiOperation: {
         AstNode* rhs = nullptr;
         AstNode* lhs = nullptr;
