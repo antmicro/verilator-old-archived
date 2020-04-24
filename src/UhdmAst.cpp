@@ -689,6 +689,13 @@ namespace UhdmAst {
             });
             return new AstNot(new FileLine("uhdm"), rhs);
           }
+          case vpiBitNegOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+            [&](AstNode* node){
+              lhs = node;
+            });
+            return new AstNegate(new FileLine("uhdm"), lhs);
+          }
           case vpiBitAndOp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
               [&](AstNode* node){
@@ -764,8 +771,21 @@ namespace UhdmAst {
                                   AstEdgeType::ET_NEGEDGE,
                                   rhs);
           }
+          case vpiEqOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (rhs == nullptr) {
+                  rhs = node;
+                } else {
+                  lhs = node;
+                }
+              });
+            return new AstEq(new FileLine("uhdm"), lhs, rhs);
+          }
           default: {
-            std::cout << "\t! Encountered unhandled operation" << std::endl;
+            std::cout << "\t! Encountered unhandled operation: "
+                      << operation
+                      << std::endl;
             break;
           }
         }
