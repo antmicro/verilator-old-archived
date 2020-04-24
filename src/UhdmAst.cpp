@@ -170,7 +170,6 @@ namespace UhdmAst {
           if (n == vpiInput) {
             var->declDirection(VDirection::INPUT);
             var->direction(VDirection::INPUT);
-            var->varType(AstVarType::WIRE);
           } else if (n == vpiOutput) {
             var->declDirection(VDirection::OUTPUT);
             var->direction(VDirection::OUTPUT);
@@ -206,6 +205,7 @@ namespace UhdmAst {
           // Was created before, fill missing
           module = reinterpret_cast<AstModule*>(it->second);
           visit_one_to_many({
+              vpiNet,
               vpiInterface,
               vpiModule,
               vpiContAssign,
@@ -371,10 +371,38 @@ namespace UhdmAst {
       }
       case vpiNet: {
         AstBasicDType *dtype = nullptr;
-        //TODO: get type
-        dtype = new AstBasicDType(new FileLine("uhdm"),
-                                  AstBasicDTypeKwd::LOGIC_IMPLICIT);
-        auto *v = new AstVar(new FileLine("uhdm"), AstVarType::WIRE, objectName, dtype);
+        AstVarType net_type = AstVarType::WIRE;
+        AstBasicDTypeKwd dtypeKwd = AstBasicDTypeKwd::LOGIC_IMPLICIT;
+        auto netType = vpi_get(vpiNetType, obj_h);
+        switch (netType) {
+          case vpiReg: {
+            net_type = AstVarType::VAR;
+            dtypeKwd = AstBasicDTypeKwd::LOGIC;
+            break;
+          }
+          default: {
+            std::cout << "\t! Unhandled net type: " << netType << std::endl;
+            break;
+          }
+        }
+        AstNode* msbNode = nullptr;
+        AstNode* lsbNode = nullptr;
+        AstRange* rangeNode = nullptr;
+        auto leftRange_h  = vpi_handle(vpiLeftRange, obj_h);
+        if (leftRange_h) {
+          msbNode = visit_object(leftRange_h, visited, top_nodes);
+        }
+        auto rightRange_h  = vpi_handle(vpiRightRange, obj_h);
+        if (rightRange_h) {
+          lsbNode = visit_object(rightRange_h, visited, top_nodes);
+        }
+        if (msbNode && lsbNode) {
+          rangeNode = new AstRange(new FileLine("uhdm"), msbNode, lsbNode);
+        }
+
+        dtype = new AstBasicDType(new FileLine("uhdm"), dtypeKwd);
+        dtype->rangep(rangeNode);
+        auto *v = new AstVar(new FileLine("uhdm"), net_type, objectName, dtype);
         v->childDTypep(dtype);
         return v;
       }
