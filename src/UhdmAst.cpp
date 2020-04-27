@@ -205,7 +205,6 @@ namespace UhdmAst {
           // Was created before, fill missing
           module = reinterpret_cast<AstModule*>(it->second);
           visit_one_to_many({
-              vpiNet,
               vpiInterface,
               vpiModule,
               vpiContAssign,
@@ -221,6 +220,7 @@ namespace UhdmAst {
           // Encountered for the first time
           module = new AstModule(new FileLine("uhdm"), modType);
           visit_one_to_many({
+              vpiNet,
               vpiPort,
               vpiModule,
               vpiContAssign,
@@ -369,7 +369,7 @@ namespace UhdmAst {
       }
       case vpiNet: {
         AstBasicDType *dtype = nullptr;
-        AstVarType net_type = AstVarType::WIRE;
+        AstVarType net_type = AstVarType::UNKNOWN;
         AstBasicDTypeKwd dtypeKwd = AstBasicDTypeKwd::LOGIC_IMPLICIT;
         auto netType = vpi_get(vpiNetType, obj_h);
         switch (netType) {
@@ -382,6 +382,10 @@ namespace UhdmAst {
             std::cout << "\t! Unhandled net type: " << netType << std::endl;
             break;
           }
+        }
+        if (net_type == AstVarType::UNKNOWN) {
+          // Not set in case above, most likely a "false" port net
+          return nullptr; // Skip this net
         }
         AstNode* msbNode = nullptr;
         AstNode* lsbNode = nullptr;
