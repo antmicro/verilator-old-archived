@@ -372,6 +372,8 @@ namespace UhdmAst {
         AstVarType net_type = AstVarType::UNKNOWN;
         AstBasicDTypeKwd dtypeKwd = AstBasicDTypeKwd::LOGIC_IMPLICIT;
 
+        auto netType = vpi_get(vpiNetType, obj_h);
+
         // If parent has port with this name: skip
         auto parent_h = vpi_handle(vpiParent, obj_h);
         if (parent_h) {
@@ -385,9 +387,11 @@ namespace UhdmAst {
             }
           }
           vpi_free_object(itr);
+          if (vpi_get(vpiType, parent_h) == vpiInterface) {
+            netType = vpiReg;  // They are not specified otherwise in UHDM
+          }
         }
 
-        auto netType = vpi_get(vpiNetType, obj_h);
         switch (netType) {
           case vpiReg: {
             net_type = AstVarType::VAR;
