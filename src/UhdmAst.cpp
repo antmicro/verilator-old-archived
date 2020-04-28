@@ -371,6 +371,22 @@ namespace UhdmAst {
         AstBasicDType *dtype = nullptr;
         AstVarType net_type = AstVarType::UNKNOWN;
         AstBasicDTypeKwd dtypeKwd = AstBasicDTypeKwd::LOGIC_IMPLICIT;
+
+        // If parent has port with this name: skip
+        auto parent_h = vpi_handle(vpiParent, obj_h);
+        if (parent_h) {
+          vpiHandle itr = vpi_iterate(vpiPort, parent_h);
+          while (vpiHandle port_h = vpi_scan(itr) ) {
+            std::string childName = vpi_get_str(vpiName, port_h);
+            sanitize_str(childName);
+            vpi_free_object(port_h);
+            if (objectName == childName) {
+              return nullptr;
+            }
+          }
+          vpi_free_object(itr);
+        }
+
         auto netType = vpi_get(vpiNetType, obj_h);
         switch (netType) {
           case vpiReg: {
