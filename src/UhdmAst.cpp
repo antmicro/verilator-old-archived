@@ -868,9 +868,13 @@ namespace UhdmAst {
         auto type = vpi_get(vpiConstType, obj_h);
         s_vpi_value val;
         vpi_get_value(obj_h, &val);
+        AstConst* constNode = nullptr;
         switch (val.format) {
           case vpiIntVal: {
-            return new AstConst(new FileLine("uhdm"), AstConst::Signed32(), (val.value.integer));
+            std::string valStr = std::to_string(val.value.integer);
+            V3Number value(constNode, valStr.c_str());
+            constNode = new AstConst(new FileLine("uhdm"), value);
+            return constNode;
           }
           default: {
             std::cout << "\t! Encountered unhandled constant type" << std::endl;
