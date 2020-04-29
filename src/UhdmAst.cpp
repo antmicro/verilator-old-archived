@@ -695,7 +695,6 @@ namespace UhdmAst {
       case vpiCase: {
         VCaseType case_type;
         switch (vpi_get(vpiCaseType, obj_h)) {
-        //switch (case_type) {
           case vpiCaseExact: {
             case_type = VCaseType::en::CT_CASE;
             break;
@@ -876,8 +875,20 @@ namespace UhdmAst {
             constNode = new AstConst(new FileLine("uhdm"), value);
             return constNode;
           }
+          case vpiScalarVal: {
+            std::string valStr = std::to_string(val.value.scalar);
+            V3Number value(constNode, valStr.c_str());
+            constNode = new AstConst(new FileLine("uhdm"), value);
+            return constNode;
+          }
+          case vpiBinStrVal: {
+            std::string valStr(val.value.str);
+            V3Number value(constNode, valStr.c_str());
+            constNode = new AstConst(new FileLine("uhdm"), value);
+            return constNode;
+          }
           default: {
-            std::cout << "\t! Encountered unhandled constant type" << std::endl;
+            std::cout << "\t! Encountered unhandled constant type " << val.format << std::endl;
             break;
           }
         }
