@@ -209,6 +209,7 @@ namespace UhdmAst {
           // Was created before, fill missing
           module = reinterpret_cast<AstModule*>(it->second);
           visit_one_to_many({
+              vpiPort,
               vpiInterface,
               vpiModule,
               vpiContAssign,
@@ -226,7 +227,6 @@ namespace UhdmAst {
           module = new AstModule(new FileLine("uhdm"), modType);
           visit_one_to_many({
               vpiNet,
-              vpiPort,
               vpiModule,
               vpiContAssign,
               vpiParamAssign,
