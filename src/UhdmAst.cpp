@@ -50,6 +50,8 @@ namespace UhdmAst {
     std::replace(s.begin(), s.end(), '@','_');
   }
 
+  std::map<std::string, AstNode*> pinMap;
+
   AstNode* visit_object (vpiHandle obj_h,
         std::set<const UHDM::BaseClass*> visited,
         std::map<std::string, AstNodeModule*>* top_nodes) {
@@ -170,9 +172,11 @@ namespace UhdmAst {
           if (n == vpiInput) {
             var->declDirection(VDirection::INPUT);
             var->direction(VDirection::INPUT);
+            var->varType(AstVarType::WIRE);
           } else if (n == vpiOutput) {
             var->declDirection(VDirection::OUTPUT);
             var->direction(VDirection::OUTPUT);
+            var->varType(AstVarType::PORT);
           } else if (n == vpiInout) {
             var->declDirection(VDirection::INOUT);
             var->direction(VDirection::INOUT);
@@ -208,6 +212,7 @@ namespace UhdmAst {
               vpiInterface,
               vpiModule,
               vpiContAssign,
+              vpiNet,
               },
               obj_h,
               visited,
@@ -317,7 +322,7 @@ namespace UhdmAst {
 
         if (lvalue && rvalue) {
           if (objectType == vpiAssignment)
-            return new AstAssign(new FileLine("uhdm"), lvalue, rvalue);
+            return new AstAssignDly(new FileLine("uhdm"), lvalue, rvalue);
           else if (objectType == vpiContAssign)
             return new AstAssignW(new FileLine("uhdm"), lvalue, rvalue);
         }
@@ -383,6 +388,7 @@ namespace UhdmAst {
             sanitize_str(childName);
             vpi_free_object(port_h);
             if (objectName == childName) {
+              pinMap[objectName] = new AstFinal(new FileLine("uhdm"), nullptr);
               return nullptr;
             }
           }
@@ -390,6 +396,14 @@ namespace UhdmAst {
           if (vpi_get(vpiType, parent_h) == vpiInterface) {
             netType = vpiReg;  // They are not specified otherwise in UHDM
           }
+          else
+            return nullptr;  // Do not create node here for non-interfaces
+        }
+
+        //Check if this was a port pin
+        auto it = pinMap.find(objectName);
+        if (it != pinMap.end()) {
+          return nullptr;
         }
 
         switch (netType) {
