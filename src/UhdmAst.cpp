@@ -904,6 +904,23 @@ namespace UhdmAst {
         }
         return nullptr;
       }
+      case vpiBitSelect: {
+        auto* fromp = new AstParseRef(new FileLine("uhdm"),
+                                               AstParseRefExp::en::PX_TEXT,
+                                               objectName,
+                                               nullptr,
+                                               nullptr);
+        auto bitHandle = vpi_handle({vpiIndex}, obj_h);
+        AstNode* bitp = nullptr;
+        visit_one_to_one({vpiIndex}, obj_h, visited, top_nodes,
+          [&](AstNode* item){
+            if (item) {
+              bitp = item;
+            }
+          });
+        return new AstSelBit(new FileLine("uhdm"), fromp, bitp);
+      }
+
 
       // What we can see (but don't support yet)
       case vpiClassObj:
