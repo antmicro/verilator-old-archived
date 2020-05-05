@@ -324,7 +324,7 @@ namespace UhdmAst {
 
         if (lvalue && rvalue) {
           if (objectType == vpiAssignment)
-            return new AstAssignDly(new FileLine("uhdm"), lvalue, rvalue);
+            return new AstAssign(new FileLine("uhdm"), lvalue, rvalue);
           else if (objectType == vpiContAssign)
             return new AstAssignW(new FileLine("uhdm"), lvalue, rvalue);
         }
@@ -833,10 +833,25 @@ namespace UhdmAst {
             // Chain operand nodes instead
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
               [&](AstNode* node){
-                if (rhs == nullptr) {
-                  rhs = node;
-                } else {
-                  rhs->addNextNull(node);
+                if (node) {
+                  if (node->type() == AstType::en::atSenItem) {
+                    // This is a Posedge/Negedge operation, keep this node
+                    if (rhs == nullptr) {
+                      rhs = node;
+                    } else {
+                    rhs->addNextNull(node);
+                    }
+                  } else {
+                    // Edge not specified -> use ANY
+                    auto* wrapper = new AstSenItem(new FileLine("uhdm"),
+                                                   AstEdgeType::ET_ANYEDGE,
+                                                   node);
+                    if (rhs == nullptr) {
+                        rhs = wrapper;
+                    } else {
+                      rhs->addNextNull(wrapper);
+                    }
+                  }
                 }
               });
             return rhs;
