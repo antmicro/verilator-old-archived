@@ -475,7 +475,7 @@ namespace UhdmAst {
         }
 
         auto* dtype = new AstBasicDType(new FileLine("uhdm"),
-                                        AstBasicDTypeKwd::LOGIC);
+                                        AstBasicDTypeKwd::LOGIC_IMPLICIT);
         dtype->rangep(rangeNode);
         auto* parameter = new AstVar(new FileLine("uhdm"),
                                AstVarType::GPARAM,
