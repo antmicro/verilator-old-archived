@@ -76,9 +76,11 @@ namespace UhdmAst {
       lineNo = l;
     }
 
+    const unsigned int currentLine = vpi_get(vpiLineNo, obj_h);
     const unsigned int objectType = vpi_get(vpiType, obj_h);
     std::cout << "Object: " << objectName
               << " of type " << objectType
+              << " @ " << currentLine
               << std::endl;
     bool alreadyVisited = false;
     const uhdm_handle* const handle = (const uhdm_handle*) obj_h;
