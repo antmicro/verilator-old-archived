@@ -937,6 +937,19 @@ namespace UhdmAst {
           });
         return new AstSelBit(new FileLine("uhdm"), fromp, bitp);
       }
+      case vpiTask: {
+        AstNode* statements = nullptr;
+        visit_one_to_one({vpiStmt}, obj_h, visited, top_nodes,
+          [&](AstNode* item){
+            if (item) {
+              statements = item;
+            }
+          });
+        return new AstTask(new FileLine("uhdm"), objectName, statements);
+      }
+      case vpiTaskCall: {
+        return new AstTaskRef(new FileLine("uhdm"), objectName, nullptr);
+      }
 
 
       // What we can see (but don't support yet)
