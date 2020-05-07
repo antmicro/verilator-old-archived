@@ -163,7 +163,7 @@ namespace UhdmAst {
           }
         }
         auto* dtype = new AstBasicDType(new FileLine("uhdm"),
-                                  AstBasicDTypeKwd::LOGIC_IMPLICIT);
+                                  AstBasicDTypeKwd::LOGIC);
         dtype->rangep(rangeNode);
         var = new AstVar(new FileLine("uhdm"),
                          AstVarType::PORT,
@@ -179,6 +179,16 @@ namespace UhdmAst {
             var->declDirection(VDirection::OUTPUT);
             var->direction(VDirection::OUTPUT);
             var->varType(AstVarType::PORT);
+            // Create and store another node to be retrieved in vpiNet visit
+            // Done here because we do not have range information for ports in vpiNet
+            auto* netDtype = new AstBasicDType(new FileLine("uhdm"),
+                                               AstBasicDTypeKwd::LOGIC);
+            auto* netVar = new AstVar(new FileLine("uhdm"),
+                             AstVarType::VAR,
+                             objectName,
+                             netDtype);
+            netVar->childDTypep(netDtype);
+            pinMap[objectName] = netVar;
           } else if (n == vpiInout) {
             var->declDirection(VDirection::INOUT);
             var->direction(VDirection::INOUT);
@@ -228,11 +238,11 @@ namespace UhdmAst {
           // Encountered for the first time
           module = new AstModule(new FileLine("uhdm"), modType);
           visit_one_to_many({
-              vpiNet,
               vpiModule,
               vpiContAssign,
               vpiParamAssign,
               vpiProcess,
+              vpiTaskFunc,
               },
               obj_h,
               visited,
@@ -381,6 +391,10 @@ namespace UhdmAst {
 
         auto netType = vpi_get(vpiNetType, obj_h);
 
+        auto pinIt = pinMap.find(objectName);
+        if (pinIt != pinMap.end()) {
+          return pinIt->second;
+        }
         // If parent has port with this name: skip
         auto parent_h = vpi_handle(vpiParent, obj_h);
         if (parent_h) {
@@ -388,18 +402,27 @@ namespace UhdmAst {
           while (vpiHandle port_h = vpi_scan(itr) ) {
             std::string childName = vpi_get_str(vpiName, port_h);
             sanitize_str(childName);
-            vpi_free_object(port_h);
             if (objectName == childName) {
-              pinMap[objectName] = new AstFinal(new FileLine("uhdm"), nullptr);
-              return nullptr;
+              if (const int n = vpi_get(vpiDirection, port_h)) {
+                if (n == vpiOutput) {
+                  auto it = pinMap.find(objectName);
+                  if (it != pinMap.end()) {
+                    return it->second;
+                  }
+                } else {
+                  // Dummy node just to store something
+                  // This won't be used
+                  pinMap[objectName] = new AstFinal(new FileLine("uhdm"), nullptr);
+                  return nullptr;
+                }
+              }
             }
+            vpi_free_object(port_h);
           }
           vpi_free_object(itr);
           if (vpi_get(vpiType, parent_h) == vpiInterface) {
             netType = vpiReg;  // They are not specified otherwise in UHDM
           }
-          else
-            return nullptr;  // Do not create node here for non-interfaces
         }
 
         //Check if this was a port pin
