@@ -311,9 +311,14 @@ namespace UhdmAst {
             });
 
         if (lvalue && rvalue) {
-          if (objectType == vpiAssignment)
-            return new AstAssign(new FileLine("uhdm"), lvalue, rvalue);
-          else if (objectType == vpiContAssign)
+          if (objectType == vpiAssignment) {
+            auto blocking = vpi_get(vpiBlocking, obj_h);
+            if (blocking) {
+              return new AstAssign(new FileLine("uhdm"), lvalue, rvalue);
+            } else {
+              return new AstAssignDly(new FileLine("uhdm"), lvalue, rvalue);
+            }
+          } else if (objectType == vpiContAssign)
             return new AstAssignW(new FileLine("uhdm"), lvalue, rvalue);
         }
         break;
