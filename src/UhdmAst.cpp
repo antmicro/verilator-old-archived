@@ -874,6 +874,28 @@ namespace UhdmAst {
               });
             return new AstEq(new FileLine("uhdm"), lhs, rhs);
           }
+          case vpiPlusOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (lhs == nullptr) {
+                  lhs = node;
+                } else {
+                  rhs = node;
+                }
+              });
+            return new AstAdd(new FileLine("uhdm"), lhs, rhs);
+          }
+          case vpiMinusOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (lhs == nullptr) {
+                  lhs = node;
+                } else {
+                  rhs = node;
+                }
+              });
+            return new AstSub(new FileLine("uhdm"), lhs, rhs);
+          }
           default: {
             std::cout << "\t! Encountered unhandled operation: "
                       << operation
