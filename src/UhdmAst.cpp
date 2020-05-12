@@ -935,6 +935,21 @@ namespace UhdmAst {
         return new AstTaskRef(new FileLine("uhdm"), objectName, nullptr);
       }
 
+      case vpiFuncCall: {
+        AstNode* arguments = nullptr;
+        visit_one_to_many({vpiArgument}, obj_h, visited, top_nodes,
+          [&](AstNode* item){
+            if (item) {
+                if (arguments == nullptr) {
+                  arguments = new AstArg(new FileLine("uhdm"), "", item);
+                } else {
+                  arguments->addNextNull(new AstArg(new FileLine("uhdm"), "", item));
+                }
+            }
+          });
+        AstFuncRef* func_call = new AstFuncRef(new FileLine("uhdm"), objectName, arguments);
+        return func_call;
+      }
 
       // What we can see (but don't support yet)
       case vpiClassObj:
