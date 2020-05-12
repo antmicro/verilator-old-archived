@@ -977,6 +977,23 @@ namespace UhdmAst {
         AstFuncRef* func_call = new AstFuncRef(new FileLine("uhdm"), objectName, arguments);
         return func_call;
       }
+      case vpiRange: {
+        AstNode* msbNode = nullptr;
+        AstNode* lsbNode = nullptr;
+        AstRange* rangeNode = nullptr;
+        auto leftRange_h  = vpi_handle(vpiLeftRange, obj_h);
+        if (leftRange_h) {
+          msbNode = visit_object(leftRange_h, visited, top_nodes);
+        }
+        auto rightRange_h  = vpi_handle(vpiRightRange, obj_h);
+        if (rightRange_h) {
+          lsbNode = visit_object(rightRange_h, visited, top_nodes);
+        }
+        if (msbNode && lsbNode) {
+          rangeNode = new AstRange(new FileLine("uhdm"), msbNode, lsbNode);
+        }
+        return rangeNode;
+      }
 
       // What we can see (but don't support yet)
       case vpiClassObj:
