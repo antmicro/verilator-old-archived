@@ -420,6 +420,11 @@ namespace UhdmAst {
             dtypeKwd = AstBasicDTypeKwd::LOGIC;
             break;
           }
+          case vpiWire: {
+            net_type = AstVarType::WIRE;
+            dtypeKwd = AstBasicDTypeKwd::LOGIC;
+            break;
+          }
           default: {
             std::cout << "\t! Unhandled net type: " << netType << std::endl;
             break;
