@@ -961,7 +961,67 @@ namespace UhdmAst {
       case vpiTaskCall: {
         return new AstTaskRef(new FileLine("uhdm"), objectName, nullptr);
       }
+      case vpiFunction: {
+        AstNode* statements = nullptr;
+        AstNode* function_vars = nullptr;
 
+        AstRange* returnRange = nullptr;
+        auto return_h = vpi_handle(vpiReturn, obj_h);
+        if (return_h) {
+          visit_one_to_many({vpiRange}, return_h, visited, top_nodes,
+            [&](AstNode* item){
+              if (item) {
+                  returnRange = reinterpret_cast<AstRange*>(item);
+              }
+            });
+        }
+        auto* dtype = new AstBasicDType(new FileLine("uhdm"),
+                                  AstBasicDTypeKwd::LOGIC);
+        dtype->rangep(returnRange);
+        function_vars = dtype;
+
+        auto io_itr = vpi_iterate(vpiIODecl, obj_h);
+        while (vpiHandle io_item = vpi_scan(io_itr) ) {
+          std::string io_name;
+          if (auto s = vpi_get_str(vpiName, io_item)) {
+            io_name = s;
+            sanitize_str(io_name);
+          }
+          VDirection dir;
+          if (const int n = vpi_get(vpiDirection, io_item)) {
+            if (n == vpiInput) {
+              dir = VDirection::INPUT;
+            } else if (n == vpiOutput) {
+              dir = VDirection::OUTPUT;
+            } else if (n == vpiInout) {
+              dir = VDirection::INOUT;
+            }
+          }
+          auto* dtype = new AstBasicDType(new FileLine("uhdm"),
+                                AstBasicDTypeKwd::LOGIC);
+          auto* var = new AstVar(new FileLine("uhdm"),
+                           AstVarType::PORT,
+                           io_name,
+                           dtype);
+          var->childDTypep(dtype);
+          var->declDirection(dir);
+          var->direction(dir);
+          if (statements)
+            statements->addNextNull(var);
+          else
+            statements = var;
+          vpi_free_object(io_item);
+        }
+        vpi_free_object(io_itr);
+
+        visit_one_to_one({vpiStmt}, obj_h, visited, top_nodes,
+          [&](AstNode* item){
+            if (item) {
+              statements->addNextNull(item);
+            }
+          });
+        return new AstFunc(new FileLine("uhdm"), objectName, statements, function_vars);
+      }
       case vpiFuncCall: {
         AstNode* arguments = nullptr;
         visit_one_to_many({vpiArgument}, obj_h, visited, top_nodes,
