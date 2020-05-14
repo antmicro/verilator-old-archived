@@ -981,14 +981,14 @@ namespace UhdmAst {
         function_vars = dtype;
 
         auto io_itr = vpi_iterate(vpiIODecl, obj_h);
-        while (vpiHandle io_item = vpi_scan(io_itr) ) {
+        while (vpiHandle io_h = vpi_scan(io_itr) ) {
           std::string io_name;
-          if (auto s = vpi_get_str(vpiName, io_item)) {
+          if (auto s = vpi_get_str(vpiName, io_h)) {
             io_name = s;
             sanitize_str(io_name);
           }
           VDirection dir;
-          if (const int n = vpi_get(vpiDirection, io_item)) {
+          if (const int n = vpi_get(vpiDirection, io_h)) {
             if (n == vpiInput) {
               dir = VDirection::INPUT;
             } else if (n == vpiOutput) {
@@ -997,8 +997,16 @@ namespace UhdmAst {
               dir = VDirection::INOUT;
             }
           }
+          AstRange* var_range = nullptr;
+          visit_one_to_many({vpiRange}, io_h, visited, top_nodes,
+            [&](AstNode* item){
+              if (item) {
+                  var_range = reinterpret_cast<AstRange*>(item);
+              }
+            });
           auto* dtype = new AstBasicDType(new FileLine("uhdm"),
                                 AstBasicDTypeKwd::LOGIC);
+          dtype->rangep(var_range);
           auto* var = new AstVar(new FileLine("uhdm"),
                            AstVarType::PORT,
                            io_name,
@@ -1010,7 +1018,7 @@ namespace UhdmAst {
             statements->addNextNull(var);
           else
             statements = var;
-          vpi_free_object(io_item);
+          vpi_free_object(io_h);
         }
         vpi_free_object(io_itr);
 
