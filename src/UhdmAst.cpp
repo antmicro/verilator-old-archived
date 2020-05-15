@@ -946,11 +946,18 @@ namespace UhdmAst {
               [&](AstNode* node){
                 if (lhs == nullptr) {
                   lhs = node;
+                } else if (rhs == nullptr) {
+                  rhs = node;
                 } else {
+                  // Add one more level
+                  lhs = new AstConcat(new FileLine("uhdm"), lhs, rhs);
                   rhs = node;
                 }
               });
-            return new AstConcat(new FileLine("uhdm"), lhs, rhs);
+            // Wrap in a Replicate node
+            lhs = new AstConcat(new FileLine("uhdm"), lhs, rhs);
+            rhs = new AstConst(new FileLine("uhdm"), 1);
+            return new AstReplicate(new FileLine("uhdm"), lhs, rhs);
           }
           case vpiMultiConcatOp:
           default: {
