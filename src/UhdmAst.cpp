@@ -959,7 +959,18 @@ namespace UhdmAst {
             rhs = new AstConst(new FileLine("uhdm"), 1);
             return new AstReplicate(new FileLine("uhdm"), lhs, rhs);
           }
-          case vpiMultiConcatOp:
+          case vpiMultiConcatOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (lhs == nullptr) {
+                  lhs = node;
+                } else if (rhs == nullptr) {
+                  rhs = node;
+                }
+              });
+            // Sides in AST are switched: first rhs (value), then lhs (count)
+            return new AstReplicate(new FileLine("uhdm"), rhs, lhs);
+          }
           default: {
             std::cout << "\t! Encountered unhandled operation: "
                       << operation
