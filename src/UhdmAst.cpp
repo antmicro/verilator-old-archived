@@ -848,6 +848,15 @@ namespace UhdmAst {
               });
             return new AstXnor(new FileLine("uhdm"), lhs, rhs);
           }
+          case vpiUnaryOrOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (rhs == nullptr) {
+                  rhs = node;
+                }
+              });
+            return new AstRedOr(new FileLine("uhdm"), rhs);
+          }
           case vpiEventOrOp: {
             // Do not create a separate node
             // Chain operand nodes instead
