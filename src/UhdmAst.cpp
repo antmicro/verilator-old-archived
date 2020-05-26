@@ -1017,15 +1017,29 @@ namespace UhdmAst {
         vpi_get_value(obj_h, &val);
         AstConst* constNode = nullptr;
         switch (val.format) {
-          case vpiHexConst:
-          case vpiStringConst:
-          case vpiIntConst: {
+          case vpiScalarVal: {
+            std::string valStr = std::to_string(val.value.scalar);
+            V3Number value(constNode, valStr.c_str());
+            constNode = new AstConst(new FileLine("uhdm"), value);
+            return constNode;
+          }
+          case vpiIntVal: {
             std::string valStr = std::to_string(val.value.integer);
             V3Number value(constNode, valStr.c_str());
             constNode = new AstConst(new FileLine("uhdm"), value);
             return constNode;
           }
-          case vpiDecConst: {
+          case vpiRealVal: {
+            std::string valStr = std::to_string(val.value.real);
+            V3Number value(constNode, valStr.c_str());
+            constNode = new AstConst(new FileLine("uhdm"), value);
+            return constNode;
+          }
+          case vpiStringVal:
+          case vpiBinStrVal:
+          case vpiOctStrVal:
+          case vpiDecStrVal:
+          case vpiHexStrVal: {
             std::string valStr(val.value.str);
             V3Number value(constNode, valStr.c_str());
             constNode = new AstConst(new FileLine("uhdm"), value);
