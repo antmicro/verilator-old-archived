@@ -1114,7 +1114,29 @@ namespace UhdmAst {
         }
         return rangeNode;
       }
+      case vpiPartSelect: {
+        AstNode* msbNode = nullptr;
+        AstNode* lsbNode = nullptr;
+        AstNode* fromNode = nullptr;
 
+        visit_one_to_one({
+            vpiLeftRange,
+            vpiRightRange,
+            vpiParent,
+            }, obj_h, visited, top_nodes,
+          [&](AstNode* item){
+            if (item) {
+              if (msbNode == nullptr) {
+                msbNode = item;
+              } else if (lsbNode == nullptr) {
+                lsbNode = item;
+              } else if (fromNode == nullptr) {
+                fromNode = item;
+              }
+            }
+          });
+        return new AstSelExtract(new FileLine("uhdm"), fromNode, msbNode, lsbNode);
+      }
       // What we can see (but don't support yet)
       case vpiClassObj:
       case vpiClassDefn:
