@@ -980,6 +980,28 @@ namespace UhdmAst {
             // Sides in AST are switched: first rhs (value), then lhs (count)
             return new AstReplicate(new FileLine("uhdm"), rhs, lhs);
           }
+          case vpiLShiftOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (lhs == nullptr) {
+                  lhs = node;
+                } else {
+                  rhs = node;
+                }
+              });
+            return new AstShiftL(new FileLine("uhdm"), lhs, rhs);
+          }
+          case vpiRShiftOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (lhs == nullptr) {
+                  lhs = node;
+                } else {
+                  rhs = node;
+                }
+              });
+            return new AstShiftR(new FileLine("uhdm"), lhs, rhs);
+          }
           default: {
             std::cout << "\t! Encountered unhandled operation: "
                       << operation
