@@ -914,6 +914,17 @@ namespace UhdmAst {
               });
             return new AstEq(new FileLine("uhdm"), lhs, rhs);
           }
+          case vpiNeqOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (lhs == nullptr) {
+                  lhs = node;
+                } else {
+                  rhs = node;
+                }
+              });
+            return new AstNeq(new FileLine("uhdm"), lhs, rhs);
+          }
           case vpiPlusOp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
               [&](AstNode* node){
