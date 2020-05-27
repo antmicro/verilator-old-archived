@@ -802,7 +802,7 @@ namespace UhdmAst {
             [&](AstNode* node){
               lhs = node;
             });
-            return new AstNegate(new FileLine("uhdm"), lhs);
+            return new AstLogNot(new FileLine("uhdm"), lhs);
           }
           case vpiBitAndOp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
