@@ -1173,6 +1173,38 @@ namespace UhdmAst {
           });
         return new AstSelExtract(new FileLine("uhdm"), fromNode, msbNode, lsbNode);
       }
+      case vpiIndexedPartSelect: {
+        AstNode* bit = nullptr;
+        AstNode* width = nullptr;
+        AstNode* fromNode = nullptr;
+
+        visit_one_to_one({
+            vpiBaseExpr,
+            vpiWidthExpr,
+            vpiParent,
+            }, obj_h, visited, top_nodes,
+          [&](AstNode* item){
+            if (item) {
+              if (bit == nullptr) {
+                bit = item;
+              } else if (width == nullptr) {
+                width = item;
+              } else if (fromNode == nullptr) {
+                fromNode = item;
+              }
+            }
+          });
+
+        auto type = vpi_get(vpiIndexedPartSelectType, obj_h);
+        if (type == vpiPosIndexed) {
+          return new AstSelPlus(new FileLine("uhdm"), fromNode, bit, width);
+        } else if (type == vpiNegIndexed) {
+          return new AstSelMinus(new FileLine("uhdm"), fromNode, bit, width);
+        } else {
+          return nullptr;
+        }
+      }
+
       // What we can see (but don't support yet)
       case vpiClassObj:
       case vpiClassDefn:
