@@ -653,23 +653,33 @@ namespace UhdmAst {
             }
         }
 
-        // Sensitivity list
-        vpiHandle event_control_h = vpi_handle(vpiStmt, obj_h);
-        if (event_control_h != nullptr) {
-          AstNodeSenItem* senItemRoot;
-          visit_one_to_one({vpiCondition}, event_control_h, visited, top_nodes,
-            [&](AstNode* node){
-              if (node->type() == AstType::en::atSenItem)
-                senItemRoot = reinterpret_cast<AstNodeSenItem*>(node);
-              else // wrap this in a AstSenItem
-                senItemRoot = new AstSenItem(new FileLine("uhdm"),
-                                             AstEdgeType::ET_ANYEDGE,
-                                             node);
-            });
-          senTree = new AstSenTree(new FileLine("uhdm"), senItemRoot);
+        if (alwaysType == VAlwaysKwd::ALWAYS) {
+          // Sensitivity list
+          vpiHandle event_control_h = vpi_handle(vpiStmt, obj_h);
+          if (event_control_h != nullptr) {
+            AstNodeSenItem* senItemRoot;
+            visit_one_to_one({vpiCondition}, event_control_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (node->type() == AstType::en::atSenItem) {
+                  senItemRoot = reinterpret_cast<AstNodeSenItem*>(node);
+                  }
+                else { // wrap this in a AstSenItem
+                  senItemRoot = new AstSenItem(new FileLine("uhdm"),
+                                               AstEdgeType::ET_ANYEDGE,
+                                               node);
+                  }
+              });
+            senTree = new AstSenTree(new FileLine("uhdm"), senItemRoot);
 
+            // Body of statements
+            visit_one_to_one({vpiStmt}, event_control_h, visited, top_nodes,
+              [&](AstNode* node){
+                body = node;
+              });
+          }
+        } else {
           // Body of statements
-          visit_one_to_one({vpiStmt}, event_control_h, visited, top_nodes,
+          visit_one_to_one({vpiStmt}, obj_h, visited, top_nodes,
             [&](AstNode* node){
               body = node;
             });
