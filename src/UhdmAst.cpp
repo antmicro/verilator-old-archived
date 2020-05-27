@@ -885,6 +885,28 @@ namespace UhdmAst {
               });
             return rhs;
           }
+          case vpiLogAndOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (lhs == nullptr) {
+                  lhs = node;
+                } else {
+                  rhs = node;
+                }
+              });
+            return new AstLogAnd(new FileLine("uhdm"), lhs, rhs);
+          }
+          case vpiLogOrOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (lhs == nullptr) {
+                  lhs = node;
+                } else {
+                  rhs = node;
+                }
+              });
+            return new AstLogOr(new FileLine("uhdm"), lhs, rhs);
+          }
           case vpiPosedgeOp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
             [&](AstNode* node){
