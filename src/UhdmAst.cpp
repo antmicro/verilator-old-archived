@@ -1187,6 +1187,29 @@ namespace UhdmAst {
         AstFuncRef* func_call = new AstFuncRef(new FileLine("uhdm"), objectName, arguments);
         return func_call;
       }
+      case vpiSysFuncCall: {
+        AstNode* arguments = nullptr;
+        visit_one_to_many({vpiArgument}, obj_h, visited, top_nodes,
+          [&](AstNode* item){
+            if (item) {
+                if (arguments == nullptr) {
+                  arguments = item;
+                } else {
+                  arguments->addNextNull(new AstArg(new FileLine("uhdm"), "", item));
+                }
+            }
+          });
+
+        if (objectName == "$signed") {
+          return new AstSigned(new FileLine("uhdm"), arguments);
+        } else if (objectName == "$unsigned") {
+          return new AstUnsigned(new FileLine("uhdm"), arguments);
+        } else {
+            v3error("\t! Encountered unhandled SysFuncCall: " << objectName);
+        }
+        // Should not be reached
+        return nullptr;
+      }
       case vpiRange: {
         AstNode* msbNode = nullptr;
         AstNode* lsbNode = nullptr;
