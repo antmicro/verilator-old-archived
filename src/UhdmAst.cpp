@@ -426,7 +426,7 @@ namespace UhdmAst {
             break;
           }
           default: {
-            std::cout << "\t! Unhandled net type: " << netType << std::endl;
+            v3error("\t! Unhandled net type: " << netType);
             break;
           }
         }
@@ -648,7 +648,7 @@ namespace UhdmAst {
               break;
             }
             default: {
-              std::cout << "Unhandled always type" << std::endl;
+              v3error("Unhandled always type");
               break;
             }
         }
@@ -1058,9 +1058,7 @@ namespace UhdmAst {
             return new AstShiftRS(new FileLine("uhdm"), lhs, rhs);
           }
           default: {
-            std::cout << "\t! Encountered unhandled operation: "
-                      << operation
-                      << std::endl;
+            v3error("\t! Encountered unhandled operation: " << operation);
             break;
           }
         }
@@ -1101,7 +1099,7 @@ namespace UhdmAst {
             return constNode;
           }
           default: {
-            std::cout << "\t! Encountered unhandled constant type " << val.format << std::endl;
+            v3error("\t! Encountered unhandled constant type " << val.format);
             break;
           }
         }
@@ -1267,7 +1265,7 @@ namespace UhdmAst {
         break; // Be silent
       default: {
         // Notify we have something unhandled
-        std::cout << "Unhandled type: " << objectType << std::endl;
+        v3error("\t! Unhandled type: " << objectType);
         break;
       }
     }
