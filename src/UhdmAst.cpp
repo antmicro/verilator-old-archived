@@ -1023,6 +1023,7 @@ namespace UhdmAst {
             // Sides in AST are switched: first rhs (value), then lhs (count)
             return new AstReplicate(new FileLine("uhdm"), rhs, lhs);
           }
+          case vpiArithLShiftOp:  // This behaves the same as normal shift
           case vpiLShiftOp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
               [&](AstNode* node){
@@ -1044,6 +1045,17 @@ namespace UhdmAst {
                 }
               });
             return new AstShiftR(new FileLine("uhdm"), lhs, rhs);
+          }
+          case vpiArithRShiftOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (lhs == nullptr) {
+                  lhs = node;
+                } else {
+                  rhs = node;
+                }
+              });
+            return new AstShiftRS(new FileLine("uhdm"), lhs, rhs);
           }
           default: {
             std::cout << "\t! Encountered unhandled operation: "
