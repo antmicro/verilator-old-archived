@@ -415,6 +415,7 @@ namespace UhdmAst {
         }
 
         switch (netType) {
+          case vpiLogicNet:
           case vpiReg: {
             net_type = AstVarType::VAR;
             dtypeKwd = AstBasicDTypeKwd::LOGIC;
