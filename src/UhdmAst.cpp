@@ -972,6 +972,7 @@ namespace UhdmAst {
               });
             return new AstAdd(new FileLine("uhdm"), lhs, rhs);
           }
+          case vpiSubOp:
           case vpiMinusOp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
               [&](AstNode* node){
@@ -982,6 +983,17 @@ namespace UhdmAst {
                 }
               });
             return new AstSub(new FileLine("uhdm"), lhs, rhs);
+          }
+          case vpiAddOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (lhs == nullptr) {
+                  lhs = node;
+                } else {
+                  rhs = node;
+                }
+              });
+            return new AstAdd(new FileLine("uhdm"), lhs, rhs);
           }
           case vpiConditionOp: {
             AstNode* condition = nullptr;
