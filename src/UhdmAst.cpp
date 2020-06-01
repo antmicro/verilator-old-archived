@@ -715,6 +715,9 @@ namespace UhdmAst {
               body->addNextNull(node);
             }
           });
+        if (objectType == vpiBegin) {
+          objectName = "";  // avoid storing parent name
+        }
         return new AstBegin(new FileLine("uhdm"), objectName, body);
       }
       case vpiIf:
