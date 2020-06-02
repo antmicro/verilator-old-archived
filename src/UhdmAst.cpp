@@ -435,20 +435,11 @@ namespace UhdmAst {
           // Not set in case above, most likely a "false" port net
           return nullptr; // Skip this net
         }
-        AstNode* msbNode = nullptr;
-        AstNode* lsbNode = nullptr;
         AstRange* rangeNode = nullptr;
-        auto leftRange_h  = vpi_handle(vpiLeftRange, obj_h);
-        if (leftRange_h) {
-          msbNode = visit_object(leftRange_h, visited, top_nodes);
-        }
-        auto rightRange_h  = vpi_handle(vpiRightRange, obj_h);
-        if (rightRange_h) {
-          lsbNode = visit_object(rightRange_h, visited, top_nodes);
-        }
-        if (msbNode && lsbNode) {
-          rangeNode = new AstRange(new FileLine("uhdm"), msbNode, lsbNode);
-        }
+        visit_one_to_many({vpiRange}, obj_h, visited, top_nodes,
+            [&](AstNode* node){
+              rangeNode = reinterpret_cast<AstRange*>(node);
+            });
 
         dtype = new AstBasicDType(new FileLine("uhdm"), dtypeKwd);
         dtype->rangep(rangeNode);
