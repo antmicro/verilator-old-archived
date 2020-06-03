@@ -1134,7 +1134,6 @@ namespace UhdmAst {
             constNode = new AstConst(new FileLine("uhdm"), value);
             return constNode;
           }
-          case vpiStringVal:
           case vpiBinStrVal:
           case vpiOctStrVal:
           case vpiDecStrVal:
@@ -1142,6 +1141,11 @@ namespace UhdmAst {
             std::string valStr(val.value.str);
             V3Number value(constNode, valStr.c_str());
             constNode = new AstConst(new FileLine("uhdm"), value);
+            return constNode;
+          }
+          case vpiStringVal: {
+            std::string valStr(val.value.str);
+            constNode = new AstConst(new FileLine("uhdm"), AstConst::VerilogStringLiteral(), valStr);
             return constNode;
           }
           default: {
