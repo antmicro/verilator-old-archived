@@ -704,9 +704,9 @@ namespace UhdmAst {
       }
       case vpiIf:
       case vpiIfElse: {
-        AstNode* condition;
-        AstNode* statement;
-        AstNode* elseStatement;
+        AstNode* condition = nullptr;
+        AstNode* statement = nullptr;
+        AstNode* elseStatement = nullptr;
 
         visit_one_to_one({vpiCondition}, obj_h, visited, top_nodes,
           [&](AstNode* node){
