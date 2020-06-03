@@ -636,7 +636,7 @@ namespace UhdmAst {
             }
         }
 
-        if (alwaysType == VAlwaysKwd::ALWAYS) {
+        if (alwaysType != VAlwaysKwd::ALWAYS_COMB) {
           // Sensitivity list
           vpiHandle event_control_h = vpi_handle(vpiStmt, obj_h);
           if (event_control_h != nullptr) {
