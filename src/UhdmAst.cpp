@@ -148,19 +148,10 @@ namespace UhdmAst {
             return port;
           }
           // Get range from actual
-          AstNode* msbNode = nullptr;
-          AstNode* lsbNode = nullptr;
-          auto leftRange_h  = vpi_handle(vpiLeftRange, actual_h);
-          if (leftRange_h) {
-            msbNode = visit_object(leftRange_h, visited, top_nodes);
-          }
-          auto rightRange_h  = vpi_handle(vpiRightRange, actual_h);
-          if (rightRange_h) {
-            lsbNode = visit_object(rightRange_h, visited, top_nodes);
-          }
-          if (msbNode && lsbNode) {
-            rangeNode = new AstRange(new FileLine("uhdm"), msbNode, lsbNode);
-          }
+          visit_one_to_many({vpiRange}, actual_h, visited, top_nodes,
+              [&](AstNode* node){
+                rangeNode = reinterpret_cast<AstRange*>(node);
+              });
         }
         auto* dtype = new AstBasicDType(new FileLine("uhdm"),
                                   AstBasicDTypeKwd::LOGIC);
