@@ -943,6 +943,50 @@ namespace UhdmAst {
               });
             return new AstNeq(new FileLine("uhdm"), lhs, rhs);
           }
+          case vpiGtOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (lhs == nullptr) {
+                  lhs = node;
+                } else {
+                  rhs = node;
+                }
+              });
+            return new AstGt(new FileLine("uhdm"), lhs, rhs);
+          }
+          case vpiGeOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (lhs == nullptr) {
+                  lhs = node;
+                } else {
+                  rhs = node;
+                }
+              });
+            return new AstGte(new FileLine("uhdm"), lhs, rhs);
+          }
+          case vpiLtOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (lhs == nullptr) {
+                  lhs = node;
+                } else {
+                  rhs = node;
+                }
+              });
+            return new AstLt(new FileLine("uhdm"), lhs, rhs);
+          }
+          case vpiLeOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (lhs == nullptr) {
+                  lhs = node;
+                } else {
+                  rhs = node;
+                }
+              });
+            return new AstLte(new FileLine("uhdm"), lhs, rhs);
+          }
           case vpiPlusOp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
               [&](AstNode* node){
