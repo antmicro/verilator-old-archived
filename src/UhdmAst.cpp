@@ -1103,6 +1103,17 @@ namespace UhdmAst {
               });
             return new AstShiftRS(new FileLine("uhdm"), lhs, rhs);
           }
+          case vpiInsideOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (lhs == nullptr) {
+                  lhs = node;
+                } else {
+                  rhs = node;
+                }
+              });
+            return new AstInside(new FileLine("uhdm"), lhs, rhs);
+          }
           default: {
             v3error("\t! Encountered unhandled operation: " << operation);
             break;
