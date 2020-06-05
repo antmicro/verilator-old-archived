@@ -1106,10 +1106,14 @@ namespace UhdmAst {
           case vpiInsideOp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
               [&](AstNode* node){
-                if (lhs == nullptr) {
-                  lhs = node;
-                } else {
-                  rhs = node;
+                if (node != nullptr) {
+                  if (lhs == nullptr) {
+                    lhs = node;
+                  } else if (rhs == nullptr) {
+                    rhs = node;
+                  } else {
+                    rhs->addNextNull(node);
+                  }
                 }
               });
             return new AstInside(new FileLine("uhdm"), lhs, rhs);
