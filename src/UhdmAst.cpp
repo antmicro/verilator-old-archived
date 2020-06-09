@@ -1118,6 +1118,21 @@ namespace UhdmAst {
               });
             return new AstInside(new FileLine("uhdm"), lhs, rhs);
           }
+          case vpiCastOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (lhs == nullptr) {
+                  lhs = node;
+                }
+              });
+            visit_one_to_one({vpiTypespec}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (rhs == nullptr) {
+                  rhs = node;
+                }
+              });
+            return new AstCastParse(new FileLine("uhdm"), lhs, rhs);
+          }
           default: {
             v3error("\t! Encountered unhandled operation: " << operation);
             break;
@@ -1125,8 +1140,8 @@ namespace UhdmAst {
         }
         return nullptr;
       }
+      case vpiIntegerTypespec: // Handling determined by type returned from vpi_value
       case vpiConstant: {
-        auto type = vpi_get(vpiConstType, obj_h);
         s_vpi_value val;
         vpi_get_value(obj_h, &val);
         AstConst* constNode = nullptr;
