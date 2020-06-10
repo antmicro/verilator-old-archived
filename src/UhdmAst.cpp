@@ -1159,6 +1159,7 @@ namespace UhdmAst {
         return nullptr;
       }
       case vpiIntegerTypespec: // Handling determined by type returned from vpi_value
+      case vpiEnumConst:
       case vpiConstant: {
         s_vpi_value val;
         vpi_get_value(obj_h, &val);
@@ -1382,7 +1383,6 @@ namespace UhdmAst {
       // What we can see (but don't support yet)
       case vpiClassObj:
       case vpiClassDefn:
-      case vpiPackage:
         break; // Be silent
       default: {
         // Notify we have something unhandled
@@ -1401,6 +1401,7 @@ namespace UhdmAst {
         visit_one_to_many({
             UHDM::uhdmallInterfaces,
             UHDM::uhdmallModules,
+            UHDM::uhdmallPackages,
             UHDM::uhdmtopModules
             },
             design,
