@@ -107,6 +107,24 @@ namespace UhdmAst {
             });
         return node;
       }
+      case vpiPackage: {
+        auto* package = new AstPackage(new FileLine("uhdm"), objectName);
+        visit_one_to_many({
+            //vpiParameter,  // use vpiParamAssign instead
+            vpiParamAssign,
+            vpiTypedef
+            },
+            obj_h,
+            visited,
+            top_nodes,
+            [&](AstNode* item) {
+              if (item != nullptr) {
+                package->addNext(item);
+              }
+            });
+
+        return package;
+      }
       case vpiPort: {
         static unsigned numPorts;
         AstPort *port = nullptr;
