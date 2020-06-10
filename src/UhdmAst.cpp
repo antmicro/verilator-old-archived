@@ -1380,6 +1380,18 @@ namespace UhdmAst {
         }
       }
 
+      case vpiLogicTypespec: {
+        AstRange* rangeNode = nullptr;
+        visit_one_to_many({vpiRange}, obj_h, visited, top_nodes,
+            [&](AstNode* node){
+              rangeNode = reinterpret_cast<AstRange*>(node);
+            });
+        auto* dtype = new AstBasicDType(new FileLine("uhdm"),
+                                  AstBasicDTypeKwd::LOGIC);
+        dtype->rangep(rangeNode);
+        return dtype;
+      }
+
       // What we can see (but don't support yet)
       case vpiClassObj:
       case vpiClassDefn:
