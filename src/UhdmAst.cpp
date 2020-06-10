@@ -1391,6 +1391,55 @@ namespace UhdmAst {
         dtype->rangep(rangeNode);
         return dtype;
       }
+      case vpiEnumTypespec: {
+        AstNode* enum_members = nullptr;
+        AstNodeDType* enum_member_dtype = nullptr;
+        visit_one_to_many({
+            vpiEnumConst
+            },
+            obj_h,
+            visited,
+            top_nodes,
+            [&](AstNode* item) {
+              if (item != nullptr) {
+                auto* wrapped_item = new AstEnumItem(new FileLine("uhdm"),
+                                                     item->name(),
+                                                     nullptr,
+                                                     item);
+                if (enum_members == nullptr) {
+                  enum_members = wrapped_item;
+                } else {
+                  enum_members->addNextNull(wrapped_item);
+                }
+              }
+            });
+        visit_one_to_one({
+            vpiBaseTypespec
+            },
+            obj_h,
+            visited,
+            top_nodes,
+            [&](AstNode* item) {
+              if (item != nullptr) {
+                enum_member_dtype = reinterpret_cast<AstNodeDType*>(item);
+              }
+            });
+        auto* enum_dtype = new AstEnumDType(new FileLine("uhdm"),
+                                            VFlagChildDType(),
+                                            enum_member_dtype,
+                                            enum_members);
+        auto* dtype = new AstDefImplicitDType(new FileLine("uhdm"),
+                                              objectName,
+                                              nullptr,
+                                              VFlagChildDType(),
+                                              enum_dtype);
+        auto* enum_type = new AstTypedef(new FileLine("uhdm"),
+                                         objectName,
+                                         nullptr,
+                                         VFlagChildDType(),
+                                         dtype);
+        break;
+      }
 
       // What we can see (but don't support yet)
       case vpiClassObj:
