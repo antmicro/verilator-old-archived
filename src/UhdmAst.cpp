@@ -1152,6 +1152,17 @@ namespace UhdmAst {
               });
             return new AstCastParse(new FileLine("uhdm"), lhs, rhs);
           }
+          case vpiPowerOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (lhs == nullptr) {
+                  lhs = node;
+                } else {
+                  rhs = node;
+                }
+              });
+            return new AstPow(new FileLine("uhdm"), lhs, rhs);
+          }
           default: {
             v3error("\t! Encountered unhandled operation: " << operation);
             break;
