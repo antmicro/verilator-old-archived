@@ -252,6 +252,7 @@ namespace UhdmAst {
               vpiParamAssign,
               vpiProcess,
               vpiTaskFunc,
+              vpiTypedef,
               },
               obj_h,
               visited,
