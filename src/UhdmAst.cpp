@@ -1381,6 +1381,17 @@ namespace UhdmAst {
         }
       }
 
+      case vpiBitTypespec: {
+        AstRange* rangeNode = nullptr;
+        visit_one_to_many({vpiRange}, obj_h, visited, top_nodes,
+            [&](AstNode* node){
+              rangeNode = reinterpret_cast<AstRange*>(node);
+            });
+        auto* dtype = new AstBasicDType(new FileLine("uhdm"),
+                                        AstBasicDTypeKwd::BIT);
+        dtype->rangep(rangeNode);
+        return dtype;
+      }
       case vpiLogicTypespec: {
         AstRange* rangeNode = nullptr;
         visit_one_to_many({vpiRange}, obj_h, visited, top_nodes,
