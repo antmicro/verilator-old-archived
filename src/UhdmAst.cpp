@@ -1462,6 +1462,20 @@ namespace UhdmAst {
                                            dtype);
         return struct_type;
       }
+      case vpiTypespecMember: {
+        AstNodeDType* typespec = nullptr;
+        visit_one_to_one({vpiTypespec}, obj_h, visited, top_nodes,
+            [&](AstNode* item) {
+              if (item != nullptr) {
+                typespec = reinterpret_cast<AstNodeDType*>(item);
+              }
+            });
+        auto * member =  new AstMemberDType(new FileLine("uhdm"),
+            typespec->name(),
+            reinterpret_cast<AstNodeDType*>(typespec));
+        member->childDTypep(typespec);
+        return member;
+      }
 
       // What we can see (but don't support yet)
       case vpiClassObj:
