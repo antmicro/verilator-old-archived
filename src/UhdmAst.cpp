@@ -1441,6 +1441,27 @@ namespace UhdmAst {
                                          dtype);
         return enum_type;
       }
+      case vpiStructTypespec: {
+        auto* struct_dtype = new AstStructDType(new FileLine("uhdm"),
+                                                AstNumeric());
+        visit_one_to_many({vpiTypespecMember}, obj_h, visited, top_nodes,
+            [&](AstNode* item) {
+              if (item != nullptr) {
+                struct_dtype->addMembersp(item);
+              }
+            });
+        auto* dtype = new AstDefImplicitDType(new FileLine("uhdm"),
+                                              objectName,
+                                              nullptr,
+                                              VFlagChildDType(),
+                                              struct_dtype);
+        auto* struct_type = new AstTypedef(new FileLine("uhdm"),
+                                           objectName,
+                                           nullptr,
+                                           VFlagChildDType(),
+                                           dtype);
+        return struct_type;
+      }
 
       // What we can see (but don't support yet)
       case vpiClassObj:
