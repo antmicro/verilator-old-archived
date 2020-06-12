@@ -119,7 +119,7 @@ namespace UhdmAst {
             top_nodes,
             [&](AstNode* item) {
               if (item != nullptr) {
-                package->addNext(item);
+                package->addStmtp(item);
               }
             });
 
@@ -1438,7 +1438,7 @@ namespace UhdmAst {
                                          nullptr,
                                          VFlagChildDType(),
                                          dtype);
-        break;
+        return enum_type;
       }
 
       // What we can see (but don't support yet)
