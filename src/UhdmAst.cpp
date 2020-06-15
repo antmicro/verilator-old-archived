@@ -1328,6 +1328,11 @@ namespace UhdmAst {
           return new AstUnsigned(new FileLine("uhdm"), arguments);
         } else if (objectName == "$time") {
           return new AstTime(new FileLine("uhdm"));
+        } else if (objectName == "$display") {
+          return new AstDisplay(new FileLine("uhdm"),
+                                AstDisplayType(),
+                                nullptr,
+                                arguments);
         } else {
             v3error("\t! Encountered unhandled SysFuncCall: " << objectName);
         }
