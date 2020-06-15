@@ -1163,6 +1163,17 @@ namespace UhdmAst {
               });
             return new AstPow(new FileLine("uhdm"), lhs, rhs);
           }
+          case vpiAssignmentPatternOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (lhs == nullptr) {
+                  lhs = node;
+                } else {
+                  lhs->addNextNull(node);
+                }
+              });
+            return new AstPattern(new FileLine("uhdm"), lhs);
+          }
           default: {
             v3error("\t! Encountered unhandled operation: " << operation);
             break;
