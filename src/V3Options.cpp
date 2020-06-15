@@ -1451,6 +1451,8 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
         m_xmlOnly = true;
     });
 
+    DECL_OPTION("-uhdm-cov", Set, &m_uhdmCovFile);
+
     DECL_OPTION("-y", CbVal, [this, &optdir](const char* valp) {
         addIncDirUser(parseFileArg(optdir, string(valp)));
     });

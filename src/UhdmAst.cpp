@@ -51,6 +51,7 @@ namespace UhdmAst {
   }
 
   std::map<std::string, AstNode*> pinMap;
+  std::set<std::pair<std::string, int>> coverage_set;
 
   AstNode* visit_object (vpiHandle obj_h,
         std::set<const UHDM::BaseClass*> visited,
@@ -82,6 +83,10 @@ namespace UhdmAst {
               << " of type " << objectType
               << " @ " << currentLine
               << std::endl;
+    if (file_name) {
+      coverage_set.insert({file_name, currentLine});
+    }
+
     bool alreadyVisited = false;
     const uhdm_handle* const handle = (const uhdm_handle*) obj_h;
     const UHDM::BaseClass* const object = (const UHDM::BaseClass*) handle->object;
@@ -1532,7 +1537,8 @@ namespace UhdmAst {
     return nullptr;
   }
 
-  std::vector<AstNodeModule*> visit_designs (const std::vector<vpiHandle>& designs) {
+  std::vector<AstNodeModule*> visit_designs (const std::vector<vpiHandle>& designs,
+                                             std::ostringstream& coverage_report_stream) {
     std::set<const UHDM::BaseClass*> visited;
     std::map<std::string, AstNodeModule*> top_nodes;
     for (auto design : designs) {
@@ -1556,6 +1562,9 @@ namespace UhdmAst {
     std::vector<AstNodeModule*> nodes;
     for (auto node : top_nodes)
               nodes.push_back(node.second);
+    for (auto entry : coverage_set) {
+      coverage_report_stream << entry.first << ";Line: " << entry.second << std::endl;
+    }
     return nodes;
   }
 
