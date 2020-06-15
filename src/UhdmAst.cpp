@@ -1326,6 +1326,8 @@ namespace UhdmAst {
           return new AstSigned(new FileLine("uhdm"), arguments);
         } else if (objectName == "$unsigned") {
           return new AstUnsigned(new FileLine("uhdm"), arguments);
+        } else if (objectName == "$time") {
+          return new AstTime(new FileLine("uhdm"));
         } else {
             v3error("\t! Encountered unhandled SysFuncCall: " << objectName);
         }
