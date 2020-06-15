@@ -1069,6 +1069,9 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
             else if (!strcmp(sw, "-top-module") && (i+1)<argc) {
                 shift; m_topModule = argv[i];
             }
+            else if (!strcmp(sw, "-uhdm-cov") && (i+1)<argc) {
+                shift; m_uhdmCovFile = argv[i];
+            }
             else if (!strcmp(sw, "-unused-regexp") && (i+1)<argc) {
                 shift; m_unusedRegexp = argv[i];
             }

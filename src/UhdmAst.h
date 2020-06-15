@@ -15,6 +15,7 @@ namespace UhdmAst {
         std::map<std::string, AstNodeModule*>* top_nodes);
 
   // Visits all VPI design objects and returns created ASTs
-  std::vector<AstNodeModule*> visit_designs (const std::vector<vpiHandle>& designs);
+  std::vector<AstNodeModule*> visit_designs (const std::vector<vpiHandle>& designs,
+                                             std::ostringstream& coverage_report_stream);
 }
 #endif  // Guard

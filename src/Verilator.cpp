@@ -154,6 +154,7 @@ void V3Global::readFiles() {
     {
         const V3StringList& vFiles = v3Global.opt.vFiles();
         UHDM::Serializer serializer;
+        std::ostringstream coverage_report_stream;
 
         for (auto file : vFiles) {
             std::vector<vpiHandle> restoredDesigns = serializer.Restore(file);
@@ -162,13 +163,20 @@ void V3Global::readFiles() {
 
             /* Parse */
             std::vector<AstNodeModule*> modules =
-                        UhdmAst::visit_designs(restoredDesigns);
+                        UhdmAst::visit_designs(restoredDesigns, coverage_report_stream);
 
             /* Add to design */
             AstNetlist *designRoot = v3Global.rootp();
             for (auto itr = modules.begin(); itr != modules.end(); ++itr) {
                 designRoot->addModulep(*itr);
             }
+        }
+        /* Report coverage */
+        auto coverage_file = v3Global.opt.uhdmCovFile();
+        if (coverage_file != "") {
+            std::cout << "Writing coverage report to: " << coverage_file << std::endl;
+            std::ofstream coverage_output(coverage_file);
+            coverage_output << coverage_report_stream.str();
         }
 
     }
