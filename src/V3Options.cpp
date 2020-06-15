@@ -1346,6 +1346,8 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
                 VTimescale::parseSlashed(fl, argv[i], unit /*ref*/, prec /*ref*/);
                 if (!unit.isNone() && timeOverrideUnit().isNone()) m_timeDefaultUnit = unit;
                 if (!prec.isNone() && timeOverridePrec().isNone()) m_timeDefaultPrec = prec;
+            } else if (!strcmp(sw, "-uhdm-cov") && (i+1)<argc) {
+                shift; m_uhdmCovFile = argv[i];
             } else if (!strcmp(sw, "-timescale-override") && (i + 1) < argc) {
                 shift;
                 VTimescale unit;

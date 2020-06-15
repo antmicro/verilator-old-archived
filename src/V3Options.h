@@ -341,6 +341,7 @@ private:
     string      m_xAssign;      // main switch: --x-assign
     string      m_xInitial;     // main switch: --x-initial
     string      m_xmlOutput;    // main switch: --xml-output
+    string      m_uhdmCovFile;  // main switch: --uhdm-cov
 
     // Language is now held in FileLine, on a per-node basis. However we still
     // have a concept of the default language at a global level.
@@ -546,6 +547,7 @@ public:
         return libName;
     }
     string topModule() const { return m_topModule; }
+    string uhdmCovFile() const { return m_uhdmCovFile; }
     string unusedRegexp() const { return m_unusedRegexp; }
     string waiverOutput() const { return m_waiverOutput; }
     bool isWaiverOutput() const { return !m_waiverOutput.empty(); }
