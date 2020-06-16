@@ -101,6 +101,7 @@
 #include "uhdm.h"
 #include "UhdmAst.h"
 #include "vpi_visitor.h"
+#include "uhdm_dump.h"
 #include <iostream>
 
 V3Global v3Global;
@@ -155,11 +156,13 @@ void V3Global::readFiles() {
         const V3StringList& vFiles = v3Global.opt.vFiles();
         UHDM::Serializer serializer;
         std::ostringstream coverage_report_stream;
+        std::ostringstream uhdm_lines_dump;
 
         for (auto file : vFiles) {
             std::vector<vpiHandle> restoredDesigns = serializer.Restore(file);
 
             std::cout << UHDM::visit_designs(restoredDesigns) << std::endl;
+            uhdm_lines_dump << UHDM::dump_visited(restoredDesigns);
 
             /* Parse */
             std::vector<AstNodeModule*> modules =
@@ -176,6 +179,9 @@ void V3Global::readFiles() {
         if (coverage_file != "") {
             std::cout << "Writing coverage report to: " << coverage_file << std::endl;
             std::ofstream coverage_output(coverage_file);
+            coverage_output << "UHDM contents:" << std::endl;
+            coverage_output << uhdm_lines_dump.str();
+            coverage_output << "Visited nodes:" << std::endl;
             coverage_output << coverage_report_stream.str();
         }
 
