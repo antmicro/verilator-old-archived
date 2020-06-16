@@ -1563,7 +1563,7 @@ namespace UhdmAst {
     for (auto node : top_nodes)
               nodes.push_back(node.second);
     for (auto entry : coverage_set) {
-      coverage_report_stream << entry.first << ";Line: " << entry.second << std::endl;
+      coverage_report_stream << entry.first << ":" << entry.second << std::endl;
     }
     return nodes;
   }
