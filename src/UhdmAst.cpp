@@ -1456,6 +1456,20 @@ namespace UhdmAst {
         dtype->rangep(rangeNode);
         return dtype;
       }
+      case vpiIntTypespec: {
+        AstRange* rangeNode = nullptr;
+        visit_one_to_many({vpiRange}, obj_h, visited, top_nodes,
+            [&](AstNode* node){
+              rangeNode = reinterpret_cast<AstRange*>(node);
+            });
+        auto* dtype = new AstBasicDType(new FileLine("uhdm"),
+                                        AstBasicDTypeKwd::INT);
+        dtype->rangep(rangeNode);
+        return dtype;
+      }
+      case vpiVoidTypespec: {
+        return new AstRefDType(new FileLine("uhdm"), objectName);
+      }
       case vpiEnumTypespec: {
         AstNode* enum_members = nullptr;
         AstNodeDType* enum_member_dtype = nullptr;
