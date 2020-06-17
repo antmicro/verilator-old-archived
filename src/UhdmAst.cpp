@@ -1203,6 +1203,12 @@ namespace UhdmAst {
           }
           case vpiIntVal: {
             std::string valStr = std::to_string(val.value.integer);
+            if (valStr[0] == '-') {
+              valStr = valStr.substr(1);
+              V3Number value(constNode, valStr.c_str());
+              constNode = new AstConst(new FileLine("uhdm"), value);
+              return new AstNegate(new FileLine("uhdm"), constNode);
+            }
             V3Number value(constNode, valStr.c_str());
             constNode = new AstConst(new FileLine("uhdm"), value);
             return constNode;
