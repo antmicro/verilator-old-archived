@@ -303,6 +303,7 @@ namespace UhdmAst {
         break;
       }
       case vpiAssignment:
+      case vpiAssignStmt:
       case vpiContAssign: {
         AstNode* lvalue = nullptr;
         AstNode* rvalue = nullptr;
@@ -333,7 +334,7 @@ namespace UhdmAst {
             } else {
               return new AstAssignDly(new FileLine("uhdm"), lvalue, rvalue);
             }
-          } else if (objectType == vpiContAssign)
+          } else if (objectType == vpiContAssign || objectType == vpiAssignStmt)
             return new AstAssignW(new FileLine("uhdm"), lvalue, rvalue);
         }
         break;
