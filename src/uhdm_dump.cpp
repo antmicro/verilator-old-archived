@@ -162,7 +162,9 @@ static void visit_object (vpiHandle obj_h, int indent, const char *relation, std
   }
 
   if (fileName != "")
-    fout << fileName << ":" << line << std::endl;
+    fout << fileName << ":"
+         << line << ":"
+         << objectType << std::endl;
 
   if (strcmp(relation, "vpiParent") == 0) {
     return;
