@@ -1306,6 +1306,17 @@ namespace UhdmAst {
           });
         return new AstFunc(new FileLine("uhdm"), objectName, statements, function_vars);
       }
+      case vpiReturn:
+      case vpiReturnStmt: {
+        AstNode* condition = nullptr;
+        visit_one_to_one({vpiCondition}, obj_h, visited, top_nodes,
+          [&](AstNode* item){
+            if (item) {
+              condition = item;
+            }
+          });
+        return new AstReturn(new FileLine("uhdm"), condition);
+        }
       case vpiFuncCall: {
         AstNode* arguments = nullptr;
         visit_one_to_many({vpiArgument}, obj_h, visited, top_nodes,
