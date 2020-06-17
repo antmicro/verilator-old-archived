@@ -1041,6 +1041,39 @@ namespace UhdmAst {
               });
             return new AstAdd(new FileLine("uhdm"), lhs, rhs);
           }
+          case vpiDivOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (lhs == nullptr) {
+                  lhs = node;
+                } else {
+                  rhs = node;
+                }
+              });
+            return new AstDiv(new FileLine("uhdm"), lhs, rhs);
+          }
+          case vpiModOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (lhs == nullptr) {
+                  lhs = node;
+                } else {
+                  rhs = node;
+                }
+              });
+            return new AstModDiv(new FileLine("uhdm"), lhs, rhs);
+          }
+          case vpiMultOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (lhs == nullptr) {
+                  lhs = node;
+                } else {
+                  rhs = node;
+                }
+              });
+            return new AstMul(new FileLine("uhdm"), lhs, rhs);
+          }
           case vpiConditionOp: {
             AstNode* condition = nullptr;
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
