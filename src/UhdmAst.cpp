@@ -1527,6 +1527,18 @@ namespace UhdmAst {
       case vpiClassObj:
       case vpiClassDefn:
         break; // Be silent
+      case vpiUnsupportedStmt:
+        v3info("\t! This statement is unsupported in UHDM: "
+               << file_name << ":" << currentLine);
+        // Dummy statement to keep parsing
+        return new AstTime(new FileLine("uhdm"));
+        break;
+      case vpiUnsupportedExpr:
+        v3info("\t! This expression is unsupported in UHDM: "
+               << file_name << ":" << currentLine);
+        // Dummy expression to keep parsing
+        return new AstConst(new FileLine("uhdm"), 1);
+        break;
       default: {
         // Notify we have something unhandled
         v3error("\t! Unhandled type: " << objectType);
