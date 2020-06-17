@@ -1538,7 +1538,7 @@ namespace UhdmAst {
   }
 
   std::vector<AstNodeModule*> visit_designs (const std::vector<vpiHandle>& designs,
-                                             std::ostringstream& coverage_report_stream) {
+                                             std::ostream& coverage_report_stream) {
     std::set<const UHDM::BaseClass*> visited;
     std::map<std::string, AstNodeModule*> top_nodes;
     for (auto design : designs) {
@@ -1557,14 +1557,17 @@ namespace UhdmAst {
               // This is true as we visit only top modules and interfaces (with the same AST node) above
               top_nodes[module->name()] = (reinterpret_cast<AstNodeModule*>(module));
               }
+              for (auto entry : coverage_set) {
+                coverage_report_stream << std::get<0>(entry)
+                                << ":" << std::get<1>(entry)
+                                << ":" << std::get<2>(entry) << std::endl;
+              }
+              coverage_set.clear();
             });
     }
     std::vector<AstNodeModule*> nodes;
     for (auto node : top_nodes)
               nodes.push_back(node.second);
-    for (auto entry : coverage_set) {
-      coverage_report_stream << entry.first << ":" << entry.second << std::endl;
-    }
     return nodes;
   }
 
