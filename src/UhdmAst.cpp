@@ -1503,6 +1503,11 @@ namespace UhdmAst {
                 enum_member_dtype = reinterpret_cast<AstNodeDType*>(item);
               }
             });
+        if (enum_member_dtype == nullptr) {
+          // No data type specified, use default
+          enum_member_dtype = new AstBasicDType(new FileLine("uhdm"),
+                                                AstBasicDTypeKwd::INT);
+        }
         auto* enum_dtype = new AstEnumDType(new FileLine("uhdm"),
                                             VFlagChildDType(),
                                             enum_member_dtype,
