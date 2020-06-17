@@ -1559,6 +1559,15 @@ namespace UhdmAst {
         member->childDTypep(typespec);
         return member;
       }
+      case vpiLogicVar: {
+        auto* dtype = new AstBasicDType(new FileLine("uhdm"),
+                                  AstBasicDTypeKwd::LOGIC);
+        auto* var = new AstVar(new FileLine("uhdm"),
+                         AstVarType::VAR,
+                         objectName,
+                         dtype);
+        return var;
+      }
 
       // What we can see (but don't support yet)
       case vpiClassObj:
