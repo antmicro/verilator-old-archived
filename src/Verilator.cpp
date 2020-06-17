@@ -155,8 +155,10 @@ void V3Global::readFiles() {
     {
         const V3StringList& vFiles = v3Global.opt.vFiles();
         UHDM::Serializer serializer;
-        std::ostringstream coverage_report_stream;
         std::ostringstream uhdm_lines_dump;
+
+        auto coverage_file = v3Global.opt.uhdmCovFile();
+        std::vector<AstNodeModule*> modules;
 
         for (auto file : vFiles) {
             std::vector<vpiHandle> restoredDesigns = serializer.Restore(file);
@@ -165,24 +167,24 @@ void V3Global::readFiles() {
             uhdm_lines_dump << UHDM::dump_visited(restoredDesigns);
 
             /* Parse */
-            std::vector<AstNodeModule*> modules =
-                        UhdmAst::visit_designs(restoredDesigns, coverage_report_stream);
+            if (coverage_file != "") {
+                /* Report coverage */
+                std::cout << "Writing coverage report to: " << coverage_file << std::endl;
+                std::ofstream coverage_output(coverage_file);
+                coverage_output << "UHDM contents:" << std::endl;
+                coverage_output << uhdm_lines_dump.str();
+                coverage_output << "Visited nodes:" << std::endl;
+                modules = UhdmAst::visit_designs(restoredDesigns, coverage_output);
+            } else {
+                std::ostringstream dummy;
+                modules = UhdmAst::visit_designs(restoredDesigns, dummy);
+            }
 
             /* Add to design */
             AstNetlist *designRoot = v3Global.rootp();
             for (auto itr = modules.begin(); itr != modules.end(); ++itr) {
                 designRoot->addModulep(*itr);
             }
-        }
-        /* Report coverage */
-        auto coverage_file = v3Global.opt.uhdmCovFile();
-        if (coverage_file != "") {
-            std::cout << "Writing coverage report to: " << coverage_file << std::endl;
-            std::ofstream coverage_output(coverage_file);
-            coverage_output << "UHDM contents:" << std::endl;
-            coverage_output << uhdm_lines_dump.str();
-            coverage_output << "Visited nodes:" << std::endl;
-            coverage_output << coverage_report_stream.str();
         }
 
     }
