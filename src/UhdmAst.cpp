@@ -51,7 +51,7 @@ namespace UhdmAst {
   }
 
   std::map<std::string, AstNode*> pinMap;
-  std::set<std::pair<std::string, int>> coverage_set;
+  std::set<std::tuple<std::string, int, int>> coverage_set;
 
   AstNode* visit_object (vpiHandle obj_h,
         std::set<const UHDM::BaseClass*> visited,
@@ -84,7 +84,7 @@ namespace UhdmAst {
               << " @ " << currentLine
               << std::endl;
     if (file_name) {
-      coverage_set.insert({file_name, currentLine});
+      coverage_set.insert({file_name, currentLine, objectType});
     }
 
     bool alreadyVisited = false;
