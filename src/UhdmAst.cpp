@@ -326,6 +326,10 @@ namespace UhdmAst {
               lvalue = child;
             });
 
+        if (rvalue != nullptr && rvalue->type() == AstType::en::atFOpen) {
+          // Not really an assignment, AstFOpen node takes care of the lhs
+          return rvalue;
+        }
         if (lvalue && rvalue) {
           if (objectType == vpiAssignment) {
             auto blocking = vpi_get(vpiBlocking, obj_h);
@@ -1333,29 +1337,61 @@ namespace UhdmAst {
         return func_call;
       }
       case vpiSysFuncCall: {
-        AstNode* arguments = nullptr;
+        std::vector<AstNode*> arguments;
         visit_one_to_many({vpiArgument}, obj_h, visited, top_nodes,
           [&](AstNode* item){
             if (item) {
-                if (arguments == nullptr) {
-                  arguments = item;
-                } else {
-                  arguments->addNextNull(new AstArg(new FileLine("uhdm"), "", item));
-                }
+              arguments.push_back(item);
             }
           });
 
         if (objectName == "$signed") {
-          return new AstSigned(new FileLine("uhdm"), arguments);
+          return new AstSigned(new FileLine("uhdm"), arguments[0]);
         } else if (objectName == "$unsigned") {
-          return new AstUnsigned(new FileLine("uhdm"), arguments);
+          return new AstUnsigned(new FileLine("uhdm"), arguments[0]);
         } else if (objectName == "$time") {
           return new AstTime(new FileLine("uhdm"));
         } else if (objectName == "$display") {
           return new AstDisplay(new FileLine("uhdm"),
                                 AstDisplayType(),
                                 nullptr,
-                                arguments);
+                                arguments[0]);
+        } else if (objectName == "$value$plusargs") {
+          return new AstValuePlusArgs(new FileLine("uhdm"),
+                                      arguments[0],
+                                      arguments[1]);
+        } else if (objectName == "$sformat") {
+          // TODO: This asssumes a string constant, but it could be a fairly
+          // complex structure instead
+          auto s = reinterpret_cast<AstConst*>(arguments[1])->num().toString();
+          return new AstSFormat(new FileLine("uhdm"),
+                                arguments[0],
+                                s,
+                                arguments[2]);
+        } else if (objectName == "$sformatf") {
+          auto s = reinterpret_cast<AstConst*>(arguments[0])->num().toString();
+          return new AstSFormatF(new FileLine("uhdm"),
+                                 s,
+                                 false,
+                                 arguments[1]);
+        } else if (objectName == "$fopen") {
+          // We need to obtain the variable in which the descriptor will be stored
+          // This usually will be LHS of an assignment fd = $fopen(...)
+          auto parent_h = vpi_handle({vpiParent}, obj_h);
+          auto lhs_h = vpi_handle({vpiLhs}, parent_h);
+          AstNode* fd = nullptr;
+          if (lhs_h) {
+            fd = visit_object(lhs_h, visited, top_nodes);
+          }
+          return new AstFOpen(new FileLine("uhdm"),
+                              fd,
+                              arguments[0],
+                              arguments[1]);
+        } else if (objectName == "$fwrite") {
+          return new AstDisplay(new FileLine("uhdm"),
+                                AstDisplayType(AstDisplayType::en::DT_WRITE),
+                                arguments[0],
+                                arguments[1]);
         } else {
             v3error("\t! Encountered unhandled SysFuncCall: " << objectName);
         }
