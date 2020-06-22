@@ -202,7 +202,7 @@ namespace UhdmAst {
                              objectName,
                              netDtype);
             netVar->childDTypep(netDtype);
-            pinMap[objectName] = netVar;
+            pinMap[fullObjectName] = netVar;
           } else if (n == vpiInout) {
             var->declDirection(VDirection::INOUT);
             var->direction(VDirection::INOUT);
@@ -395,7 +395,7 @@ namespace UhdmAst {
 
         auto netType = vpi_get(vpiNetType, obj_h);
 
-        auto pinIt = pinMap.find(objectName);
+        auto pinIt = pinMap.find(fullObjectName);
         if (pinIt != pinMap.end()) {
           return pinIt->second;
         }
@@ -409,14 +409,14 @@ namespace UhdmAst {
             if (objectName == childName) {
               if (const int n = vpi_get(vpiDirection, port_h)) {
                 if (n == vpiOutput) {
-                  auto it = pinMap.find(objectName);
+                  auto it = pinMap.find(fullObjectName);
                   if (it != pinMap.end()) {
                     return it->second;
                   }
                 } else {
                   // Dummy node just to store something
                   // This won't be used
-                  pinMap[objectName] = new AstFinal(new FileLine("uhdm"), nullptr);
+                  pinMap[fullObjectName] = new AstFinal(new FileLine("uhdm"), nullptr);
                   return nullptr;
                 }
               }
@@ -430,7 +430,7 @@ namespace UhdmAst {
         }
 
         //Check if this was a port pin
-        auto it = pinMap.find(objectName);
+        auto it = pinMap.find(fullObjectName);
         if (it != pinMap.end()) {
           return nullptr;
         }
