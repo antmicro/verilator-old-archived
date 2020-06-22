@@ -611,7 +611,7 @@ namespace UhdmAst {
           }
           auto* io_node = new AstModportVarRef(new FileLine("uhdm"), io_name, dir);
           if (modport_vars)
-            modport_vars->addNext(io_node);
+            modport_vars->addNextNull(io_node);
           else
             modport_vars = io_node;
           vpi_free_object(io_h);
