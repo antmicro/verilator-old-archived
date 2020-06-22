@@ -1629,6 +1629,34 @@ namespace UhdmAst {
                          dtype);
         return var;
       }
+      case vpiArrayVar: {
+        auto array_type = vpi_get(vpiArrayType, obj_h);
+        // TODO: Static/Dynamic/Assoc/Queue
+        auto rand_type = vpi_get(vpiRandType, obj_h);
+        // TODO: Rand/RandC/NotRand
+        auto size = vpi_get(vpiSize, obj_h);
+        // TODO: Check for multidimensional arrays
+        auto* range = new AstRange(new FileLine("uhdm"),
+                                   size,
+                                   0);
+
+        AstNodeDType* element_dtype = nullptr;
+        visit_one_to_one({vpiReg}, obj_h, visited, top_nodes,
+            [&](AstNode* item) {
+              if (item != nullptr) {
+                element_dtype = reinterpret_cast<AstNodeDType*>(item);
+              }
+            });
+        auto* dtype = new AstUnpackArrayDType(new FileLine("uhdm"),
+                                              element_dtype,
+                                              range);
+
+        auto* var = new AstVar(new FileLine("uhdm"),
+                         AstVarType::VAR,
+                         objectName,
+                         dtype);
+        return var;
+      }
 
       // What we can see (but don't support yet)
       case vpiClassObj:
