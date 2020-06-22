@@ -240,6 +240,7 @@ namespace UhdmAst {
               vpiModule,
               vpiContAssign,
               vpiNet,
+              vpiVariables,
               },
               obj_h,
               visited,
@@ -464,6 +465,19 @@ namespace UhdmAst {
         dtype = new AstBasicDType(new FileLine("uhdm"), dtypeKwd);
         dtype->rangep(rangeNode);
         auto *v = new AstVar(new FileLine("uhdm"), net_type, objectName, dtype);
+        v->childDTypep(dtype);
+        return v;
+      }
+      case vpiStructVar: {
+        // Typespec is visited separately, grab only reference here
+        auto typespec_h = vpi_handle(vpiTypespec, obj_h);
+        std::string data_type_name = vpi_get_str(vpiName, typespec_h);
+        auto* dtype = new AstRefDType(new FileLine("uhdm"), data_type_name);
+
+        auto* v = new AstVar(new FileLine("uhdm"),
+                             AstVarType::VAR,
+                             objectName,
+                             dtype);
         v->childDTypep(dtype);
         return v;
       }
@@ -1589,11 +1603,13 @@ namespace UhdmAst {
                 typespec = reinterpret_cast<AstNodeDType*>(item);
               }
             });
-        auto * member =  new AstMemberDType(new FileLine("uhdm"),
-            typespec->name(),
-            reinterpret_cast<AstNodeDType*>(typespec));
-        member->childDTypep(typespec);
-        return member;
+        if (typespec != nullptr) {
+          auto * member =  new AstMemberDType(new FileLine("uhdm"),
+              objectName,
+              reinterpret_cast<AstNodeDType*>(typespec));
+          member->childDTypep(typespec);
+          return member;
+        }
       }
       case vpiLogicVar: {
         auto* dtype = new AstBasicDType(new FileLine("uhdm"),
