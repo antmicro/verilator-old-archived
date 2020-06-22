@@ -1620,6 +1620,15 @@ namespace UhdmAst {
                          dtype);
         return var;
       }
+      case vpiEnumVar: {
+        auto* dtype = new AstBasicDType(new FileLine("uhdm"),
+                                  AstBasicDTypeKwd::INTEGER);
+        auto* var = new AstVar(new FileLine("uhdm"),
+                         AstVarType::VAR,
+                         objectName,
+                         dtype);
+        return var;
+      }
 
       // What we can see (but don't support yet)
       case vpiClassObj:
