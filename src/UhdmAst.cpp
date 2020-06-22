@@ -51,6 +51,61 @@ namespace UhdmAst {
     std::replace(s.begin(), s.end(), '@','_');
   }
 
+  string deQuote(FileLine* fileline, string text) {
+    // Fix up the quoted strings the user put in, for example "\"" becomes "
+    // Reverse is V3OutFormatter::quoteNameControls(...)
+    bool quoted = false;
+    string newtext;
+    unsigned char octal_val = 0;
+    int octal_digits = 0;
+    for (string::const_iterator cp = text.begin(); cp != text.end(); ++cp) {
+      if (quoted) {
+        if (isdigit(*cp)) {
+          octal_val = octal_val*8 + (*cp-'0');
+          if (++octal_digits == 3) {
+            octal_digits = 0;
+            quoted = false;
+            newtext += octal_val;
+          }
+        } else {
+          if (octal_digits) {
+            // Spec allows 1-3 digits
+            octal_digits = 0;
+            quoted = false;
+            newtext += octal_val;
+            --cp;  // Backup to reprocess terminating character as non-escaped
+            continue;
+          }
+          quoted = false;
+          if (*cp == 'n') newtext += '\n';
+          else if (*cp == 'a') newtext += '\a';  // SystemVerilog 3.1
+          else if (*cp == 'f') newtext += '\f';  // SystemVerilog 3.1
+          else if (*cp == 'r') newtext += '\r';
+          else if (*cp == 't') newtext += '\t';
+          else if (*cp == 'v') newtext += '\v';  // SystemVerilog 3.1
+          else if (*cp == 'x' && isxdigit(cp[1]) && isxdigit(cp[2])) {  // SystemVerilog 3.1
+#define vl_decodexdigit(c) ((isdigit(c)?((c)-'0'):(tolower((c))-'a'+10)))
+            newtext += (char)(16*vl_decodexdigit(cp[1]) + vl_decodexdigit(cp[2]));
+            cp += 2;
+          }
+          else if (isalnum(*cp)) {
+            fileline->v3error("Unknown escape sequence: \\"<<*cp);
+            break;
+          }
+          else newtext += *cp;
+        }
+      }
+      else if (*cp == '\\') {
+        quoted = true;
+        octal_digits = 0;
+      }
+      else if (*cp != '"') {
+        newtext += *cp;
+      }
+    }
+    return newtext;
+  }
+
   AstNode* get_value_as_node(vpiHandle obj_h) {
     AstNode* value_node = nullptr;
     s_vpi_value val;
@@ -99,7 +154,9 @@ namespace UhdmAst {
       }
       case vpiStringVal: {
         std::string valStr(val.value.str);
-        value_node = new AstConst(new FileLine("uhdm"), AstConst::String(), valStr);
+        value_node = new AstConst(new FileLine("uhdm"),
+                                  AstConst::String(),
+                                  deQuote(new FileLine("uhdm"), valStr));
         break;
       }
       default: {
@@ -156,6 +213,7 @@ namespace UhdmAst {
   }
 
   std::set<std::tuple<std::string, int, std::string>> coverage_set;
+  std::map<std::string, AstNode*> pinMap;
 
   AstNode* visit_object (vpiHandle obj_h,
         std::set<const UHDM::BaseClass*> visited,
