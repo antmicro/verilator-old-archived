@@ -1350,7 +1350,7 @@ namespace UhdmAst {
                 if (arguments == nullptr) {
                   arguments = item;
                 } else {
-                  arguments->addNextNull(new AstArg(new FileLine("uhdm"), "", item));
+                  arguments->addNextNull(item);
                 }
             }
           });
