@@ -62,10 +62,16 @@ namespace UhdmAst {
     // Current object data
     int lineNo = 0;
     std::string objectName = "";
+    std::string fullObjectName = "";
 
     // For iterating over child objects
     vpiHandle itr;
 
+    auto file_name = vpi_get_str(vpiFile, obj_h);
+    if (auto s = vpi_get_str(vpiFullName, obj_h)) {
+      fullObjectName = s;
+      sanitize_str(fullObjectName);
+    }
     for (auto name : {vpiName, vpiFullName, vpiDefName}) {
       if (auto s = vpi_get_str(name, obj_h)) {
         objectName = s;
@@ -448,7 +454,7 @@ namespace UhdmAst {
             break;
           }
           default: {
-            v3error("\t! Unhandled net type: " << netType);
+            v3info("\t! Unhandled net type: " << netType);
             break;
           }
         }
