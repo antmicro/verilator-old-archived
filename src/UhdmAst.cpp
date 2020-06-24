@@ -1626,9 +1626,28 @@ namespace UhdmAst {
                          dtype);
         return var;
       }
+      case vpiIntVar: {
+        auto* dtype = new AstBasicDType(new FileLine("uhdm"),
+                                  AstBasicDTypeKwd::INT);
+        auto* var = new AstVar(new FileLine("uhdm"),
+                         AstVarType::VAR,
+                         objectName,
+                         dtype);
+        return var;
+      }
+      case vpiIntegerVar:
       case vpiEnumVar: {
         auto* dtype = new AstBasicDType(new FileLine("uhdm"),
                                   AstBasicDTypeKwd::INTEGER);
+        auto* var = new AstVar(new FileLine("uhdm"),
+                         AstVarType::VAR,
+                         objectName,
+                         dtype);
+        return var;
+      }
+      case vpiBitVar: {
+        auto* dtype = new AstBasicDType(new FileLine("uhdm"),
+                                  AstBasicDTypeKwd::BIT);
         auto* var = new AstVar(new FileLine("uhdm"),
                          AstVarType::VAR,
                          objectName,
