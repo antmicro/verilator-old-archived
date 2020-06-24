@@ -284,6 +284,7 @@ private:
     bool m_ignc = false;            // main switch: --ignc
     bool m_inhibitSim = false;      // main switch: --inhibit-sim
     bool m_uhdm_ast = false;        // main switch: --uhdm-ast
+    bool m_dump_uhdm = false;       // main switch: --dump-uhdm
     bool m_lintOnly = false;        // main switch: --lint-only
     bool m_gmake = false;           // main switch: --make gmake
     bool m_main = false;            // main swithc: --main
@@ -513,6 +514,7 @@ public:
     bool inhibitSim() const { return m_inhibitSim; }
     bool quietExit() const { return m_quietExit; }
     bool uhdmAst() const { return m_uhdm_ast; }
+    bool dumpUhdm() const { return m_dump_uhdm; }
     bool relativeCFuncs() const { return m_relativeCFuncs; }
     bool reportUnoptflat() const { return m_reportUnoptflat; }
     bool verilate() const { return m_verilate; }
