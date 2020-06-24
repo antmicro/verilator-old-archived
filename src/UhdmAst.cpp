@@ -1412,6 +1412,9 @@ namespace UhdmAst {
                                 AstDisplayType(AstDisplayType::en::DT_WRITE),
                                 arguments[0],
                                 arguments[1]);
+        } else if (objectName == "$clog2") {
+          return new AstCLog2(new FileLine("uhdm"),
+                              arguments[0]);
         } else {
             v3error("\t! Encountered unhandled SysFuncCall: " << objectName);
         }
