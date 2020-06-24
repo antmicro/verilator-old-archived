@@ -1640,26 +1640,36 @@ namespace UhdmAst {
         // TODO: Static/Dynamic/Assoc/Queue
         auto rand_type = vpi_get(vpiRandType, obj_h);
         // TODO: Rand/RandC/NotRand
-        auto size = vpi_get(vpiSize, obj_h);
-        // TODO: Check for multidimensional arrays
-        auto* range = new AstRange(new FileLine("uhdm"),
-                                   size,
-                                   0);
-
         AstNodeDType* element_dtype = nullptr;
-        visit_one_to_one({vpiReg}, obj_h, visited, top_nodes,
+        AstNodeDType* dtype = nullptr;
+
+        vpiHandle itr = vpi_iterate(vpiReg, obj_h);
+        while (vpiHandle member_h = vpi_scan(itr) ) {
+          auto type_h = vpi_handle(vpiTypespec, member_h);
+          std::string type_name = vpi_get_str(vpiName, type_h);
+          sanitize_str(type_name);
+          // TODO: For basic types?
+          dtype = new AstRefDType(new FileLine("uhdm"), type_name);
+          vpi_free_object(member_h);
+        }
+        vpi_free_object(itr);
+
+        AstRange* range = nullptr;
+        visit_one_to_many({vpiRange}, obj_h, visited, top_nodes,
             [&](AstNode* item) {
               if (item != nullptr) {
-                element_dtype = reinterpret_cast<AstNodeDType*>(item);
+                range = reinterpret_cast<AstRange*>(item);
+                dtype = new AstUnpackArrayDType(new FileLine("uhdm"),
+                                                VFlagChildDType(),
+                                                dtype,
+                                                range);
               }
             });
-        auto* dtype = new AstUnpackArrayDType(new FileLine("uhdm"),
-                                              element_dtype,
-                                              range);
 
         auto* var = new AstVar(new FileLine("uhdm"),
                          AstVarType::VAR,
                          objectName,
+                         VFlagChildDType(),
                          dtype);
         return var;
       }
