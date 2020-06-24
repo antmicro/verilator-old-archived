@@ -254,6 +254,7 @@ private:
     bool        m_inhibitSim;   // main switch: --inhibit-sim
     bool        m_json_ast;     // main switch: --json-ast
     bool        m_uhdm_ast;     // main switch: --uhdm-ast
+    bool        m_dump_uhdm;    // main switch: --dump-uhdm
     bool        m_lintOnly;     // main switch: --lint-only
     bool        m_gmake;        // main switch: --make gmake
     bool        m_main;         // main swithc: --main
@@ -482,6 +483,7 @@ public:
     bool quietExit() const { return m_quietExit; }
     bool jsonAst() const { return m_json_ast; }
     bool uhdmAst() const { return m_uhdm_ast; }
+    bool dumpUhdm() const { return m_dump_uhdm; }
     bool relativeCFuncs() const { return m_relativeCFuncs; }
     bool reportUnoptflat() const { return m_reportUnoptflat; }
     bool verilate() const { return m_verilate; }
