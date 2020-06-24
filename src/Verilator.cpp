@@ -163,7 +163,9 @@ void V3Global::readFiles() {
         for (auto file : vFiles) {
             std::vector<vpiHandle> restoredDesigns = serializer.Restore(file);
 
-            std::cout << UHDM::visit_designs(restoredDesigns) << std::endl;
+            if(v3Global.opt.dumpUhdm()) {
+                std::cout << UHDM::visit_designs(restoredDesigns) << std::endl;
+            }
             uhdm_lines_dump << UHDM::dump_visited(restoredDesigns);
 
             /* Parse */
