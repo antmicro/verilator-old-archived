@@ -1497,6 +1497,13 @@ namespace UhdmAst {
                                   arguments[2],
                                   arguments[3]);
           }
+        } else if (objectName == "$error") {
+          return new AstStop(new FileLine("uhdm"));
+        } else if (objectName == "$__BAD_SYMBOL__") {
+          v3info("\t! Bad symbol encountered @ "
+                 << file_name << ":" << currentLine);
+          // Dummy statement to keep parsing
+          return new AstTime(new FileLine("uhdm"));
         } else {
             v3error("\t! Encountered unhandled SysFuncCall: " << objectName);
         }
