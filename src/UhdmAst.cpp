@@ -1415,6 +1415,56 @@ namespace UhdmAst {
         } else if (objectName == "$clog2") {
           return new AstCLog2(new FileLine("uhdm"),
                               arguments[0]);
+        } else if (objectName == "$left") {
+          if (arguments.size() == 1)
+            arguments.push_back(nullptr);  // provide default for optional parameter
+          return new AstAttrOf(new FileLine("uhdm"),
+                               AstAttrType::DIM_LEFT,
+                               arguments[0],
+                               arguments[1]);
+        } else if (objectName == "$right") {
+          if (arguments.size() == 1)
+            arguments.push_back(nullptr);  // provide default for optional parameter
+          return new AstAttrOf(new FileLine("uhdm"),
+                               AstAttrType::DIM_RIGHT,
+                               arguments[0],
+                               arguments[1]);
+        } else if (objectName == "$low") {
+          if (arguments.size() == 1)
+            arguments.push_back(nullptr);  // provide default for optional parameter
+          return new AstAttrOf(new FileLine("uhdm"),
+                               AstAttrType::DIM_LOW,
+                               arguments[0],
+                               arguments[1]);
+        } else if (objectName == "$high") {
+          if (arguments.size() == 1)
+            arguments.push_back(nullptr);  // provide default for optional parameter
+          return new AstAttrOf(new FileLine("uhdm"),
+                               AstAttrType::DIM_HIGH,
+                               arguments[0],
+                               arguments[1]);
+        } else if (objectName == "$increment") {
+          if (arguments.size() == 1)
+            arguments.push_back(nullptr);  // provide default for optional parameter
+          return new AstAttrOf(new FileLine("uhdm"),
+                               AstAttrType::DIM_RIGHT,
+                               arguments[0],
+                               arguments[1]);
+        } else if (objectName == "$size") {
+          if (arguments.size() == 1)
+            arguments.push_back(nullptr);  // provide default for optional parameter
+          return new AstAttrOf(new FileLine("uhdm"),
+                               AstAttrType::DIM_RIGHT,
+                               arguments[0],
+                               arguments[1]);
+        } else if (objectName == "$dimensions") {
+          return new AstAttrOf(new FileLine("uhdm"),
+                               AstAttrType::DIM_DIMENSIONS,
+                               arguments[0]);
+        } else if (objectName == "$unpacked_dimensions") {
+          return new AstAttrOf(new FileLine("uhdm"),
+                               AstAttrType::DIM_UNPK_DIMENSIONS,
+                               arguments[0]);
         } else {
             v3error("\t! Encountered unhandled SysFuncCall: " << objectName);
         }
