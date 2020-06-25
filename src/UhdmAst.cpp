@@ -1465,6 +1465,38 @@ namespace UhdmAst {
           return new AstAttrOf(new FileLine("uhdm"),
                                AstAttrType::DIM_UNPK_DIMENSIONS,
                                arguments[0]);
+        } else if (objectName == "$readmemh") {
+          if (arguments.size() == 2) {
+            return new AstReadMem(new FileLine("uhdm"),
+                                  true, // isHex
+                                  arguments[0],
+                                  arguments[1],
+                                  nullptr,
+                                  nullptr);
+          } else if (arguments.size() ==4) {
+            return new AstReadMem(new FileLine("uhdm"),
+                                  true, // isHex
+                                  arguments[0],
+                                  arguments[1],
+                                  arguments[2],
+                                  arguments[3]);
+          }
+        } else if (objectName == "$readmemb") {
+          if (arguments.size() == 2) {
+            return new AstReadMem(new FileLine("uhdm"),
+                                  false, // isHex
+                                  arguments[0],
+                                  arguments[1],
+                                  nullptr,
+                                  nullptr);
+          } else if (arguments.size() ==4) {
+            return new AstReadMem(new FileLine("uhdm"),
+                                  false, // isHex
+                                  arguments[0],
+                                  arguments[1],
+                                  arguments[2],
+                                  arguments[3]);
+          }
         } else {
             v3error("\t! Encountered unhandled SysFuncCall: " << objectName);
         }
