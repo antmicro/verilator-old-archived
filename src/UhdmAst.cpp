@@ -1784,6 +1784,16 @@ namespace UhdmAst {
                          dtype);
         return var;
       }
+      case vpiChandleVar: {
+        auto* dtype = new AstBasicDType(new FileLine("uhdm"),
+                                        AstBasicDTypeKwd::CHANDLE);
+        auto* var = new AstVar(new FileLine("uhdm"),
+                               AstVarType::VAR,
+                               objectName,
+                               VFlagChildDType(),
+                               dtype);
+        return var;
+      }
 
       // What we can see (but don't support yet)
       case vpiClassObj:
