@@ -1581,6 +1581,37 @@ namespace UhdmAst {
           return nullptr;
         }
       }
+      case vpiFor: {
+        AstNode* initsp = nullptr;
+        AstNode* condp = nullptr;
+        AstNode* incsp = nullptr;
+        AstNode* bodysp = nullptr;
+        visit_one_to_one({
+            vpiForInitStmt,
+            vpiCondition,
+            vpiForIncStmt,
+            vpiStmt,
+            }, obj_h, visited, top_nodes,
+          [&](AstNode* item){
+            if (item) {
+              if (initsp == nullptr) {
+                initsp = item;
+              } else if (condp == nullptr) {
+                condp = item;
+              } else if (incsp == nullptr) {
+                incsp = item;
+              } else if (bodysp == nullptr) {
+                bodysp = item;
+              }
+            } else {
+              v3error("Got null item");
+            }
+          });
+        AstNode* loop = new AstWhile(new FileLine("uhdm"), condp, bodysp, incsp);
+        initsp->addNextNull(loop);
+        AstNode* stmt = new AstBegin(new FileLine("uhdm"), objectName, initsp);
+        return stmt;
+      }
 
       case vpiBitTypespec: {
         AstRange* rangeNode = nullptr;
