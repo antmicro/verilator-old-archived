@@ -650,6 +650,19 @@ namespace UhdmAst {
             dir = VDirection::OUTPUT;
           } else if (n == vpiInout) {
             dir = VDirection::INOUT;
+          } else if (n == vpiNoDirection) {
+            // This happens i.e. for function arguments, when the actual type
+            // is inside vpiExpr
+            AstNode* expr = nullptr;
+            visit_one_to_one({vpiExpr}, obj_h, visited, top_nodes,
+              [&](AstNode* item){
+                if (item) {
+                  expr = item;
+                }
+              });
+            if (expr != nullptr) {
+              return expr;
+            }
           }
         }
         AstRange* var_range = nullptr;
@@ -1343,27 +1356,25 @@ namespace UhdmAst {
         dtype->rangep(returnRange);
         function_vars = dtype;
 
-        auto itr = vpi_iterate(vpiIODecl, obj_h);
-        while (vpiHandle io_h = vpi_scan(itr) ) {
-          visit_one_to_one({vpiExpr}, io_h, visited, top_nodes,
-            [&](AstNode* item){
+        visit_one_to_many({vpiIODecl}, obj_h, visited, top_nodes,
+          [&](AstNode* item){
+            if (item) {
               // Overwrite direction for arguments
-              auto io = reinterpret_cast<AstVar*>(item);
+              auto* io = reinterpret_cast<AstVar*>(item);
               io->direction(VDirection::INPUT);
-              if (statements){
+              if (statements)
                 statements->addNextNull(item);
-              } else {
+              else
                 statements = item;
-              }
-            });
-          vpi_free_object(io_h);
-        }
-        vpi_free_object(itr);
-
+            }
+          });
         visit_one_to_one({vpiStmt}, obj_h, visited, top_nodes,
           [&](AstNode* item){
             if (item) {
-              statements->addNextNull(item);
+              if (statements)
+                statements->addNextNull(item);
+              else
+                statements = item;
             }
           });
         return new AstFunc(new FileLine("uhdm"), objectName, statements, function_vars);
