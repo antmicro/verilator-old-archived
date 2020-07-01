@@ -909,6 +909,22 @@ namespace UhdmAst {
               });
             return new AstXnor(new FileLine("uhdm"), lhs, rhs);
           }
+          case vpiPostIncOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (rhs == nullptr) {
+                  rhs = node;
+                }
+              });
+            auto* one = new AstConst(new FileLine("uhdm"), 1);
+            auto* add = new AstAdd(new FileLine("uhdm"), rhs, one);
+            auto* var = new AstParseRef(new FileLine("uhdm"),
+                                               AstParseRefExp::en::PX_TEXT,
+                                               rhs->name(),
+                                               nullptr,
+                                               nullptr);
+            return new AstAssign(new FileLine("uhdm"), var, add);
+          }
           case vpiUnaryOrOp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
               [&](AstNode* node){
