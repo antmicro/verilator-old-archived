@@ -1588,23 +1588,54 @@ namespace UhdmAst {
         AstNode* bodysp = nullptr;
         visit_one_to_one({
             vpiForInitStmt,
+            }, obj_h, visited, top_nodes,
+          [&](AstNode* item){
+            initsp = item;
+          });
+        visit_one_to_many({
+            vpiForInitStmt,
+            }, obj_h, visited, top_nodes,
+          [&](AstNode* item){
+            if (initsp == nullptr) {
+              initsp = item;
+            } else {
+              initsp->addNextNull(item);
+            }
+          });
+        visit_one_to_one({
             vpiCondition,
+            }, obj_h, visited, top_nodes,
+          [&](AstNode* item){
+            if (condp == nullptr) {
+              condp = item;
+            } else {
+              condp->addNextNull(item);
+            }
+          });
+        visit_one_to_one({
             vpiForIncStmt,
+            }, obj_h, visited, top_nodes,
+          [&](AstNode* item){
+            incsp = item;
+          });
+        visit_one_to_many({
+            vpiForIncStmt,
+            }, obj_h, visited, top_nodes,
+          [&](AstNode* item){
+            if (incsp == nullptr) {
+              incsp = item;
+            } else {
+              incsp->addNextNull(item);
+            }
+          });
+        visit_one_to_one({
             vpiStmt,
             }, obj_h, visited, top_nodes,
           [&](AstNode* item){
-            if (item) {
-              if (initsp == nullptr) {
-                initsp = item;
-              } else if (condp == nullptr) {
-                condp = item;
-              } else if (incsp == nullptr) {
-                incsp = item;
-              } else if (bodysp == nullptr) {
-                bodysp = item;
-              }
+            if (bodysp == nullptr) {
+              bodysp = item;
             } else {
-              v3error("Got null item");
+              bodysp->addNextNull(item);
             }
           });
         AstNode* loop = new AstWhile(new FileLine("uhdm"), condp, bodysp, incsp);
