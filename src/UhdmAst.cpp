@@ -1343,15 +1343,22 @@ namespace UhdmAst {
         dtype->rangep(returnRange);
         function_vars = dtype;
 
-        visit_one_to_many({vpiIODecl}, obj_h, visited, top_nodes,
-          [&](AstNode* item){
-            if (item) {
-              if (statements)
+        auto itr = vpi_iterate(vpiIODecl, obj_h);
+        while (vpiHandle io_h = vpi_scan(itr) ) {
+          visit_one_to_one({vpiExpr}, io_h, visited, top_nodes,
+            [&](AstNode* item){
+              // Overwrite direction for arguments
+              auto io = reinterpret_cast<AstVar*>(item);
+              io->direction(VDirection::INPUT);
+              if (statements){
                 statements->addNextNull(item);
-              else
+              } else {
                 statements = item;
-            }
-          });
+              }
+            });
+          vpi_free_object(io_h);
+        }
+        vpi_free_object(itr);
 
         visit_one_to_one({vpiStmt}, obj_h, visited, top_nodes,
           [&](AstNode* item){
