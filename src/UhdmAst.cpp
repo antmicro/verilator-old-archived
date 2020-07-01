@@ -345,8 +345,23 @@ namespace UhdmAst {
             } else {
               return new AstAssignDly(new FileLine("uhdm"), lvalue, rvalue);
             }
-          } else if (objectType == vpiContAssign || objectType == vpiAssignStmt)
-            return new AstAssignW(new FileLine("uhdm"), lvalue, rvalue);
+          } else if (objectType == vpiContAssign || objectType == vpiAssignStmt){
+            if (lvalue->type() == AstType::en::atVar) {
+              // If a variable was declared along with the assignment,
+              // return it as well. Create a reference for the assignment.
+              AstNode* var = lvalue;
+              lvalue = new AstParseRef(new FileLine("uhdm"),
+                                                     AstParseRefExp::en::PX_TEXT,
+                                                     lvalue->name(),
+                                                     nullptr,
+                                                     nullptr);
+              auto* assign = new AstAssignDly(new FileLine("uhdm"), lvalue, rvalue);
+              var->addNextNull(assign);
+              return var;
+            } else {
+              return new AstAssignW(new FileLine("uhdm"), lvalue, rvalue);
+            }
+          }
         }
         break;
       }
