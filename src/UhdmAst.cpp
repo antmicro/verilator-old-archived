@@ -87,6 +87,7 @@ namespace UhdmAst {
     const unsigned int objectType = vpi_get(vpiType, obj_h);
     std::cout << "Object: " << objectName
               << " of type " << objectType
+              << " (" << UHDM::VpiTypeName(obj_h) << ")"
               << " @ " << currentLine
               << std::endl;
     if (file_name) {
