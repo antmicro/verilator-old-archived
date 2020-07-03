@@ -1962,7 +1962,7 @@ namespace UhdmAst {
                 statements->addNextNull(item);
               }
             });
-        return new AstBegin(new FileLine("uhdm"), objectName, statements);
+        return statements;
       }
 
       // What we can see (but don't support yet)
