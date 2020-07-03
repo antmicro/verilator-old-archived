@@ -248,6 +248,7 @@ namespace UhdmAst {
               vpiContAssign,
               vpiGenScopeArray,
               vpiNet,
+              vpiArrayNet,
               vpiVariables,
               },
               obj_h,
@@ -411,12 +412,29 @@ namespace UhdmAst {
         }
         break;
       }
+      case vpiNetArray: // also defined as vpiArrayNet
+      // vpiNetArray is used for unpacked arrays
       case vpiNet: {
         AstBasicDType *dtype = nullptr;
         AstVarType net_type = AstVarType::UNKNOWN;
         AstBasicDTypeKwd dtypeKwd = AstBasicDTypeKwd::LOGIC_IMPLICIT;
+        vpiHandle obj_net;
 
         auto netType = vpi_get(vpiNetType, obj_h);
+
+        if (netType == 0 && objectType == vpiNetArray) {
+          // vpiNetArray specific stuff is handled here
+          vpiHandle itr;
+
+          // Find vpiNet - we expect there is just one
+          itr = vpi_iterate(vpiNet, obj_h);
+          while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
+            obj_net = vpi_child_obj;
+          }
+
+          // Assign net type from the sub node
+          netType = vpi_get(vpiNetType, obj_net);
+        }
 
         auto pinIt = pinMap.find(fullObjectName);
         if (pinIt != pinMap.end()) {
@@ -479,16 +497,45 @@ namespace UhdmAst {
           // Not set in case above, most likely a "false" port net
           return nullptr; // Skip this net
         }
-        AstRange* rangeNode = nullptr;
-        visit_one_to_many({vpiRange}, obj_h, visited, top_nodes,
-            [&](AstNode* node){
-              rangeNode = reinterpret_cast<AstRange*>(node);
-            });
 
-        dtype = new AstBasicDType(new FileLine("uhdm"), dtypeKwd);
-        dtype->rangep(rangeNode);
-        auto *v = new AstVar(new FileLine("uhdm"), net_type, objectName, dtype);
-        v->childDTypep(dtype);
+        AstVar *v;
+        if (objectType == vpiNet) {
+          // Packed or non-arrays
+          AstRange* rangeNode = nullptr;
+          visit_one_to_many({vpiRange}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                rangeNode = reinterpret_cast<AstRange*>(node);
+              });
+
+          dtype = new AstBasicDType(new FileLine("uhdm"), dtypeKwd);
+          dtype->rangep(rangeNode);
+          v = new AstVar(new FileLine("uhdm"), net_type, objectName, dtype);
+          v->childDTypep(dtype);
+        } else {
+          // Unpacked arrays
+          AstRange* unpack_rangep = nullptr;
+          visit_one_to_many({vpiRange}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                unpack_rangep = reinterpret_cast<AstRange*>(node);
+              });
+
+          AstRange* pack_rangep = nullptr;
+          visit_one_to_many({vpiRange}, obj_net, visited, top_nodes,
+              [&](AstNode* node){
+                pack_rangep = reinterpret_cast<AstRange*>(node);
+              });
+
+          dtype = new AstBasicDType(new FileLine("uhdm"), dtypeKwd);
+          dtype->rangep(pack_rangep);
+
+          AstUnpackArrayDType* unpack_dtypep =
+            new AstUnpackArrayDType(new FileLine("uhdm"), VFlagChildDType(),
+                                    dtype, unpack_rangep);
+
+          v = new AstVar(new FileLine("uhdm"), net_type, objectName, unpack_dtypep);
+          v->childDTypep(unpack_dtypep);
+        }
+
         return v;
       }
       case vpiStructVar: {
