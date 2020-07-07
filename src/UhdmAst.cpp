@@ -246,6 +246,7 @@ namespace UhdmAst {
               vpiInterface,
               vpiModule,
               vpiContAssign,
+              vpiGenScopeArray,
               vpiNet,
               vpiArrayNet,
               vpiVariables,
@@ -1952,6 +1953,64 @@ namespace UhdmAst {
                                VFlagChildDType(),
                                dtype);
         return var;
+      }
+      case vpiGenScopeArray: {
+        AstNode* statements = nullptr;
+        visit_one_to_many({
+            vpiGenScope
+            },
+            obj_h,
+            visited,
+            top_nodes,
+            [&](AstNode* item) {
+              if (statements == nullptr) {
+                statements = item;
+              } else {
+                statements->addNextNull(item);
+              }
+            });
+        return new AstBegin(new FileLine("uhdm"), objectName, statements);
+      }
+      case vpiGenScope: {
+        AstNode* statements = nullptr;
+        visit_one_to_many({
+            vpiInternalScope,
+            vpiArrayNet,
+            //vpiLogicVar,
+            //vpiArrayVar,
+            vpiMemory,
+            vpiVariables,
+            vpiNamedEvent,
+            vpiNamedEventArray,
+            vpiProcess,
+            vpiContAssign,
+            vpiModule,
+            vpiModuleArray,
+            vpiPrimitive,
+            vpiPrimitiveArray,
+            vpiDefParam,
+            vpiParameter,
+            vpiGenScopeArray,
+            vpiProgram,
+            vpiProgramArray,
+            //vpiAssertion,
+            vpiInterface,
+            vpiInterfaceArray,
+            vpiAliasStmt,
+            vpiClockingBlock,
+            vpiTypedef,
+            },
+            obj_h,
+            visited,
+            top_nodes,
+            [&](AstNode* item) {
+              if (statements == nullptr) {
+                statements = item;
+              } else {
+                statements->addNextNull(item);
+              }
+            });
+        return statements;
       }
 
       // What we can see (but don't support yet)
