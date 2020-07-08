@@ -1392,6 +1392,26 @@ namespace UhdmAst {
           });
         return new AstSelBit(new FileLine("uhdm"), fromp, bitp);
       }
+      case vpiVarSelect: {
+        AstNode* fromp = new AstParseRef(new FileLine("uhdm"),
+                                               AstParseRefExp::en::PX_TEXT,
+                                               objectName,
+                                               nullptr,
+                                               nullptr);
+        AstNode* bitp = nullptr;
+        AstNode* select = nullptr;
+        visit_one_to_many({vpiIndex}, obj_h, visited, top_nodes,
+          [&](AstNode* item){
+            bitp = item;
+            if (item->type() == AstType::en::atSelExtract) {
+              select = item;
+            } else {
+              select = new AstSelBit(new FileLine("uhdm"), fromp, bitp);
+            }
+            fromp = select;
+          });
+        return select;
+      }
       case vpiTask: {
         AstNode* statements = nullptr;
         visit_one_to_one({vpiStmt}, obj_h, visited, top_nodes,
