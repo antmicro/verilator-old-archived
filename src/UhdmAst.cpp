@@ -990,7 +990,8 @@ namespace UhdmAst {
               });
             return new AstXnor(new FileLine("uhdm"), lhs, rhs);
           }
-          case vpiPostIncOp: {
+          case vpiPostIncOp:
+          case vpiPostDecOp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
               [&](AstNode* node){
                 if (rhs == nullptr) {
@@ -998,13 +999,29 @@ namespace UhdmAst {
                 }
               });
             auto* one = new AstConst(new FileLine("uhdm"), 1);
-            auto* add = new AstAdd(new FileLine("uhdm"), rhs, one);
+            AstNode* op = nullptr;
+            if (operation == vpiPostIncOp) {
+              op = new AstAdd(new FileLine("uhdm"), rhs, one);
+            } else if (operation == vpiPostDecOp) {
+              op = new AstSub(new FileLine("uhdm"), rhs, one);
+            }
             auto* var = new AstParseRef(new FileLine("uhdm"),
                                                AstParseRefExp::en::PX_TEXT,
                                                rhs->name(),
                                                nullptr,
                                                nullptr);
-            return new AstAssign(new FileLine("uhdm"), var, add);
+            return new AstAssign(new FileLine("uhdm"), var, op);
+          }
+          case vpiAssignmentOp: {
+            visit_one_to_one({vpiLhs, vpiRhs}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (lhs == nullptr) {
+                  rhs = node;
+                } else {
+                  rhs = node;
+                }
+              });
+            return new AstAssign(new FileLine("uhdm"), lhs, rhs);
           }
           case vpiUnaryOrOp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
