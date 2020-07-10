@@ -1023,6 +1023,35 @@ namespace UhdmAst {
               });
             return new AstAssign(new FileLine("uhdm"), lhs, rhs);
           }
+          case vpiUnaryAndOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (rhs == nullptr) {
+                  rhs = node;
+                }
+              });
+            return new AstRedAnd(new FileLine("uhdm"), rhs);
+          }
+          case vpiUnaryNandOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (rhs == nullptr) {
+                  rhs = node;
+                }
+              });
+            auto* op = new AstRedAnd(new FileLine("uhdm"), rhs);
+            return new AstNot(new FileLine("uhdm"), op);
+          }
+          case vpiUnaryNorOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (rhs == nullptr) {
+                  rhs = node;
+                }
+              });
+            auto* op = new AstRedOr(new FileLine("uhdm"), rhs);
+            return new AstNot(new FileLine("uhdm"), op);
+          }
           case vpiUnaryOrOp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
               [&](AstNode* node){
@@ -1031,6 +1060,24 @@ namespace UhdmAst {
                 }
               });
             return new AstRedOr(new FileLine("uhdm"), rhs);
+          }
+          case vpiUnaryXorOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (rhs == nullptr) {
+                  rhs = node;
+                }
+              });
+            return new AstRedXor(new FileLine("uhdm"), rhs);
+          }
+          case vpiUnaryXNorOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (rhs == nullptr) {
+                  rhs = node;
+                }
+              });
+            return new AstRedXnor(new FileLine("uhdm"), rhs);
           }
           case vpiEventOrOp: {
             // Do not create a separate node
