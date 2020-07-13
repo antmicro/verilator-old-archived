@@ -1782,7 +1782,6 @@ namespace UhdmAst {
         visit_one_to_one({
             vpiLeftRange,
             vpiRightRange,
-            vpiParent,
             }, obj_h, visited, top_nodes,
           [&](AstNode* item){
             if (item) {
@@ -1790,11 +1789,17 @@ namespace UhdmAst {
                 msbNode = item;
               } else if (lsbNode == nullptr) {
                 lsbNode = item;
-              } else if (fromNode == nullptr) {
-                fromNode = item;
               }
             }
           });
+        auto parent_h = vpi_handle(vpiParent, obj_h);
+        std::string parent_name = vpi_get_str(vpiName, parent_h);
+        sanitize_str(parent_name);
+        fromNode = new AstParseRef(new FileLine("uhdm"),
+                                AstParseRefExp::en::PX_TEXT,
+                                parent_name,
+                                nullptr,
+                                nullptr);
         return new AstSelExtract(new FileLine("uhdm"), fromNode, msbNode, lsbNode);
       }
       case vpiIndexedPartSelect: {
