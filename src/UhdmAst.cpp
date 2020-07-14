@@ -1793,13 +1793,17 @@ namespace UhdmAst {
             }
           });
         auto parent_h = vpi_handle(vpiParent, obj_h);
-        std::string parent_name = vpi_get_str(vpiName, parent_h);
-        sanitize_str(parent_name);
-        fromNode = new AstParseRef(new FileLine("uhdm"),
-                                AstParseRefExp::en::PX_TEXT,
-                                parent_name,
-                                nullptr,
-                                nullptr);
+        if (parent_h != 0) {
+          std::string parent_name;
+          if (auto s = vpi_get_str(vpiName, parent_h))
+            parent_name = s;
+          sanitize_str(parent_name);
+          fromNode = new AstParseRef(new FileLine("uhdm"),
+                                  AstParseRefExp::en::PX_TEXT,
+                                  parent_name,
+                                  nullptr,
+                                  nullptr);
+        }
         return new AstSelExtract(new FileLine("uhdm"), fromNode, msbNode, lsbNode);
       }
       case vpiIndexedPartSelect: {
@@ -1818,11 +1822,17 @@ namespace UhdmAst {
                 bit = item;
               } else if (width == nullptr) {
                 width = item;
-              } else if (fromNode == nullptr) {
-                fromNode = item;
               }
             }
           });
+        auto parent_h = vpi_handle(vpiParent, obj_h);
+        std::string parent_name = vpi_get_str(vpiName, parent_h);
+        sanitize_str(parent_name);
+        fromNode = new AstParseRef(new FileLine("uhdm"),
+                                AstParseRefExp::en::PX_TEXT,
+                                parent_name,
+                                nullptr,
+                                nullptr);
 
         auto type = vpi_get(vpiIndexedPartSelectType, obj_h);
         if (type == vpiPosIndexed) {
