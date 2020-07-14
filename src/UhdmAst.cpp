@@ -286,6 +286,8 @@ namespace UhdmAst {
               vpiProcess,
               vpiTaskFunc,
               vpiTypedef,
+              vpiPort,
+              vpiNet,
               },
               obj_h,
               visited,
