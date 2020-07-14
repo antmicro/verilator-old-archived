@@ -1410,6 +1410,28 @@ namespace UhdmAst {
               });
             return new AstCastParse(new FileLine("uhdm"), lhs, rhs);
           }
+          case vpiStreamRLOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (lhs == nullptr) {
+                  lhs = node;
+                }else if (rhs == nullptr) {
+                  rhs = node;
+                }
+              });
+            return new AstStreamL(new FileLine("uhdm"), lhs, rhs);
+          }
+          case vpiStreamLROp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (lhs == nullptr) {
+                  lhs = node;
+                }else if (rhs == nullptr) {
+                  rhs = node;
+                }
+              });
+            return new AstStreamR(new FileLine("uhdm"), lhs, rhs);
+          }
           case vpiPowerOp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
               [&](AstNode* node){
