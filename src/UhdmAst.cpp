@@ -125,6 +125,11 @@ namespace UhdmAst {
         visit_one_to_many({
             //vpiParameter,  // use vpiParamAssign instead
             vpiParamAssign,
+            vpiProgram,
+            vpiProgramArray,
+            vpiTaskFunc,
+            vpiSpecParam,
+            vpiAssertion,
             vpiTypedef
             },
             obj_h,
