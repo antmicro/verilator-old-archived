@@ -2218,6 +2218,24 @@ namespace UhdmAst {
                          dtype);
         return var;
       }
+      case vpiByteVar: {
+        auto* dtype = new AstBasicDType(new FileLine("uhdm"),
+                                  AstBasicDTypeKwd::BYTE);
+        auto* var = new AstVar(new FileLine("uhdm"),
+                         AstVarType::VAR,
+                         objectName,
+                         dtype);
+        return var;
+      }
+      case vpiStringVar: {
+        auto* dtype = new AstBasicDType(new FileLine("uhdm"),
+                                  AstBasicDTypeKwd::STRING);
+        auto* var = new AstVar(new FileLine("uhdm"),
+                         AstVarType::VAR,
+                         objectName,
+                         dtype);
+        return var;
+      }
       case vpiArrayVar: {
         auto array_type = vpi_get(vpiArrayType, obj_h);
         // TODO: Static/Dynamic/Assoc/Queue
