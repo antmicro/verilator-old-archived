@@ -123,7 +123,7 @@ namespace UhdmAst {
       case vpiPackage: {
         auto* package = new AstPackage(new FileLine("uhdm"), objectName);
         visit_one_to_many({
-            //vpiParameter,  // use vpiParamAssign instead
+            vpiParameter,
             vpiParamAssign,
             vpiProgram,
             vpiProgramArray,
@@ -268,6 +268,32 @@ namespace UhdmAst {
               vpiVariables,
               vpiGenScopeArray,
               vpiArrayNet,
+
+              // from vpiInstance
+              vpiProgram,
+              vpiProgramArray,
+              vpiTaskFunc,
+              vpiSpecParam,
+              vpiAssertion,
+              //vpiClassDefn,
+
+              // from vpiScope
+              vpiPropertyDecl,
+              vpiSequenceDecl,
+              vpiConcurrentAssertions,
+              vpiNamedEvent,
+              vpiNamedEventArray,
+              vpiVariables,
+              vpiVirtualInterfaceVar,
+              vpiReg,
+              vpiRegArray,
+              vpiMemory,
+              vpiParameter,
+              vpiParamAssign,
+              vpiInternalScope,
+              vpiTypedef,
+              vpiImport,
+              vpiAttribute,
               },
               obj_h,
               visited,
@@ -282,12 +308,14 @@ namespace UhdmAst {
           visit_one_to_many({
               vpiModule,
               vpiContAssign,
+              vpiParameter,
               vpiParamAssign,
               vpiProcess,
               vpiTaskFunc,
               vpiTypedef,
-              vpiPort,
-              vpiNet,
+              //TODO: Revisit this handling, currently creates duplicate nodes
+              //vpiPort,
+              //vpiNet,
               },
               obj_h,
               visited,
@@ -620,6 +648,21 @@ namespace UhdmAst {
         visit_one_to_many({
             vpiPort,
             vpiParameter,
+            vpiInterfaceTfDecl,
+            vpiModPath,
+            vpiContAssign,
+            vpiInterface,
+            vpiInterfaceArray,
+            vpiProcess,
+            vpiGenScopeArray,
+
+            // from vpiInstance
+            vpiProgram,
+            vpiProgramArray,
+            vpiTaskFunc,
+            vpiArrayNet,
+            vpiSpecParam,
+            vpiAssertion,
             },
             obj_h,
             visited,
@@ -844,7 +887,25 @@ namespace UhdmAst {
       case vpiNamedBegin:
       case vpiBegin: {
         AstNode* body = nullptr;
-        visit_one_to_many({vpiStmt}, obj_h, visited, top_nodes,
+        visit_one_to_many({
+            vpiStmt,
+            vpiPropertyDecl,
+            vpiSequenceDecl,
+            vpiConcurrentAssertions,
+            vpiNamedEvent,
+            vpiNamedEventArray,
+            vpiVariables,
+            vpiVirtualInterfaceVar,
+            vpiReg,
+            vpiRegArray,
+            vpiMemory,
+            vpiParameter,
+            vpiParamAssign,
+            vpiInternalScope,
+            vpiTypedef,
+            vpiImport,
+            vpiAttribute,
+            }, obj_h, visited, top_nodes,
           [&](AstNode* node){
             if (body == nullptr) {
               body = node;
