@@ -599,31 +599,26 @@ namespace UhdmAst {
         v->childDTypep(dtype);
         return v;
       }
+      case vpiParameter:
       case vpiParamAssign: {
         AstVar* parameter = nullptr;
         AstNode* parameter_value = nullptr;
-        visit_one_to_one({vpiLhs}, obj_h, visited, top_nodes,
-            [&](AstNode* node){
-              parameter = reinterpret_cast<AstVar*>(node);
-            });
-        visit_one_to_one({vpiRhs}, obj_h, visited, top_nodes,
-            [&](AstNode* node){
-              parameter_value = node;
-            });
+        vpiHandle parameter_h;
 
-        parameter->valuep(parameter_value);
+        if (objectType == vpiParamAssign) {
+          parameter_h = vpi_handle(vpiLhs, obj_h);
+        } else if (objectType == vpiParameter) {
+          parameter_h = obj_h;
+        }
 
-        return parameter;
-      }
-      case vpiParameter: {
         AstNode* msbNode = nullptr;
         AstNode* lsbNode = nullptr;
         AstRange* rangeNode = nullptr;
-        auto leftRange_h  = vpi_handle(vpiLeftRange, obj_h);
+        auto leftRange_h  = vpi_handle(vpiLeftRange, parameter_h);
         if (leftRange_h) {
           msbNode = visit_object(leftRange_h, visited, top_nodes);
         }
-        auto rightRange_h  = vpi_handle(vpiRightRange, obj_h);
+        auto rightRange_h  = vpi_handle(vpiRightRange, parameter_h);
         if (rightRange_h) {
           lsbNode = visit_object(rightRange_h, visited, top_nodes);
         }
@@ -634,12 +629,81 @@ namespace UhdmAst {
         auto* dtype = new AstBasicDType(new FileLine("uhdm"),
                                         AstBasicDTypeKwd::LOGIC_IMPLICIT);
         dtype->rangep(rangeNode);
-        auto* parameter = new AstVar(new FileLine("uhdm"),
+        parameter = new AstVar(new FileLine("uhdm"),
                                AstVarType::GPARAM,
                                objectName,
                                dtype);
         parameter->childDTypep(dtype);
-        return parameter;
+
+        // Get value
+        if (objectType == vpiParamAssign) {
+          visit_one_to_one({vpiRhs}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                parameter_value = node;
+              });
+        } else if (objectType == vpiParameter) {
+          //TODO: Refactor getting value to a separate function
+          s_vpi_value val;
+          vpi_get_value(obj_h, &val);
+          switch (val.format) {
+            case vpiScalarVal: {
+              std::string valStr = std::to_string(val.value.scalar);
+              if (valStr[0] == '-') {
+                valStr = valStr.substr(1);
+                V3Number value(parameter_value, valStr.c_str());
+                auto* inner = new AstConst(new FileLine("uhdm"), value);
+                parameter_value = new AstNegate(new FileLine("uhdm"), inner);
+                break;
+              }
+              V3Number value(parameter_value, valStr.c_str());
+              parameter_value = new AstConst(new FileLine("uhdm"), value);
+              break;
+            }
+            case vpiIntVal: {
+              std::string valStr = std::to_string(val.value.integer);
+              if (valStr[0] == '-') {
+                valStr = valStr.substr(1);
+                V3Number value(parameter_value, valStr.c_str());
+                auto* inner = new AstConst(new FileLine("uhdm"), value);
+                parameter_value = new AstNegate(new FileLine("uhdm"), inner);
+              break;
+              }
+              V3Number value(parameter_value, valStr.c_str());
+              parameter_value = new AstConst(new FileLine("uhdm"), value);
+              break;
+            }
+            case vpiRealVal: {
+              std::string valStr = std::to_string(val.value.real);
+              V3Number value(parameter_value, valStr.c_str());
+              parameter_value = new AstConst(new FileLine("uhdm"), value);
+              break;
+            }
+            case vpiBinStrVal:
+            case vpiOctStrVal:
+            case vpiDecStrVal:
+            case vpiHexStrVal: {
+              std::string valStr(val.value.str);
+              V3Number value(parameter_value, valStr.c_str());
+              parameter_value = new AstConst(new FileLine("uhdm"), value);
+              break;
+            }
+            case vpiStringVal: {
+              std::string valStr(val.value.str);
+              parameter_value = new AstConst(new FileLine("uhdm"), AstConst::VerilogStringLiteral(), valStr);
+              break;
+            }
+            default: {
+              break;
+            }
+          }
+        }
+        // if no value: bail
+        if (parameter_value == nullptr) {
+          return nullptr;
+        } else {
+          parameter->valuep(parameter_value);
+          return parameter;
+        }
       }
       case vpiInterface: {
         // Interface definition is represented by a module node
