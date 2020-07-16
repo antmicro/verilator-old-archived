@@ -248,7 +248,6 @@ namespace UhdmAst {
           // Was created before, fill missing
           module = reinterpret_cast<AstModule*>(it->second);
           visit_one_to_many({
-              vpiScope,
               vpiPort,
               vpiInterface,
               vpiInterfaceArray,
