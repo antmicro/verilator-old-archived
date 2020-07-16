@@ -625,9 +625,25 @@ namespace UhdmAst {
           rangeNode = new AstRange(new FileLine("uhdm"), msbNode, lsbNode);
         }
 
-        auto* dtype = new AstBasicDType(new FileLine("uhdm"),
-                                        AstBasicDTypeKwd::LOGIC_IMPLICIT);
-        dtype->rangep(rangeNode);
+        AstNodeDType* dtype = nullptr;
+        //visit_one_to_one({vpiTypespec}, parameter_h, visited, top_nodes,
+        //    [&](AstNode* node){
+        //    if(node != nullptr)
+        //      //FIXME: This seems to cause a SegFault in AstVar creation
+        //      //dtype = reinterpret_cast<AstNodeDType*>(node);
+        //    });
+        auto typespec_h = vpi_handle(vpiTypespec, parameter_h);
+        if (typespec_h && vpi_get(vpiType, typespec_h) == vpiLogicTypespec) {
+          dtype = new AstBasicDType(new FileLine("uhdm"),
+                                    AstBasicDTypeKwd::LOGIC);
+        }
+        // If no typespec provided assume default
+        if (dtype == nullptr) {
+          auto* temp_dtype = new AstBasicDType(new FileLine("uhdm"),
+                                               AstBasicDTypeKwd::LOGIC_IMPLICIT);
+          temp_dtype->rangep(rangeNode);
+          dtype = temp_dtype;
+        }
         parameter = new AstVar(new FileLine("uhdm"),
                                AstVarType::GPARAM,
                                objectName,
