@@ -489,7 +489,7 @@ namespace UhdmAst {
         }
         // If parent has port with this name: skip
         auto parent_h = vpi_handle(vpiParent, obj_h);
-        if (parent_h) {
+        if (parent_h && vpi_get(vpiType, parent_h) == vpiModule) {
           vpiHandle itr = vpi_iterate(vpiPort, parent_h);
           while (vpiHandle port_h = vpi_scan(itr) ) {
             std::string childName = vpi_get_str(vpiName, port_h);
