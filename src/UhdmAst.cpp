@@ -2319,6 +2319,7 @@ namespace UhdmAst {
             vpiPrimitiveArray,
             vpiDefParam,
             vpiParameter,
+            vpiParamAssign,
             vpiGenScopeArray,
             vpiProgram,
             vpiProgramArray,
