@@ -2197,55 +2197,53 @@ namespace UhdmAst {
           return member;
         }
       }
-      case vpiLogicVar: {
-        auto* dtype = new AstBasicDType(new FileLine("uhdm"),
-                                  AstBasicDTypeKwd::LOGIC);
-        auto* var = new AstVar(new FileLine("uhdm"),
-                         AstVarType::VAR,
-                         objectName,
-                         dtype);
-        return var;
-      }
-      case vpiIntVar: {
-        auto* dtype = new AstBasicDType(new FileLine("uhdm"),
-                                  AstBasicDTypeKwd::INT);
-        auto* var = new AstVar(new FileLine("uhdm"),
-                         AstVarType::VAR,
-                         objectName,
-                         dtype);
-        return var;
-      }
+      case vpiLogicVar:
+      case vpiStringVar:
+      case vpiIntVar:
       case vpiIntegerVar:
-      case vpiEnumVar: {
-        auto* dtype = new AstBasicDType(new FileLine("uhdm"),
-                                  AstBasicDTypeKwd::INTEGER);
-        auto* var = new AstVar(new FileLine("uhdm"),
-                         AstVarType::VAR,
-                         objectName,
-                         dtype);
-        return var;
-      }
-      case vpiBitVar: {
-        auto* dtype = new AstBasicDType(new FileLine("uhdm"),
-                                  AstBasicDTypeKwd::BIT);
-        auto* var = new AstVar(new FileLine("uhdm"),
-                         AstVarType::VAR,
-                         objectName,
-                         dtype);
-        return var;
-      }
+      case vpiEnumVar:
+      case vpiBitVar:
       case vpiByteVar: {
+        AstRange* var_range = nullptr;
+        visit_one_to_many({vpiRange}, obj_h, visited, top_nodes,
+          [&](AstNode* item){
+            if (item) {
+                var_range = reinterpret_cast<AstRange*>(item);
+            }
+          });
+        AstBasicDTypeKwd type_kwd;
+        switch(objectType) {
+          case vpiLogicVar: {
+            type_kwd = AstBasicDTypeKwd::LOGIC;
+            break;
+          }
+          case vpiIntVar: {
+            type_kwd = AstBasicDTypeKwd::INT;
+            break;
+          }
+          case vpiIntegerVar:
+          case vpiEnumVar: {
+            type_kwd = AstBasicDTypeKwd::INTEGER;
+            break;
+          }
+          case vpiBitVar: {
+            type_kwd = AstBasicDTypeKwd::BIT;
+            break;
+          }
+          case vpiByteVar: {
+            type_kwd = AstBasicDTypeKwd::BYTE;
+            break;
+          }
+          case vpiStringVar: {
+            type_kwd = AstBasicDTypeKwd::STRING;
+            break;
+          }
+          default:
+            v3error("Unexpected object type for var: " << UHDM::VpiTypeName(obj_h));
+        }
         auto* dtype = new AstBasicDType(new FileLine("uhdm"),
-                                  AstBasicDTypeKwd::BYTE);
-        auto* var = new AstVar(new FileLine("uhdm"),
-                         AstVarType::VAR,
-                         objectName,
-                         dtype);
-        return var;
-      }
-      case vpiStringVar: {
-        auto* dtype = new AstBasicDType(new FileLine("uhdm"),
-                                  AstBasicDTypeKwd::STRING);
+                                        type_kwd);
+        dtype->rangep(var_range);
         auto* var = new AstVar(new FileLine("uhdm"),
                          AstVarType::VAR,
                          objectName,
