@@ -984,6 +984,7 @@ namespace UhdmAst {
             vpiTypedef,
             vpiImport,
             vpiAttribute,
+            vpiNet,
             }, obj_h, visited, top_nodes,
           [&](AstNode* node){
             if (body == nullptr) {
@@ -2325,6 +2326,7 @@ namespace UhdmAst {
             //vpiArrayVar,
             vpiMemory,
             vpiVariables,
+            vpiNet,
             vpiNamedEvent,
             vpiNamedEventArray,
             vpiProcess,
