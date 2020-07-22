@@ -1226,10 +1226,10 @@ namespace UhdmAst {
             return new AstAssign(new FileLine("uhdm"), var, op);
           }
           case vpiAssignmentOp: {
-            visit_one_to_one({vpiLhs, vpiRhs}, obj_h, visited, top_nodes,
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
               [&](AstNode* node){
                 if (lhs == nullptr) {
-                  rhs = node;
+                  lhs = node;
                 } else {
                   rhs = node;
                 }
