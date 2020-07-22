@@ -626,17 +626,69 @@ namespace UhdmAst {
         }
 
         AstNodeDType* dtype = nullptr;
-        //visit_one_to_one({vpiTypespec}, parameter_h, visited, top_nodes,
-        //    [&](AstNode* node){
-        //    if(node != nullptr)
-        //      //FIXME: This seems to cause a SegFault in AstVar creation
-        //      //dtype = reinterpret_cast<AstNodeDType*>(node);
-        //    });
+        visit_one_to_one({vpiTypespec}, parameter_h, visited, top_nodes,
+            [&](AstNode* node){
+              // This seems to cause a SegFault in AstVar creation
+              //dtype = reinterpret_cast<AstNodeDType*>(node);
+              // Type is handled below
+            });
         auto typespec_h = vpi_handle(vpiTypespec, parameter_h);
-        if (typespec_h && vpi_get(vpiType, typespec_h) == vpiLogicTypespec) {
-          dtype = new AstBasicDType(new FileLine("uhdm"),
-                                    AstBasicDTypeKwd::LOGIC);
+        if (typespec_h) {
+          AstRange* var_range = nullptr;
+          visit_one_to_many({vpiRange}, typespec_h, visited, top_nodes,
+            [&](AstNode* item){
+              if (item) {
+                  var_range = reinterpret_cast<AstRange*>(item);
+              }
+            });
+          AstBasicDTypeKwd type_kwd = AstBasicDTypeKwd::UNKNOWN;
+          auto type = vpi_get(vpiType, typespec_h);
+          switch(vpi_get(vpiType, typespec_h)) {
+            case vpiLogicTypespec: {
+              type_kwd = AstBasicDTypeKwd::LOGIC;
+              break;
+            }
+            case vpiIntTypespec: {
+              type_kwd = AstBasicDTypeKwd::INT;
+              break;
+            }
+            case vpiIntegerTypespec:
+            case vpiEnumTypespec: {
+              type_kwd = AstBasicDTypeKwd::INTEGER;
+              break;
+            }
+            case vpiBitTypespec: {
+              type_kwd = AstBasicDTypeKwd::BIT;
+              break;
+            }
+            case vpiByteTypespec: {
+              type_kwd = AstBasicDTypeKwd::BYTE;
+              break;
+            }
+            case vpiStringTypespec: {
+              type_kwd = AstBasicDTypeKwd::STRING;
+              break;
+            }
+            case vpiStructTypespec: {
+              // Special case, skip basic type handling
+              type_kwd = AstBasicDTypeKwd::UNKNOWN;
+              // Typespec is visited separately, grab only reference here
+              std::string data_type_name = vpi_get_str(vpiName, typespec_h);
+              dtype = new AstRefDType(new FileLine("uhdm"), data_type_name);
+              break;
+            }
+            default:
+              v3error("Unexpected object type for var: " << UHDM::VpiTypeName(typespec_h));
+          }
+          if (type_kwd != AstBasicDTypeKwd::UNKNOWN) {
+            // More specific pointer for range setting
+            auto* basic_dtype = new AstBasicDType(new FileLine("uhdm"),
+                                            type_kwd);
+            basic_dtype->rangep(var_range);
+            dtype = basic_dtype;
+          }
         }
+
         // If no typespec provided assume default
         if (dtype == nullptr) {
           auto* temp_dtype = new AstBasicDType(new FileLine("uhdm"),
