@@ -473,45 +473,6 @@ namespace UhdmAst {
           netType = vpi_get(vpiNetType, obj_net);
         }
 
-        auto pinIt = pinMap.find(fullObjectName);
-        if (pinIt != pinMap.end()) {
-          return pinIt->second;
-        }
-        // If parent has port with this name: skip
-        auto parent_h = vpi_handle(vpiParent, obj_h);
-        if (parent_h && vpi_get(vpiType, parent_h) == vpiModule) {
-          vpiHandle itr = vpi_iterate(vpiPort, parent_h);
-          while (vpiHandle port_h = vpi_scan(itr) ) {
-            std::string childName = vpi_get_str(vpiName, port_h);
-            sanitize_str(childName);
-            if (objectName == childName) {
-              if (const int n = vpi_get(vpiDirection, port_h)) {
-                if (n == vpiOutput) {
-                  auto it = pinMap.find(fullObjectName);
-                  if (it != pinMap.end()) {
-                    return it->second;
-                  }
-                } else {
-                  // Dummy node just to store something
-                  // This won't be used
-                  pinMap[fullObjectName] = new AstFinal(new FileLine("uhdm"), nullptr);
-                  return nullptr;
-                }
-              }
-            }
-            vpi_free_object(port_h);
-          }
-          vpi_free_object(itr);
-          if (vpi_get(vpiType, parent_h) == vpiInterface) {
-            netType = vpiReg;  // They are not specified otherwise in UHDM
-          }
-        }
-
-        //Check if this was a port pin
-        auto it = pinMap.find(fullObjectName);
-        if (it != pinMap.end()) {
-          return nullptr;
-        }
 
         switch (netType) {
           case vpiLogicNet:
