@@ -206,16 +206,6 @@ namespace UhdmAst {
             var->declDirection(VDirection::OUTPUT);
             var->direction(VDirection::OUTPUT);
             var->varType(AstVarType::PORT);
-            // Create and store another node to be retrieved in vpiNet visit
-            // Done here because we do not have range information for ports in vpiNet
-            auto* netDtype = new AstBasicDType(new FileLine("uhdm"),
-                                               AstBasicDTypeKwd::LOGIC);
-            auto* netVar = new AstVar(new FileLine("uhdm"),
-                             AstVarType::VAR,
-                             objectName,
-                             netDtype);
-            netVar->childDTypep(netDtype);
-            pinMap[fullObjectName] = netVar;
           } else if (n == vpiInout) {
             var->declDirection(VDirection::INOUT);
             var->direction(VDirection::INOUT);
