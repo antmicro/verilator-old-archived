@@ -1863,6 +1863,8 @@ namespace UhdmAst {
                                  s,
                                  false,
                                  arguments[1]);
+        } else if (objectName == "$finish") {
+          return new AstFinish(new FileLine("uhdm"));
         } else if (objectName == "$fopen") {
           // We need to obtain the variable in which the descriptor will be stored
           // This usually will be LHS of an assignment fd = $fopen(...)
@@ -1876,6 +1878,9 @@ namespace UhdmAst {
                               fd,
                               arguments[0],
                               arguments[1]);
+        } else if (objectName == "$fclose") {
+          return new AstFClose(new FileLine("uhdm"),
+                              arguments[0]);
         } else if (objectName == "$fwrite") {
           return new AstDisplay(new FileLine("uhdm"),
                                 AstDisplayType(AstDisplayType::en::DT_WRITE),
