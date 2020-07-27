@@ -561,6 +561,11 @@ namespace UhdmAst {
 
         if (objectType == vpiParamAssign) {
           parameter_h = vpi_handle(vpiLhs, obj_h);
+          // Update object name using parameter handle
+          if (auto s = vpi_get_str(vpiName, parameter_h)) {
+            objectName = s;
+            sanitize_str(objectName);
+          }
         } else if (objectType == vpiParameter) {
           parameter_h = obj_h;
         }
@@ -859,6 +864,8 @@ namespace UhdmAst {
                 }
               });
             if (expr != nullptr) {
+              // Override name with IO name
+              expr->name(objectName);
               return expr;
             }
           }
