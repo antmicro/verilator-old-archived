@@ -762,6 +762,7 @@ namespace UhdmAst {
             vpiArrayNet,
             vpiSpecParam,
             vpiAssertion,
+            vpiNet,
             },
             obj_h,
             visited,
