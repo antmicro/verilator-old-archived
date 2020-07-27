@@ -2267,6 +2267,10 @@ namespace UhdmAst {
                          AstVarType::VAR,
                          objectName,
                          dtype);
+        visit_one_to_one({vpiExpr}, obj_h, visited, top_nodes,
+            [&](AstNode* item) {
+              var->valuep(item);
+            });
         return var;
       }
       case vpiArrayVar: {
