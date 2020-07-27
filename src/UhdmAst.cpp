@@ -845,6 +845,21 @@ namespace UhdmAst {
         return new AstModport(new FileLine("uhdm"), objectName, modport_vars);
       }
       case vpiIODecl: {
+        // For function arguments, the actual type
+        // is inside vpiExpr
+        AstNode* expr = nullptr;
+        visit_one_to_one({vpiExpr}, obj_h, visited, top_nodes,
+          [&](AstNode* item){
+            if (item) {
+              expr = item;
+            }
+          });
+        if (expr != nullptr) {
+          // Override name with IO name
+          expr->name(objectName);
+          return expr;
+        } // else handle as normal IODecl
+
         VDirection dir;
         if (const int n = vpi_get(vpiDirection, obj_h)) {
           if (n == vpiInput) {
@@ -853,23 +868,9 @@ namespace UhdmAst {
             dir = VDirection::OUTPUT;
           } else if (n == vpiInout) {
             dir = VDirection::INOUT;
-          } else if (n == vpiNoDirection) {
-            // This happens i.e. for function arguments, when the actual type
-            // is inside vpiExpr
-            AstNode* expr = nullptr;
-            visit_one_to_one({vpiExpr}, obj_h, visited, top_nodes,
-              [&](AstNode* item){
-                if (item) {
-                  expr = item;
-                }
-              });
-            if (expr != nullptr) {
-              // Override name with IO name
-              expr->name(objectName);
-              return expr;
-            }
           }
         }
+
         AstRange* var_range = nullptr;
         visit_one_to_many({vpiRange}, obj_h, visited, top_nodes,
           [&](AstNode* item){
