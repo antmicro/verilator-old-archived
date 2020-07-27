@@ -1709,10 +1709,25 @@ namespace UhdmAst {
       }
       case vpiTask: {
         AstNode* statements = nullptr;
+        visit_one_to_many({vpiIODecl}, obj_h, visited, top_nodes,
+          [&](AstNode* item){
+            if (item) {
+              // Overwrite direction for arguments
+              auto* io = reinterpret_cast<AstVar*>(item);
+              io->direction(VDirection::INPUT);
+              if (statements)
+                statements->addNextNull(item);
+              else
+                statements = item;
+            }
+          });
         visit_one_to_one({vpiStmt}, obj_h, visited, top_nodes,
           [&](AstNode* item){
             if (item) {
-              statements = item;
+              if (statements)
+                statements->addNextNull(item);
+              else
+                statements = item;
             }
           });
         return new AstTask(new FileLine("uhdm"), objectName, statements);
