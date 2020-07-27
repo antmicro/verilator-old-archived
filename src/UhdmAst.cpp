@@ -297,14 +297,9 @@ namespace UhdmAst {
           visit_one_to_many({
               vpiModule,
               vpiContAssign,
-              vpiParameter,
-              vpiParamAssign,
               vpiProcess,
               vpiTaskFunc,
               vpiTypedef,
-              //TODO: Revisit this handling, currently creates duplicate nodes
-              //vpiPort,
-              //vpiNet,
               },
               obj_h,
               visited,
@@ -312,6 +307,19 @@ namespace UhdmAst {
               [&](AstNode* node){
                 if (node != nullptr)
                   module->addStmtp(node);
+              });
+          visit_one_to_many({
+              vpiPort,
+              vpiNet,
+              vpiParameter,
+              vpiParamAssign,
+              },
+              obj_h,
+              visited,
+              top_nodes,
+              [&](AstNode* node){
+                // ignore, currently would create duplicate nodes
+                //TODO: Revisit this handling
               });
         }
         (*top_nodes)[module->name()] = module;
