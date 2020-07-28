@@ -259,7 +259,6 @@ RAW_OBJS = \
 	V3Waiver.o \
 	V3Width.o \
 	V3WidthSel.o \
-	JsonAst.o \
 	UhdmAst.o \
 	uhdm_dump.o \
 
