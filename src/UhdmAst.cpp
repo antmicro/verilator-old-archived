@@ -50,7 +50,6 @@ namespace UhdmAst {
     std::replace(s.begin(), s.end(), '@','_');
   }
 
-  std::map<std::string, AstNode*> pinMap;
   std::set<std::tuple<std::string, int, std::string>> coverage_set;
 
   AstNode* visit_object (vpiHandle obj_h,
@@ -1686,7 +1685,6 @@ namespace UhdmAst {
                                                objectName,
                                                nullptr,
                                                nullptr);
-        auto bitHandle = vpi_handle({vpiIndex}, obj_h);
         AstNode* bitp = nullptr;
         visit_one_to_one({vpiIndex}, obj_h, visited, top_nodes,
           [&](AstNode* item){
