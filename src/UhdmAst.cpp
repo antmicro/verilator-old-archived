@@ -399,7 +399,7 @@ namespace UhdmAst {
               // return it as well. Create a reference for the assignment.
               AstNode* var = lvalue;
               lvalue = new AstParseRef(new FileLine("uhdm"),
-                                                     AstParseRefExp::en::PX_TEXT,
+                                                     VParseRefExp::en::PX_TEXT,
                                                      lvalue->name(),
                                                      nullptr,
                                                      nullptr);
@@ -420,17 +420,17 @@ namespace UhdmAst {
           std::string lhs = objectName.substr(0, dot_pos);
           std::string rhs = objectName.substr(dot_pos + 1, objectName.length());
           AstParseRef* lhsNode = new AstParseRef(new FileLine("uhdm"),
-                                                 AstParseRefExp::en::PX_TEXT,
+                                                 VParseRefExp::en::PX_TEXT,
                                                  lhs,
                                                  nullptr,
                                                  nullptr);
           AstParseRef* rhsNode = new AstParseRef(new FileLine("uhdm"),
-                                                 AstParseRefExp::en::PX_TEXT,
+                                                 VParseRefExp::en::PX_TEXT,
                                                  rhs,
                                                  nullptr,
                                                  nullptr);
 
-          return new AstDot(new FileLine("uhdm"), lhsNode, rhsNode);
+          return new AstDot(new FileLine("uhdm"), false, lhsNode, rhsNode);
         } else {
           bool isLvalue = false;
           vpiHandle actual = vpi_handle(vpiActual, obj_h);
@@ -450,7 +450,7 @@ namespace UhdmAst {
             vpi_free_object(actual);
           }
           return new AstParseRef(new FileLine("uhdm"),
-                                                 AstParseRefExp::en::PX_TEXT,
+                                                 VParseRefExp::en::PX_TEXT,
                                                  objectName,
                                                  nullptr,
                                                  nullptr);
@@ -949,17 +949,17 @@ namespace UhdmAst {
         return new AstAlways(new FileLine("uhdm"), alwaysType, senTree, body);
       }
       case vpiEventControl: {
-        AstNodeSenItem* senItemRoot;
+        AstSenItem* senItemRoot;
         AstNode* body = nullptr;
         AstSenTree* senTree = nullptr;
         visit_one_to_one({vpiCondition}, obj_h, visited, top_nodes,
           [&](AstNode* node){
             if (node->type() == AstType::en::atSenItem) {
-              senItemRoot = reinterpret_cast<AstNodeSenItem*>(node);
+              senItemRoot = reinterpret_cast<AstSenItem*>(node);
             }
             else { // wrap this in a AstSenItem
               senItemRoot = new AstSenItem(new FileLine("uhdm"),
-                                           AstEdgeType::ET_ANYEDGE,
+                                           VEdgeType::ET_ANYEDGE,
                                            node);
             }
           });
@@ -1191,7 +1191,7 @@ namespace UhdmAst {
               op = new AstSub(new FileLine("uhdm"), rhs, one);
             }
             auto* var = new AstParseRef(new FileLine("uhdm"),
-                                               AstParseRefExp::en::PX_TEXT,
+                                               VParseRefExp::en::PX_TEXT,
                                                rhs->name(),
                                                nullptr,
                                                nullptr);
@@ -1280,7 +1280,7 @@ namespace UhdmAst {
                   } else {
                     // Edge not specified -> use ANY
                     auto* wrapper = new AstSenItem(new FileLine("uhdm"),
-                                                   AstEdgeType::ET_ANYEDGE,
+                                                   VEdgeType::ET_ANYEDGE,
                                                    node);
                     if (rhs == nullptr) {
                         rhs = wrapper;
@@ -1320,7 +1320,7 @@ namespace UhdmAst {
               rhs = node;
             });
             return new AstSenItem(new FileLine("uhdm"),
-                                  AstEdgeType::ET_POSEDGE,
+                                  VEdgeType::ET_POSEDGE,
                                   rhs);
           }
           case vpiNegedgeOp: {
@@ -1329,7 +1329,7 @@ namespace UhdmAst {
               rhs = node;
             });
             return new AstSenItem(new FileLine("uhdm"),
-                                  AstEdgeType::ET_NEGEDGE,
+                                  VEdgeType::ET_NEGEDGE,
                                   rhs);
           }
           case vpiEqOp: {
@@ -1682,7 +1682,7 @@ namespace UhdmAst {
       }
       case vpiBitSelect: {
         auto* fromp = new AstParseRef(new FileLine("uhdm"),
-                                               AstParseRefExp::en::PX_TEXT,
+                                               VParseRefExp::en::PX_TEXT,
                                                objectName,
                                                nullptr,
                                                nullptr);
@@ -1698,7 +1698,7 @@ namespace UhdmAst {
       }
       case vpiVarSelect: {
         AstNode* fromp = new AstParseRef(new FileLine("uhdm"),
-                                               AstParseRefExp::en::PX_TEXT,
+                                               VParseRefExp::en::PX_TEXT,
                                                objectName,
                                                nullptr,
                                                nullptr);
@@ -1826,7 +1826,8 @@ namespace UhdmAst {
         } else if (objectName == "$unsigned") {
           return new AstUnsigned(new FileLine("uhdm"), arguments[0]);
         } else if (objectName == "$time") {
-          return new AstTime(new FileLine("uhdm"));
+          return new AstTime(new FileLine("uhdm"),
+              VTimescale::TS_1PS);  //TODO: revisit once we have it in UHDM
         } else if (objectName == "$display") {
           return new AstDisplay(new FileLine("uhdm"),
                                 AstDisplayType(),
@@ -1959,12 +1960,15 @@ namespace UhdmAst {
                                   arguments[3]);
           }
         } else if (objectName == "$error") {
-          return new AstStop(new FileLine("uhdm"));
+          //TODO: Revisit argument handling
+          bool maybe = arguments.size() ? false : true;
+          return new AstStop(new FileLine("uhdm"), maybe);
         } else if (objectName == "$__BAD_SYMBOL__") {
           v3info("\t! Bad symbol encountered @ "
                  << file_name << ":" << currentLine);
           // Dummy statement to keep parsing
-          return new AstTime(new FileLine("uhdm"));
+          return new AstTime(new FileLine("uhdm"),
+              VTimescale::TS_1PS);  //TODO: revisit once we have it in UHDM
         } else {
             v3error("\t! Encountered unhandled SysFuncCall: " << objectName);
         }
@@ -2013,7 +2017,7 @@ namespace UhdmAst {
             parent_name = s;
           sanitize_str(parent_name);
           fromNode = new AstParseRef(new FileLine("uhdm"),
-                                  AstParseRefExp::en::PX_TEXT,
+                                  VParseRefExp::en::PX_TEXT,
                                   parent_name,
                                   nullptr,
                                   nullptr);
@@ -2043,7 +2047,7 @@ namespace UhdmAst {
         std::string parent_name = vpi_get_str(vpiName, parent_h);
         sanitize_str(parent_name);
         fromNode = new AstParseRef(new FileLine("uhdm"),
-                                AstParseRefExp::en::PX_TEXT,
+                                VParseRefExp::en::PX_TEXT,
                                 parent_name,
                                 nullptr,
                                 nullptr);
@@ -2205,8 +2209,16 @@ namespace UhdmAst {
         return enum_type;
       }
       case vpiStructTypespec: {
+        // VSigning below is used in AstStructDtype to indicate
+        // if packed or not
+        VSigning packed;
+        if (vpi_get(vpiPacked, obj_h)) {
+          packed = VSigning::SIGNED;
+        } else {
+          packed = VSigning::UNSIGNED;
+        }
         auto* struct_dtype = new AstStructDType(new FileLine("uhdm"),
-                                                AstNumeric());
+                                                packed);
         visit_one_to_many({vpiTypespecMember}, obj_h, visited, top_nodes,
             [&](AstNode* item) {
               if (item != nullptr) {
@@ -2415,7 +2427,8 @@ namespace UhdmAst {
         v3info("\t! This statement is unsupported in UHDM: "
                << file_name << ":" << currentLine);
         // Dummy statement to keep parsing
-        return new AstTime(new FileLine("uhdm"));
+        return new AstTime(new FileLine("uhdm"),
+              VTimescale::TS_1PS);  //TODO: revisit once we have it in UHDM
         break;
       case vpiUnsupportedExpr:
         v3info("\t! This expression is unsupported in UHDM: "
