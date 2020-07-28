@@ -26,6 +26,12 @@
 #include "V3ParseSym.h"
 #include "V3Stats.h"
 
+#include "uhdm.h"
+#include "UhdmAst.h"
+#include "vpi_visitor.h"
+#include "uhdm_dump.h"
+#include <iostream>
+
 //######################################################################
 // V3 Class -- top level
 
@@ -55,21 +61,62 @@ void V3Global::readFiles() {
     VInFilter filter(v3Global.opt.pipeFilter());
     V3ParseSym parseSyms(v3Global.rootp());  // Symbol table must be common across all parsing
 
-    V3Parse parser(v3Global.rootp(), &filter, &parseSyms);
-    // Read top module
-    const V3StringList& vFiles = v3Global.opt.vFiles();
-    for (const string& filename : vFiles) {
-        parser.parseFile(new FileLine(FileLine::commandLineFilename()), filename, false,
-                         "Cannot find file containing module: ");
-    }
+    if(v3Global.opt.uhdmAst()) {
+        // Use UHDM frontend
+        const V3StringList& vFiles = v3Global.opt.vFiles();
+        UHDM::Serializer serializer;
+        std::ostringstream uhdm_lines_dump;
 
-    // Read libraries
-    // To be compatible with other simulators,
-    // this needs to be done after the top file is read
-    const V3StringSet& libraryFiles = v3Global.opt.libraryFiles();
-    for (const string& filename : libraryFiles) {
-        parser.parseFile(new FileLine(FileLine::commandLineFilename()), filename, true,
-                         "Cannot find file containing library module: ");
+        auto coverage_file = v3Global.opt.uhdmCovFile();
+        std::vector<AstNodeModule*> modules;
+
+        for (auto file : vFiles) {
+            std::vector<vpiHandle> restoredDesigns = serializer.Restore(file);
+
+            if(v3Global.opt.dumpUhdm()) {
+                std::cout << UHDM::visit_designs(restoredDesigns) << std::endl;
+            }
+            uhdm_lines_dump << UHDM::dump_visited(restoredDesigns);
+
+            /* Parse */
+            if (coverage_file != "") {
+                /* Report coverage */
+                std::cout << "Writing coverage report to: " << coverage_file << std::endl;
+                std::ofstream coverage_output(coverage_file);
+                coverage_output << "UHDM contents:" << std::endl;
+                coverage_output << uhdm_lines_dump.str();
+                coverage_output << "Visited nodes:" << std::endl;
+                modules = UhdmAst::visit_designs(restoredDesigns, coverage_output);
+            } else {
+                std::ostringstream dummy;
+                modules = UhdmAst::visit_designs(restoredDesigns, dummy);
+            }
+
+            /* Add to design */
+            AstNetlist *designRoot = v3Global.rootp();
+            for (auto itr = modules.begin(); itr != modules.end(); ++itr) {
+                designRoot->addModulep(*itr);
+            }
+        }
+    } else {
+        // Use standard Verilator frontend
+
+        V3Parse parser(v3Global.rootp(), &filter, &parseSyms);
+        // Read top module
+        const V3StringList& vFiles = v3Global.opt.vFiles();
+        for (const string& filename : vFiles) {
+            parser.parseFile(new FileLine(FileLine::commandLineFilename()), filename, false,
+                             "Cannot find file containing module: ");
+        }
+
+        // Read libraries
+        // To be compatible with other simulators,
+        // this needs to be done after the top file is read
+        const V3StringSet& libraryFiles = v3Global.opt.libraryFiles();
+        for (const string& filename : libraryFiles) {
+            parser.parseFile(new FileLine(FileLine::commandLineFilename()), filename, true,
+                             "Cannot find file containing library module: ");
+        }
     }
     // v3Global.rootp()->dumpTreeFile(v3Global.debugFilename("parse.tree"));
     V3Error::abortIfErrors();
