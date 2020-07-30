@@ -547,6 +547,72 @@ namespace UhdmAst {
 
         return v;
       }
+      case vpiPackedArrayVar: {
+        AstRange* rangep;
+        visit_one_to_many({vpiRange}, obj_h, visited, top_nodes,
+            [&](AstNode* node){
+              rangep = reinterpret_cast<AstRange*>(node);
+            });
+
+        AstNodeDType* dtype = nullptr;
+        // Get the typespec
+        vpiHandle element_h;
+        auto itr = vpi_iterate(vpiElement, obj_h);
+        while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
+          // Expect all elements to be the same - grab just one
+          element_h = vpi_child_obj;
+        }
+        auto typespec_h = vpi_handle(vpiTypespec, element_h);
+        if (typespec_h) {
+          AstRange* var_range = nullptr;
+          AstBasicDTypeKwd type_kwd = AstBasicDTypeKwd::UNKNOWN;
+          auto type = vpi_get(vpiType, typespec_h);
+          switch(vpi_get(vpiType, typespec_h)) {
+            case vpiLogicTypespec: {
+              type_kwd = AstBasicDTypeKwd::LOGIC;
+              break;
+            }
+            case vpiIntTypespec: {
+              type_kwd = AstBasicDTypeKwd::INT;
+              break;
+            }
+            case vpiIntegerTypespec:
+            case vpiEnumTypespec: {
+              type_kwd = AstBasicDTypeKwd::INTEGER;
+              break;
+            }
+            case vpiBitTypespec: {
+              type_kwd = AstBasicDTypeKwd::BIT;
+              break;
+            }
+            case vpiByteTypespec: {
+              type_kwd = AstBasicDTypeKwd::BYTE;
+              break;
+            }
+            case vpiStringTypespec: {
+              type_kwd = AstBasicDTypeKwd::STRING;
+              break;
+            }
+            case vpiStructTypespec: {
+              // Special case, skip basic type handling
+              type_kwd = AstBasicDTypeKwd::UNKNOWN;
+              // Typespec is visited separately, grab only reference here
+              std::string data_type_name = vpi_get_str(vpiName, typespec_h);
+              dtype = new AstRefDType(new FileLine("uhdm"), data_type_name);
+              break;
+            }
+            default:
+              v3error("Unexpected object type for var: " << UHDM::VpiTypeName(typespec_h));
+          }
+        } else {
+          v3error("Missing typespec for packed_array_var: " << objectName);
+        }
+        auto refdtype = new AstPackArrayDType(new FileLine("uhdm"), dtype, rangep);
+        return new AstVar(new FileLine("uhdm"),
+                          AstVarType::VAR,
+                          objectName,
+                          refdtype);
+      }
       case vpiStructVar: {
         // Typespec is visited separately, grab only reference here
         auto typespec_h = vpi_handle(vpiTypespec, obj_h);
