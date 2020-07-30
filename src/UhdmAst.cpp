@@ -1627,7 +1627,6 @@ namespace UhdmAst {
         }
         return nullptr;
       }
-      case vpiIntegerTypespec: // Handling determined by type returned from vpi_value
       case vpiEnumConst:
       case vpiConstant: {
         s_vpi_value val;
@@ -2147,6 +2146,11 @@ namespace UhdmAst {
       case vpiIntTypespec: {
         auto* dtype = new AstBasicDType(new FileLine("uhdm"),
                                         AstBasicDTypeKwd::INT);
+        return dtype;
+      }
+      case vpiIntegerTypespec: {
+        auto* dtype = new AstBasicDType(new FileLine("uhdm"),
+                                        AstBasicDTypeKwd::INTEGER);
         return dtype;
       }
       case vpiVoidTypespec: {
