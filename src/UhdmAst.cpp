@@ -253,7 +253,6 @@ namespace UhdmAst {
               vpiAliasStmt,
               vpiClockingBlock,
               vpiNet,
-              vpiVariables,
               vpiGenScopeArray,
               vpiArrayNet,
 
