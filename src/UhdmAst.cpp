@@ -278,7 +278,6 @@ namespace UhdmAst {
               vpiParameter,
               vpiParamAssign,
               vpiInternalScope,
-              vpiTypedef,
               vpiImport,
               vpiAttribute,
               },
@@ -2362,10 +2361,18 @@ namespace UhdmAst {
         AstNodeDType* typespec = nullptr;
         visit_one_to_one({vpiTypespec}, obj_h, visited, top_nodes,
             [&](AstNode* item) {
-              if (item != nullptr) {
-                typespec = reinterpret_cast<AstNodeDType*>(item);
-              }
+              // Do not create duplicates, just create reference below
             });
+        vpiHandle itr = vpi_iterate(vpiReg, obj_h);
+        while (vpiHandle member_h = vpi_scan(itr) ) {
+          auto type_h = vpi_handle(vpiTypespec, member_h);
+          std::string type_name = vpi_get_str(vpiName, type_h);
+          sanitize_str(type_name);
+          // TODO: For basic types?
+          typespec = new AstRefDType(new FileLine("uhdm"), type_name);
+          vpi_free_object(member_h);
+        }
+        vpi_free_object(itr);
         if (typespec != nullptr) {
           auto * member =  new AstMemberDType(new FileLine("uhdm"),
               objectName,
