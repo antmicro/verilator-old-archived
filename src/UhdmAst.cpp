@@ -606,11 +606,19 @@ namespace UhdmAst {
         } else {
           v3error("Missing typespec for packed_array_var: " << objectName);
         }
-        auto refdtype = new AstPackArrayDType(new FileLine("uhdm"), dtype, rangep);
-        return new AstVar(new FileLine("uhdm"),
-                          AstVarType::VAR,
-                          objectName,
-                          refdtype);
+        if (dtype == nullptr) {
+          v3error("Dtype was not set for " << objectName);
+        }
+        auto refdtype = new AstPackArrayDType(new FileLine("uhdm"),
+                                              VFlagChildDType(),
+                                              dtype,
+                                              rangep);
+        auto* v = new AstVar(new FileLine("uhdm"),
+                             AstVarType::VAR,
+                             objectName,
+                             refdtype);
+        v->childDTypep(refdtype);
+        return v;
       }
       case vpiStructVar: {
         // Typespec is visited separately, grab only reference here
