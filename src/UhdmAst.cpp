@@ -2222,9 +2222,55 @@ namespace UhdmAst {
         return dtype;
       }
       case vpiIntegerTypespec: {
-        auto* dtype = new AstBasicDType(new FileLine("uhdm"),
-                                        AstBasicDTypeKwd::INTEGER);
-        return dtype;
+        s_vpi_value val;
+        vpi_get_value(obj_h, &val);
+        AstConst* constNode = nullptr;
+        switch (val.format) {
+          case vpiScalarVal: {
+            std::string valStr = std::to_string(val.value.scalar);
+            V3Number value(constNode, valStr.c_str());
+            constNode = new AstConst(new FileLine("uhdm"), value);
+            return constNode;
+          }
+          case vpiIntVal: {
+            std::string valStr = std::to_string(val.value.integer);
+            if (valStr[0] == '-') {
+              valStr = valStr.substr(1);
+              V3Number value(constNode, valStr.c_str());
+              constNode = new AstConst(new FileLine("uhdm"), value);
+              return new AstNegate(new FileLine("uhdm"), constNode);
+            }
+            V3Number value(constNode, valStr.c_str());
+            constNode = new AstConst(new FileLine("uhdm"), value);
+            return constNode;
+          }
+          case vpiRealVal: {
+            std::string valStr = std::to_string(val.value.real);
+            V3Number value(constNode, valStr.c_str());
+            constNode = new AstConst(new FileLine("uhdm"), value);
+            return constNode;
+          }
+          case vpiBinStrVal:
+          case vpiOctStrVal:
+          case vpiDecStrVal:
+          case vpiHexStrVal: {
+            std::string valStr(val.value.str);
+            V3Number value(constNode, valStr.c_str());
+            constNode = new AstConst(new FileLine("uhdm"), value);
+            return constNode;
+          }
+          case vpiStringVal: {
+            std::string valStr(val.value.str);
+            constNode = new AstConst(new FileLine("uhdm"), AstConst::VerilogStringLiteral(), valStr);
+            return constNode;
+          }
+          default: {
+            v3info("Valueless typepec, returning dtype");
+            auto* dtype = new AstBasicDType(new FileLine("uhdm"),
+                                            AstBasicDTypeKwd::INTEGER);
+            return dtype;
+          }
+        }
       }
       case vpiVoidTypespec: {
         return new AstRefDType(new FileLine("uhdm"), objectName);
