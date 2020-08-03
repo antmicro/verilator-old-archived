@@ -1646,6 +1646,12 @@ namespace UhdmAst {
                   rhs = node;
                 }
               });
+            if (rhs->type() == AstType::en::atTypedef) {
+              // Cast to enum/struct, rhs is a full typedef
+              // This would create a duplicate node, use a reference instead
+              // TODO: this should be handled in the typespec itself, but vpiParent is missing there
+              rhs = new AstRefDType(new FileLine("uhdm"), rhs->name());
+            }
             return new AstCastParse(new FileLine("uhdm"), lhs, rhs);
           }
           case vpiStreamRLOp: {
