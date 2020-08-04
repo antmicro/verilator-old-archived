@@ -2229,6 +2229,11 @@ namespace UhdmAst {
                                         AstBasicDTypeKwd::INT);
         return dtype;
       }
+      case vpiStringTypespec: {
+        auto* dtype = new AstBasicDType(new FileLine("uhdm"),
+                                        AstBasicDTypeKwd::STRING);
+        return dtype;
+      }
       case vpiIntegerTypespec: {
         s_vpi_value val;
         vpi_get_value(obj_h, &val);
