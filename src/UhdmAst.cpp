@@ -2289,6 +2289,14 @@ namespace UhdmAst {
         return new AstRefDType(new FileLine("uhdm"), objectName);
       }
       case vpiEnumTypespec: {
+        static std::set<std::string> enum_list;
+        return new AstRefDType(new FileLine("uhdm"), objectName);
+        if (enum_list.find(objectName) == enum_list.end()) {
+          enum_list.insert({objectName});
+        } else {
+          v3info("This is a duplicate enum: " << objectName);
+          return new AstRefDType(new FileLine("uhdm"), objectName);
+        }
         AstNode* enum_members = nullptr;
         AstNodeDType* enum_member_dtype = nullptr;
         visit_one_to_many({
