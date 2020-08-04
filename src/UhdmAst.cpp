@@ -2406,6 +2406,7 @@ namespace UhdmAst {
       case vpiLogicVar:
       case vpiStringVar:
       case vpiIntVar:
+      case vpiLongIntVar:
       case vpiIntegerVar:
       case vpiEnumVar:
       case vpiBitVar:
@@ -2427,8 +2428,12 @@ namespace UhdmAst {
             type_kwd = AstBasicDTypeKwd::INT;
             break;
           }
-          case vpiIntegerVar:
-          case vpiEnumVar: {
+          case vpiLongIntVar: {
+            type_kwd = AstBasicDTypeKwd::LONGINT;
+            break;
+          }
+          case vpiEnumVar:
+          case vpiIntegerVar: {
             type_kwd = AstBasicDTypeKwd::INTEGER;
             break;
           }
