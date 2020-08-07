@@ -2573,7 +2573,14 @@ namespace UhdmAst {
             });
         return statements;
       }
+      case vpiDelayControl: {
+        s_vpi_delay delay;
+        vpi_get_delays(obj_h, &delay);
 
+        // Verilator ignores delay statements, just grab the first one for simplicity
+        auto* delay_c = new AstConst(new FileLine("uhdm"), delay.da[0].real);
+        return new AstDelay(new FileLine("uhdm"), delay_c);
+      }
       // What we can see (but don't support yet)
       case vpiClassObj:
       case vpiClassDefn:
