@@ -404,10 +404,25 @@ namespace UhdmAst {
           }
           vpi_free_object(itr);
 
+          // Get parameter assignments
+          itr = vpi_iterate(vpiParameter, obj_h);
+          while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
+            std::string name = vpi_get_str(vpiName, vpi_child_obj);
+            sanitize_str(name);
+            auto* value = get_value_as_node(vpi_child_obj);
+            // Although those are parameters, they are stored as pins
+            AstPin *pin = new AstPin(new FileLine("uhdm"), ++np, name, value);
+            if (!modParams)
+                modParams = pin;
+            else
+                modParams->addNextNull(pin);
+            vpi_free_object(vpi_child_obj);
+          }
+          vpi_free_object(itr);
           std::string fullname = vpi_get_str(vpiFullName, obj_h);
           sanitize_str(fullname);
           AstCell *cell = new AstCell(new FileLine("uhdm"), new FileLine("uhdm"),
-              objectName, modType, modPins, nullptr, nullptr);
+              objectName, modType, modPins, modParams, nullptr);
           return cell;
         }
         break;
