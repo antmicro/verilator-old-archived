@@ -50,6 +50,64 @@ namespace UhdmAst {
     std::replace(s.begin(), s.end(), '@','_');
   }
 
+  AstNode* get_value_as_node(vpiHandle obj_h) {
+    AstNode* value_node = nullptr;
+    s_vpi_value val;
+    vpi_get_value(obj_h, &val);
+    switch (val.format) {
+      case vpiScalarVal: {
+        std::string valStr = std::to_string(val.value.scalar);
+        if (valStr[0] == '-') {
+          valStr = valStr.substr(1);
+          V3Number value(value_node, valStr.c_str());
+          auto* inner = new AstConst(new FileLine("uhdm"), value);
+          value_node = new AstNegate(new FileLine("uhdm"), inner);
+          break;
+        }
+        V3Number value(value_node, valStr.c_str());
+        value_node = new AstConst(new FileLine("uhdm"), value);
+        break;
+      }
+      case vpiIntVal: {
+        std::string valStr = std::to_string(val.value.integer);
+        if (valStr[0] == '-') {
+          valStr = valStr.substr(1);
+          V3Number value(value_node, valStr.c_str());
+          auto* inner = new AstConst(new FileLine("uhdm"), value);
+          value_node = new AstNegate(new FileLine("uhdm"), inner);
+          break;
+        }
+        V3Number value(value_node, valStr.c_str());
+        value_node = new AstConst(new FileLine("uhdm"), value);
+        break;
+      }
+      case vpiRealVal: {
+        std::string valStr = std::to_string(val.value.real);
+        V3Number value(value_node, valStr.c_str());
+        value_node = new AstConst(new FileLine("uhdm"), value);
+        break;
+      }
+      case vpiBinStrVal:
+      case vpiOctStrVal:
+      case vpiDecStrVal:
+      case vpiHexStrVal: {
+        std::string valStr(val.value.str);
+        V3Number value(value_node, valStr.c_str());
+        value_node = new AstConst(new FileLine("uhdm"), value);
+        break;
+      }
+      case vpiStringVal: {
+        std::string valStr(val.value.str);
+        value_node = new AstConst(new FileLine("uhdm"), AstConst::VerilogStringLiteral(), valStr);
+        break;
+      }
+      default: {
+        break;
+      }
+    }
+    return value_node;
+  }
+
   std::set<std::tuple<std::string, int, std::string>> coverage_set;
 
   AstNode* visit_object (vpiHandle obj_h,
@@ -748,60 +806,7 @@ namespace UhdmAst {
                 parameter_value = node;
               });
         } else if (objectType == vpiParameter) {
-          //TODO: Refactor getting value to a separate function
-          s_vpi_value val;
-          vpi_get_value(obj_h, &val);
-          switch (val.format) {
-            case vpiScalarVal: {
-              std::string valStr = std::to_string(val.value.scalar);
-              if (valStr[0] == '-') {
-                valStr = valStr.substr(1);
-                V3Number value(parameter_value, valStr.c_str());
-                auto* inner = new AstConst(new FileLine("uhdm"), value);
-                parameter_value = new AstNegate(new FileLine("uhdm"), inner);
-                break;
-              }
-              V3Number value(parameter_value, valStr.c_str());
-              parameter_value = new AstConst(new FileLine("uhdm"), value);
-              break;
-            }
-            case vpiIntVal: {
-              std::string valStr = std::to_string(val.value.integer);
-              if (valStr[0] == '-') {
-                valStr = valStr.substr(1);
-                V3Number value(parameter_value, valStr.c_str());
-                auto* inner = new AstConst(new FileLine("uhdm"), value);
-                parameter_value = new AstNegate(new FileLine("uhdm"), inner);
-              break;
-              }
-              V3Number value(parameter_value, valStr.c_str());
-              parameter_value = new AstConst(new FileLine("uhdm"), value);
-              break;
-            }
-            case vpiRealVal: {
-              std::string valStr = std::to_string(val.value.real);
-              V3Number value(parameter_value, valStr.c_str());
-              parameter_value = new AstConst(new FileLine("uhdm"), value);
-              break;
-            }
-            case vpiBinStrVal:
-            case vpiOctStrVal:
-            case vpiDecStrVal:
-            case vpiHexStrVal: {
-              std::string valStr(val.value.str);
-              V3Number value(parameter_value, valStr.c_str());
-              parameter_value = new AstConst(new FileLine("uhdm"), value);
-              break;
-            }
-            case vpiStringVal: {
-              std::string valStr(val.value.str);
-              parameter_value = new AstConst(new FileLine("uhdm"), AstConst::VerilogStringLiteral(), valStr);
-              break;
-            }
-            default: {
-              break;
-            }
-          }
+          parameter_value = get_value_as_node(obj_h);
         }
         // if no value: bail
         if (parameter_value == nullptr) {
@@ -1712,54 +1717,7 @@ namespace UhdmAst {
       }
       case vpiEnumConst:
       case vpiConstant: {
-        s_vpi_value val;
-        vpi_get_value(obj_h, &val);
-        AstConst* constNode = nullptr;
-        switch (val.format) {
-          case vpiScalarVal: {
-            std::string valStr = std::to_string(val.value.scalar);
-            V3Number value(constNode, valStr.c_str());
-            constNode = new AstConst(new FileLine("uhdm"), value);
-            return constNode;
-          }
-          case vpiIntVal: {
-            std::string valStr = std::to_string(val.value.integer);
-            if (valStr[0] == '-') {
-              valStr = valStr.substr(1);
-              V3Number value(constNode, valStr.c_str());
-              constNode = new AstConst(new FileLine("uhdm"), value);
-              return new AstNegate(new FileLine("uhdm"), constNode);
-            }
-            V3Number value(constNode, valStr.c_str());
-            constNode = new AstConst(new FileLine("uhdm"), value);
-            return constNode;
-          }
-          case vpiRealVal: {
-            std::string valStr = std::to_string(val.value.real);
-            V3Number value(constNode, valStr.c_str());
-            constNode = new AstConst(new FileLine("uhdm"), value);
-            return constNode;
-          }
-          case vpiBinStrVal:
-          case vpiOctStrVal:
-          case vpiDecStrVal:
-          case vpiHexStrVal: {
-            std::string valStr(val.value.str);
-            V3Number value(constNode, valStr.c_str());
-            constNode = new AstConst(new FileLine("uhdm"), value);
-            return constNode;
-          }
-          case vpiStringVal: {
-            std::string valStr(val.value.str);
-            constNode = new AstConst(new FileLine("uhdm"), AstConst::VerilogStringLiteral(), valStr);
-            return constNode;
-          }
-          default: {
-            v3error("\t! Encountered unhandled constant type " << val.format);
-            break;
-          }
-        }
-        return nullptr;
+        return get_value_as_node(obj_h);
       }
       case vpiBitSelect: {
         auto* fromp = new AstParseRef(new FileLine("uhdm"),
@@ -2240,55 +2198,14 @@ namespace UhdmAst {
         return dtype;
       }
       case vpiIntegerTypespec: {
-        s_vpi_value val;
-        vpi_get_value(obj_h, &val);
-        AstConst* constNode = nullptr;
-        switch (val.format) {
-          case vpiScalarVal: {
-            std::string valStr = std::to_string(val.value.scalar);
-            V3Number value(constNode, valStr.c_str());
-            constNode = new AstConst(new FileLine("uhdm"), value);
-            return constNode;
-          }
-          case vpiIntVal: {
-            std::string valStr = std::to_string(val.value.integer);
-            if (valStr[0] == '-') {
-              valStr = valStr.substr(1);
-              V3Number value(constNode, valStr.c_str());
-              constNode = new AstConst(new FileLine("uhdm"), value);
-              return new AstNegate(new FileLine("uhdm"), constNode);
-            }
-            V3Number value(constNode, valStr.c_str());
-            constNode = new AstConst(new FileLine("uhdm"), value);
-            return constNode;
-          }
-          case vpiRealVal: {
-            std::string valStr = std::to_string(val.value.real);
-            V3Number value(constNode, valStr.c_str());
-            constNode = new AstConst(new FileLine("uhdm"), value);
-            return constNode;
-          }
-          case vpiBinStrVal:
-          case vpiOctStrVal:
-          case vpiDecStrVal:
-          case vpiHexStrVal: {
-            std::string valStr(val.value.str);
-            V3Number value(constNode, valStr.c_str());
-            constNode = new AstConst(new FileLine("uhdm"), value);
-            return constNode;
-          }
-          case vpiStringVal: {
-            std::string valStr(val.value.str);
-            constNode = new AstConst(new FileLine("uhdm"), AstConst::VerilogStringLiteral(), valStr);
-            return constNode;
-          }
-          default: {
-            v3info("Valueless typepec, returning dtype");
-            auto* dtype = new AstBasicDType(new FileLine("uhdm"),
-                                            AstBasicDTypeKwd::INTEGER);
-            return dtype;
-          }
+        AstNode* constNode = get_value_as_node(obj_h);
+        if (constNode == nullptr) {
+          v3info("Valueless typepec, returning dtype");
+          auto* dtype = new AstBasicDType(new FileLine("uhdm"),
+                                          AstBasicDTypeKwd::INTEGER);
+          return dtype;
         }
+        return constNode;
       }
       case vpiVoidTypespec: {
         return new AstRefDType(new FileLine("uhdm"), objectName);
