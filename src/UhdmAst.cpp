@@ -1091,7 +1091,7 @@ namespace UhdmAst {
         if (objectType == vpiBegin) {
           objectName = "";  // avoid storing parent name
         }
-        return new AstBegin(new FileLine("uhdm"), objectName, body);
+        return new AstBegin(new FileLine("uhdm"), "", body);
       }
       case vpiIf:
       case vpiIfElse: {
@@ -2198,7 +2198,7 @@ namespace UhdmAst {
           });
         AstNode* loop = new AstWhile(new FileLine("uhdm"), condp, bodysp, incsp);
         initsp->addNextNull(loop);
-        AstNode* stmt = new AstBegin(new FileLine("uhdm"), objectName, initsp);
+        AstNode* stmt = new AstBegin(new FileLine("uhdm"), "", initsp);
         return stmt;
       }
 
@@ -2528,7 +2528,7 @@ namespace UhdmAst {
                 statements->addNextNull(item);
               }
             });
-        return new AstBegin(new FileLine("uhdm"), objectName, statements);
+        return new AstBegin(new FileLine("uhdm"), "", statements);
       }
       case vpiGenScope: {
         AstNode* statements = nullptr;
