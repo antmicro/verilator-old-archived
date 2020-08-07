@@ -1690,6 +1690,11 @@ namespace UhdmAst {
           case vpiAssignmentPatternOp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
               [&](AstNode* node){
+                // This is always strored as positional pattern
+                node = new AstPatMember(new FileLine("uhdm"),
+                    node,
+                    nullptr,
+                    nullptr);
                 if (lhs == nullptr) {
                   lhs = node;
                 } else {
