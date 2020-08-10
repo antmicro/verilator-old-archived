@@ -287,6 +287,7 @@ namespace UhdmAst {
         std::string modType = vpi_get_str(vpiDefName, obj_h);
         sanitize_str(modType);
 
+        std::string name = objectName;
         AstModule *module;
 
         // Check if we have encountered this object before
@@ -294,6 +295,13 @@ namespace UhdmAst {
         if (it != top_nodes->end()) {
           // Was created before, fill missing
           module = reinterpret_cast<AstModule*>(it->second);
+          AstModule* full_module = nullptr;
+          if (objectName != modType) {
+            // Not a top module, create separate node with proper params
+            module = module->cloneTree(false);
+            // Use more specific name
+            name = modType + "_" + objectName;
+          }
           visit_one_to_many({
               vpiPort,
               vpiInterface,
@@ -346,6 +354,8 @@ namespace UhdmAst {
                 if (node != nullptr)
                   module->addStmtp(node);
               });
+          module->name(name);
+          (*top_nodes)[name] = module;
         } else {
           // Encountered for the first time
           module = new AstModule(new FileLine("uhdm"), modType);
@@ -376,8 +386,8 @@ namespace UhdmAst {
                 // ignore, currently would create duplicate nodes
                 //TODO: Revisit this handling
               });
+          (*top_nodes)[module->name()] = module;
         }
-        (*top_nodes)[module->name()] = module;
 
         if (objectName != modType) {
           // Not a top module, create instance
@@ -422,7 +432,7 @@ namespace UhdmAst {
           std::string fullname = vpi_get_str(vpiFullName, obj_h);
           sanitize_str(fullname);
           AstCell *cell = new AstCell(new FileLine("uhdm"), new FileLine("uhdm"),
-              objectName, modType, modPins, modParams, nullptr);
+              objectName, name, modPins, modParams, nullptr);
           return cell;
         }
         break;
