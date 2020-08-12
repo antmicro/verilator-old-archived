@@ -2253,7 +2253,6 @@ namespace UhdmAst {
       }
       case vpiEnumTypespec: {
         static std::set<std::string> enum_list;
-        return new AstRefDType(new FileLine("uhdm"), objectName);
         if (enum_list.find(objectName) == enum_list.end()) {
           enum_list.insert({objectName});
         } else {
@@ -2262,25 +2261,27 @@ namespace UhdmAst {
         }
         AstNode* enum_members = nullptr;
         AstNodeDType* enum_member_dtype = nullptr;
-        visit_one_to_many({
-            vpiEnumConst
-            },
-            obj_h,
-            visited,
-            top_nodes,
-            [&](AstNode* item) {
-              if (item != nullptr) {
-                auto* wrapped_item = new AstEnumItem(new FileLine("uhdm"),
-                                                     item->name(),
-                                                     nullptr,
-                                                     item);
-                if (enum_members == nullptr) {
-                  enum_members = wrapped_item;
-                } else {
-                  enum_members->addNextNull(wrapped_item);
-                }
-              }
-            });
+
+        vpiHandle itr = vpi_iterate(vpiEnumConst, obj_h);
+        while (vpiHandle item_h = vpi_scan(itr) ) {
+          auto* value = get_value_as_node(item_h);
+          std::string item_name;
+          if (auto s = vpi_get_str(vpiName, item_h)) {
+            item_name = s;
+            sanitize_str(item_name);
+          }
+          auto* wrapped_item = new AstEnumItem(new FileLine("uhdm"),
+                                               item_name,
+                                               nullptr,
+                                               value);
+          if (enum_members == nullptr) {
+            enum_members = wrapped_item;
+          } else {
+            enum_members->addNextNull(wrapped_item);
+          }
+        }
+        vpi_free_object(itr);
+
         visit_one_to_one({
             vpiBaseTypespec
             },
