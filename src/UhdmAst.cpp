@@ -1670,17 +1670,33 @@ namespace UhdmAst {
                   lhs = node;
                 }
               });
-            visit_one_to_one({vpiTypespec}, obj_h, visited, top_nodes,
-              [&](AstNode* node){
-                if (rhs == nullptr) {
-                  rhs = node;
-                }
-              });
-            if (rhs->type() == AstType::en::atTypedef) {
-              // Cast to enum/struct, rhs is a full typedef
-              // This would create a duplicate node, use a reference instead
-              // TODO: this should be handled in the typespec itself, but vpiParent is missing there
-              rhs = new AstRefDType(new FileLine("uhdm"), rhs->name());
+            auto typespec_h = vpi_handle(vpiTypespec, obj_h);
+            std::set<int> typespec_types = {
+                vpiClassTypespec,
+                vpiEnumTypespec,
+                vpiStructTypespec,
+                vpiUnionTypespec,
+                vpiVoidTypespec,
+                };
+            if(typespec_types.count(vpi_get(vpiType, typespec_h)) != 0) {
+              // Custom type, create reference only
+              std::string name;
+              if (auto s = vpi_get_str(vpiName, typespec_h)) {
+                name = s;
+                sanitize_str(name);
+              } else {
+                v3error("Encountered custom, but unnamed typespec");
+              }
+              return new AstCast(new FileLine("uhdm"),
+                                 lhs,
+                                 new AstRefDType(new FileLine("uhdm"), name));
+            } else {
+              visit_one_to_one({vpiTypespec}, obj_h, visited, top_nodes,
+                [&](AstNode* node){
+                  if (rhs == nullptr) {
+                    rhs = node;
+                  }
+                });
             }
             return new AstCastParse(new FileLine("uhdm"), lhs, rhs);
           }
