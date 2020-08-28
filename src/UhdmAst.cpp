@@ -537,8 +537,41 @@ namespace UhdmAst {
         }
         break;
       }
-      case vpiNetArray: // also defined as vpiArrayNet
-      // vpiNetArray is used for unpacked arrays
+      case vpiNetArray: {// also defined as vpiArrayNet
+        // vpiNetArray is used for unpacked arrays
+        AstVar* vpi_net = nullptr;
+        AstRange* unpacked_range = nullptr;
+
+        visit_one_to_many({vpiNet}, obj_h, visited, top_nodes,
+            [&](AstNode* node){
+              if ((node != nullptr) && (vpi_net == nullptr)) {
+                vpi_net = reinterpret_cast<AstVar*>(node);
+              }
+            });
+
+        visit_one_to_many({vpiRange}, obj_h, visited, top_nodes,
+            [&](AstNode* node){
+              if ((node != nullptr) && (unpacked_range == nullptr)) {
+                unpacked_range = reinterpret_cast<AstRange*>(node);
+              }
+            });
+
+        // FIXME: assert(vpi_net != nullptr && unpacked_range != nullptr);
+        if ((vpi_net == nullptr) || (unpacked_range == nullptr))
+          return nullptr;
+
+        // create unpacked dtype
+        AstUnpackArrayDType* unpack_dtypep =
+          new AstUnpackArrayDType(new FileLine("uhdm"), VFlagChildDType(),
+                                  vpi_net->subDTypep(), unpacked_range);
+
+        AstVar* v = new AstVar(new FileLine("uhdm"), vpi_net->varType(),
+                               objectName, unpack_dtypep);
+        // FIXME: delete vpi_net? vpi_net->destroy()?
+        v->childDTypep(unpack_dtypep);
+        return v;
+      }
+
       case vpiNet: {
         AstNodeDType *dtype = nullptr;
         AstVarType net_type = AstVarType::UNKNOWN;
@@ -546,21 +579,6 @@ namespace UhdmAst {
         vpiHandle obj_net;
 
         auto netType = vpi_get(vpiNetType, obj_h);
-
-        if (netType == 0 && objectType == vpiNetArray) {
-          // vpiNetArray specific stuff is handled here
-          vpiHandle itr;
-
-          // Find vpiNet - we expect there is just one
-          itr = vpi_iterate(vpiNet, obj_h);
-          while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
-            obj_net = vpi_child_obj;
-          }
-
-          // Assign net type from the sub node
-          netType = vpi_get(vpiNetType, obj_net);
-        }
-
 
         switch (netType) {
           case vpiLogicNet:
@@ -605,26 +623,9 @@ namespace UhdmAst {
           dtype = dt;
         }
 
-        if (objectType == vpiNet) {
-          // Packed or non-arrays
-          v = new AstVar(new FileLine("uhdm"), net_type, objectName, dtype);
-          v->childDTypep(dtype);
-        } else {
-          // Unpacked arrays
-          // range_node contains unpacked size
-          AstRange* pack_rangep = nullptr;
-          visit_one_to_many({vpiRange}, obj_net, visited, top_nodes,
-              [&](AstNode* node){
-                pack_rangep = reinterpret_cast<AstRange*>(node);
-              });
-
-          AstUnpackArrayDType* unpack_dtypep =
-            new AstUnpackArrayDType(new FileLine("uhdm"), VFlagChildDType(),
-                                    dtype, range_node);
-
-          v = new AstVar(new FileLine("uhdm"), net_type, objectName, unpack_dtypep);
-          v->childDTypep(unpack_dtypep);
-        }
+        // Packed or non-arrays
+        v = new AstVar(new FileLine("uhdm"), net_type, objectName, dtype);
+        v->childDTypep(dtype);
 
         return v;
       }
