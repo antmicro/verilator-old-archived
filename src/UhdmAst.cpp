@@ -9,6 +9,7 @@
 
 namespace UhdmAst {
 
+  std::map<std::string, AstPackage*> package_map;
   // Walks through one-to-many relationships from given parent
   // node through the VPI interface, visiting child nodes belonging to
   // ChildrenNodeTypes that are present in the given object.
@@ -198,6 +199,7 @@ namespace UhdmAst {
               }
             });
 
+        package_map[objectName] = package;
         return package;
       }
       case vpiPort: {
@@ -281,6 +283,31 @@ namespace UhdmAst {
           return port;
         }
         break;
+      }
+      case UHDM::uhdmimport: {
+          AstPackage* packagep = nullptr;
+          auto it = package_map.find(objectName);
+          if (it != package_map.end()) {
+            packagep = it->second;
+          }
+          if (packagep != nullptr) {
+            std::string symbol_name;
+            visit_one_to_one({
+                vpiImport
+                },
+                obj_h,
+                visited,
+                top_nodes,
+                [&](AstNode* node){
+                  symbol_name = node->name();
+                });
+            // Strip "" from name
+            symbol_name = symbol_name.substr(1, symbol_name.length()-2);
+            auto* package_import = new AstPackageImport(new FileLine("uhdm"),
+                                                    packagep,
+                                                    symbol_name);
+            return package_import;
+          }
       }
       case vpiModule: {
 
@@ -2571,9 +2598,9 @@ namespace UhdmAst {
     std::map<std::string, AstNodeModule*> top_nodes;
     for (auto design : designs) {
         visit_one_to_many({
+            UHDM::uhdmallPackages,  // Keep this first, packages need to be defined before any imports
             UHDM::uhdmallInterfaces,
             UHDM::uhdmallModules,
-            UHDM::uhdmallPackages,
             UHDM::uhdmtopModules
             },
             design,
