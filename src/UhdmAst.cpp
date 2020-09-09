@@ -2411,6 +2411,7 @@ namespace UhdmAst {
       }
       case vpiLogicVar:
       case vpiStringVar:
+      case vpiTimeVar:
       case vpiIntVar:
       case vpiLongIntVar:
       case vpiIntegerVar:
@@ -2453,6 +2454,10 @@ namespace UhdmAst {
           }
           case vpiStringVar: {
             type_kwd = AstBasicDTypeKwd::STRING;
+            break;
+          }
+          case vpiTimeVar: {
+            type_kwd = AstBasicDTypeKwd::TIME;
             break;
           }
           default:
