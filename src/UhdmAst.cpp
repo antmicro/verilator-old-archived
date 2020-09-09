@@ -1472,6 +1472,17 @@ namespace UhdmAst {
               });
             return new AstEq(new FileLine("uhdm"), lhs, rhs);
           }
+          case vpiCaseEqOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (lhs == nullptr) {
+                  lhs = node;
+                } else {
+                  rhs = node;
+                }
+              });
+            return new AstEqCase(new FileLine("uhdm"), lhs, rhs);
+          }
           case vpiNeqOp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
               [&](AstNode* node){
@@ -1482,6 +1493,17 @@ namespace UhdmAst {
                 }
               });
             return new AstNeq(new FileLine("uhdm"), lhs, rhs);
+          }
+          case vpiCaseNeqOp: {
+            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
+              [&](AstNode* node){
+                if (lhs == nullptr) {
+                  lhs = node;
+                } else {
+                  rhs = node;
+                }
+              });
+            return new AstNeqCase(new FileLine("uhdm"), lhs, rhs);
           }
           case vpiGtOp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
