@@ -2639,6 +2639,35 @@ namespace UhdmAst {
       case vpiBreak: {
         return new AstBreak(new FileLine("uhdm"));
       }
+      case vpiForeachStmt: {
+        AstNode* arrayp = nullptr; // Array, then index variables
+        AstNode* bodyp = nullptr;
+        visit_one_to_one({vpiVariables}, obj_h, visited, top_nodes,
+            [&](AstNode* item) {
+              if (arrayp == nullptr) {
+                arrayp = item;
+              } else {
+                arrayp->addNextNull(item);
+              }
+            });
+        visit_one_to_many({vpiLoopVars}, obj_h, visited, top_nodes,
+            [&](AstNode* item) {
+              if (arrayp == nullptr) {
+                arrayp = item;
+              } else {
+                arrayp->addNextNull(item);
+              }
+            });
+        visit_one_to_many({vpiStmt}, obj_h, visited, top_nodes,
+            [&](AstNode* item) {
+              if (bodyp == nullptr) {
+                bodyp = item;
+              } else {
+                bodyp->addNextNull(item);
+              }
+            });
+        return new AstForeach(new FileLine("uhdm"), arrayp, bodyp);
+      }
       // What we can see (but don't support yet)
       case vpiClassObj:
       case vpiClassDefn:
