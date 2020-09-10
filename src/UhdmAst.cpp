@@ -2271,6 +2271,32 @@ namespace UhdmAst {
         AstNode* stmt = new AstBegin(new FileLine("uhdm"), "", initsp);
         return stmt;
       }
+      case vpiWhile: {
+        AstNode* condp = nullptr;
+        AstNode* bodysp = nullptr;
+        visit_one_to_one({
+            vpiCondition,
+            }, obj_h, visited, top_nodes,
+          [&](AstNode* item){
+            if (condp == nullptr) {
+              condp = item;
+            } else {
+              condp->addNextNull(item);
+            }
+          });
+        visit_one_to_one({
+            vpiStmt,
+            }, obj_h, visited, top_nodes,
+          [&](AstNode* item){
+            if (bodysp == nullptr) {
+              bodysp = item;
+            } else {
+              bodysp->addNextNull(item);
+            }
+          });
+        AstNode* loop = new AstWhile(new FileLine("uhdm"), condp, bodysp);
+        return loop;
+      }
 
       case vpiBitTypespec: {
         AstRange* rangeNode = nullptr;
