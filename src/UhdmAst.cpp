@@ -2636,6 +2636,9 @@ namespace UhdmAst {
           return new AstDelay(new FileLine("uhdm"), delay_c);
         }
       }
+      case vpiBreak: {
+        return new AstBreak(new FileLine("uhdm"));
+      }
       // What we can see (but don't support yet)
       case vpiClassObj:
       case vpiClassDefn:
