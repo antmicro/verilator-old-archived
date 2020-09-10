@@ -1962,6 +1962,8 @@ namespace UhdmAst {
           return new AstSigned(new FileLine("uhdm"), arguments[0]);
         } else if (objectName == "$unsigned") {
           return new AstUnsigned(new FileLine("uhdm"), arguments[0]);
+        } else if (objectName == "$isunknown") {
+          return new AstIsUnknown(new FileLine("uhdm"), arguments[0]);
         } else if (objectName == "$time") {
           return new AstTime(new FileLine("uhdm"),
               VTimescale::TS_1PS);  //TODO: revisit once we have it in UHDM
@@ -1988,6 +1990,12 @@ namespace UhdmAst {
                                  s,
                                  false,
                                  arguments[1]);
+        } else if (objectName == "$swrite") {
+          auto s = reinterpret_cast<AstConst*>(arguments[1])->num().toString();
+          return new AstSFormat(new FileLine("uhdm"),
+                                arguments[0],
+                                s,
+                                nullptr);
         } else if (objectName == "$finish") {
           return new AstFinish(new FileLine("uhdm"));
         } else if (objectName == "$fopen") {
