@@ -130,6 +130,9 @@ namespace UhdmAst {
       case vpiByteVar: {
         return AstBasicDTypeKwd::BYTE;
       }
+      case vpiRealVar: {
+        return AstBasicDTypeKwd::DOUBLE;
+      }
       case vpiStringVar: {
         return AstBasicDTypeKwd::STRING;
       }
@@ -2515,6 +2518,7 @@ namespace UhdmAst {
       case vpiLogicVar:
       case vpiStringVar:
       case vpiTimeVar:
+      case vpiRealVar:
       case vpiIntVar:
       case vpiLongIntVar:
       case vpiIntegerVar:
