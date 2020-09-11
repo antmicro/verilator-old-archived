@@ -2324,6 +2324,7 @@ namespace UhdmAst {
         AstNode* stmt = new AstBegin(new FileLine("uhdm"), "", initsp);
         return stmt;
       }
+      case vpiDoWhile:
       case vpiWhile: {
         AstNode* condp = nullptr;
         AstNode* bodysp = nullptr;
@@ -2348,7 +2349,14 @@ namespace UhdmAst {
             }
           });
         AstNode* loop = new AstWhile(new FileLine("uhdm"), condp, bodysp);
-        return loop;
+        if (objectType == vpiWhile) {
+          return loop;
+        } else if (objectType == vpiDoWhile) {
+          auto* first_iter = bodysp->cloneTree(true);
+          first_iter->addNextNull(loop);
+          return first_iter;
+        }
+        break;
       }
 
       case vpiBitTypespec: {
