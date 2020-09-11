@@ -2718,6 +2718,23 @@ namespace UhdmAst {
             });
         return new AstForeach(new FileLine("uhdm"), arrayp, bodyp);
       }
+      case vpiMethodFuncCall: {
+        AstNode* from = nullptr;
+        AstNode* args = nullptr;
+        visit_one_to_one({vpiPrefix}, obj_h, visited, top_nodes,
+            [&](AstNode* item) {
+                from = item;
+            });
+        visit_one_to_many({vpiArgument}, obj_h, visited, top_nodes,
+            [&](AstNode* item) {
+              if (args == nullptr) {
+                args = item;
+              } else {
+                args->addNextNull(item);
+              }
+            });
+        return new AstMethodCall(new FileLine("uhdm"), from, objectName, args);
+      }
       // What we can see (but don't support yet)
       case vpiClassObj:
       case vpiClassDefn:
