@@ -2011,6 +2011,10 @@ namespace UhdmAst {
           return new AstSigned(new FileLine("uhdm"), arguments[0]);
         } else if (objectName == "$unsigned") {
           return new AstUnsigned(new FileLine("uhdm"), arguments[0]);
+        } else if (objectName == "$cast") {
+          return new AstCastParse(new FileLine("uhdm"),
+                                  arguments[0],
+                                  arguments[1]);
         } else if (objectName == "$isunknown") {
           return new AstIsUnknown(new FileLine("uhdm"), arguments[0]);
         } else if (objectName == "$time") {
