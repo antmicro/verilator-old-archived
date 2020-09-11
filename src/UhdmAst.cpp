@@ -1800,7 +1800,16 @@ namespace UhdmAst {
                   rhs = node;
                 }
               });
-            return new AstStreamL(new FileLine("uhdm"), lhs, rhs);
+
+            // Verilog {rhs{lhs}} - Note rhs() is the slice size, not the lhs()
+            // IEEE 11.4.14.2: If a slice_size is not specified, the default is 1.
+            if (rhs == nullptr) {
+              return new AstStreamL(new FileLine("uhdm"),
+                                    lhs,
+                                    new AstConst(new FileLine("uhdm"), 1));
+            } else {
+              return new AstStreamL(new FileLine("uhdm"), lhs, rhs);
+            }
           }
           case vpiStreamLROp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
@@ -1811,7 +1820,14 @@ namespace UhdmAst {
                   rhs = node;
                 }
               });
-            return new AstStreamR(new FileLine("uhdm"), lhs, rhs);
+            // See comments above - default rhs is 1
+            if (rhs == nullptr) {
+              return new AstStreamR(new FileLine("uhdm"),
+                                    lhs,
+                                    new AstConst(new FileLine("uhdm"), 1));
+            } else {
+              return new AstStreamR(new FileLine("uhdm"), lhs, rhs);
+            }
           }
           case vpiPowerOp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
