@@ -2131,6 +2131,16 @@ namespace UhdmAst {
           return new AstAttrOf(new FileLine("uhdm"),
                                AstAttrType::DIM_UNPK_DIMENSIONS,
                                arguments[0]);
+        } else if (objectName == "$bits") {
+          return new AstAttrOf(new FileLine("uhdm"),
+                               AstAttrType::DIM_BITS,
+                               arguments[0]);
+        } else if (objectName == "$realtobits") {
+          return new AstRealToBits(new FileLine("uhdm"),
+                                   arguments[0]);
+        } else if (objectName == "$bitstoreal") {
+          return new AstBitsToRealD(new FileLine("uhdm"),
+                                    arguments[0]);
         } else if (objectName == "$readmemh") {
           if (arguments.size() == 2) {
             return new AstReadMem(new FileLine("uhdm"),
