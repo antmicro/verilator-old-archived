@@ -109,6 +109,39 @@ namespace UhdmAst {
     return value_node;
   }
 
+  AstBasicDTypeKwd get_kwd_for_type(int vpi_var_type) {
+    switch(vpi_var_type) {
+      case vpiLogicVar: {
+        return AstBasicDTypeKwd::LOGIC;
+      }
+      case vpiIntVar: {
+        return AstBasicDTypeKwd::INT;
+      }
+      case vpiLongIntVar: {
+        return AstBasicDTypeKwd::LONGINT;
+      }
+      case vpiEnumVar:
+      case vpiIntegerVar: {
+        return AstBasicDTypeKwd::INTEGER;
+      }
+      case vpiBitVar: {
+        return AstBasicDTypeKwd::BIT;
+      }
+      case vpiByteVar: {
+        return AstBasicDTypeKwd::BYTE;
+      }
+      case vpiStringVar: {
+        return AstBasicDTypeKwd::STRING;
+      }
+      case vpiTimeVar: {
+        return AstBasicDTypeKwd::TIME;
+      }
+      default:
+        v3error("Unknown object type");
+    }
+    return AstBasicDTypeKwd::UNKNOWN;
+  }
+
   std::set<std::tuple<std::string, int, std::string>> coverage_set;
 
   AstNode* visit_object (vpiHandle obj_h,
@@ -2467,43 +2500,9 @@ namespace UhdmAst {
                 var_range = reinterpret_cast<AstRange*>(item);
             }
           });
-        AstBasicDTypeKwd type_kwd;
-        switch(objectType) {
-          case vpiLogicVar: {
-            type_kwd = AstBasicDTypeKwd::LOGIC;
-            break;
-          }
-          case vpiIntVar: {
-            type_kwd = AstBasicDTypeKwd::INT;
-            break;
-          }
-          case vpiLongIntVar: {
-            type_kwd = AstBasicDTypeKwd::LONGINT;
-            break;
-          }
-          case vpiEnumVar:
-          case vpiIntegerVar: {
-            type_kwd = AstBasicDTypeKwd::INTEGER;
-            break;
-          }
-          case vpiBitVar: {
-            type_kwd = AstBasicDTypeKwd::BIT;
-            break;
-          }
-          case vpiByteVar: {
-            type_kwd = AstBasicDTypeKwd::BYTE;
-            break;
-          }
-          case vpiStringVar: {
-            type_kwd = AstBasicDTypeKwd::STRING;
-            break;
-          }
-          case vpiTimeVar: {
-            type_kwd = AstBasicDTypeKwd::TIME;
-            break;
-          }
-          default:
-            v3error("Unexpected object type for var: " << UHDM::VpiTypeName(obj_h));
+        AstBasicDTypeKwd type_kwd = get_kwd_for_type(objectType);
+        if (type_kwd == AstBasicDTypeKwd::UNKNOWN) {
+          v3error("Unexpected object type for var: " << UHDM::VpiTypeName(obj_h));
         }
         auto* dtype = new AstBasicDType(new FileLine("uhdm"),
                                         type_kwd);
