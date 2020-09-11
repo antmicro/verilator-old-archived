@@ -2527,11 +2527,20 @@ namespace UhdmAst {
 
         vpiHandle itr = vpi_iterate(vpiReg, obj_h);
         while (vpiHandle member_h = vpi_scan(itr) ) {
+          std::string type_name;
           auto type_h = vpi_handle(vpiTypespec, member_h);
-          std::string type_name = vpi_get_str(vpiName, type_h);
-          sanitize_str(type_name);
-          // TODO: For basic types?
-          dtype = new AstRefDType(new FileLine("uhdm"), type_name);
+          if (type_h) {
+            if (auto s = vpi_get_str(vpiName, type_h)) {
+              type_name = s;
+              sanitize_str(type_name);
+            }
+            dtype = new AstRefDType(new FileLine("uhdm"), type_name);
+          } else {
+            // Basic types
+            AstBasicDTypeKwd type_kwd = get_kwd_for_type(vpi_get(vpiType, member_h));
+            dtype = new AstBasicDType(new FileLine("uhdm"),
+                                      type_kwd);
+          }
           vpi_free_object(member_h);
         }
         vpi_free_object(itr);
