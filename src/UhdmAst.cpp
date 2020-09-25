@@ -2726,6 +2726,13 @@ namespace UhdmAst {
             [&](AstNode* item) {
                 from = item;
             });
+        if (from == nullptr) {
+          from = new AstParseRef(new FileLine("uhdm"),
+                                              VParseRefExp::en::PX_TEXT,
+                                              "this",
+                                              nullptr,
+                                              nullptr);
+        }
         visit_one_to_many({vpiArgument}, obj_h, visited, top_nodes,
             [&](AstNode* item) {
               if (args == nullptr) {
