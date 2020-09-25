@@ -2430,7 +2430,7 @@ namespace UhdmAst {
         return constNode;
       }
       case vpiVoidTypespec: {
-        return new AstRefDType(new FileLine("uhdm"), objectName);
+        return new AstVoidDType(new FileLine("uhdm"));
       }
       case vpiEnumTypespec: {
         static std::set<std::string> enum_list;
