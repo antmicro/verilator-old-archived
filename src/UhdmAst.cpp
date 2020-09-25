@@ -146,6 +146,7 @@ namespace UhdmAst {
   }
 
   std::set<std::tuple<std::string, int, std::string>> coverage_set;
+  auto* class_package = new AstPackage(new FileLine("uhdm"), "AllClasses");
 
   AstNode* visit_object (vpiHandle obj_h,
         std::set<const UHDM::BaseClass*> visited,
@@ -2737,8 +2738,30 @@ namespace UhdmAst {
       }
       // What we can see (but don't support yet)
       case vpiClassObj:
-      case vpiClassDefn:
-        break; // Be silent
+        break;
+      case vpiClassDefn: {
+        auto* definition = new AstClass(new FileLine("uhdm"), objectName);
+        visit_one_to_many({
+            vpiVariables,
+            vpiMethod,
+            vpiConstraint,
+            vpiParameter,
+            vpiNamedEvent,
+            vpiNamedEventArray,
+            vpiTypedef,
+            vpiInternalScope,
+            },
+            obj_h,
+            visited,
+            top_nodes,
+            [&](AstNode* item) {
+              if (item != nullptr) {
+                definition->addMembersp(item);
+              }
+            });
+        class_package->addStmtp(definition);
+        break;
+      }
       case vpiUnsupportedStmt:
         v3info("\t! This statement is unsupported in UHDM: "
                << file_name << ":" << currentLine);
@@ -2769,6 +2792,7 @@ namespace UhdmAst {
     for (auto design : designs) {
         visit_one_to_many({
             UHDM::uhdmallPackages,  // Keep this first, packages need to be defined before any imports
+            UHDM::uhdmallClasses,
             UHDM::uhdmallInterfaces,
             UHDM::uhdmallModules,
             UHDM::uhdmtopModules
@@ -2793,6 +2817,7 @@ namespace UhdmAst {
     std::vector<AstNodeModule*> nodes;
     for (auto node : top_nodes)
               nodes.push_back(node.second);
+    nodes.push_back(class_package);
     return nodes;
   }
 
