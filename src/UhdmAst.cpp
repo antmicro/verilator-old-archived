@@ -2526,6 +2526,20 @@ namespace UhdmAst {
         }
         return nullptr;
       }
+      case vpiTypeParameter: {
+        AstNodeDType* dtype = nullptr;
+        visit_one_to_one({vpiTypespec}, obj_h, visited, top_nodes,
+            [&](AstNode* item) {
+              if (item != nullptr) {
+                dtype = reinterpret_cast<AstNodeDType*>(item);
+              }
+            });
+        return new AstTypedef(new FileLine("uhdm"),
+                              objectName,
+                              nullptr,
+                              VFlagChildDType(),
+                              dtype);
+      }
       case vpiLogicVar:
       case vpiStringVar:
       case vpiTimeVar:
