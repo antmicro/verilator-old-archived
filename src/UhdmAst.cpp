@@ -146,7 +146,6 @@ namespace UhdmAst {
   }
 
   std::set<std::tuple<std::string, int, std::string>> coverage_set;
-  auto* class_package = new AstPackage(new FileLine("uhdm"), "AllClasses");
 
   AstNode* visit_object (vpiHandle obj_h,
         std::set<const UHDM::BaseClass*> visited,
@@ -2780,8 +2779,7 @@ namespace UhdmAst {
                 definition->addMembersp(item);
               }
             });
-        class_package->addStmtp(definition);
-        break;
+        return definition;
       }
       case vpiUnsupportedStmt:
         v3info("\t! This statement is unsupported in UHDM: "
@@ -2810,10 +2808,12 @@ namespace UhdmAst {
                                              std::ostream& coverage_report_stream) {
     std::set<const UHDM::BaseClass*> visited;
     std::map<std::string, AstNodeModule*> top_nodes;
+    // Package for top-level class definitions
+    auto* class_package = new AstPackage(new FileLine("uhdm"), "AllClasses");
     for (auto design : designs) {
         visit_one_to_many({
             UHDM::uhdmallPackages,  // Keep this first, packages need to be defined before any imports
-            UHDM::uhdmallClasses,
+            //UHDM::uhdmallClasses,
             UHDM::uhdmallInterfaces,
             UHDM::uhdmallModules,
             UHDM::uhdmtopModules
@@ -2826,6 +2826,25 @@ namespace UhdmAst {
               // Top level nodes need to be NodeModules (created from design)
               // This is true as we visit only top modules and interfaces (with the same AST node) above
               top_nodes[module->name()] = (reinterpret_cast<AstNodeModule*>(module));
+              }
+              for (auto entry : coverage_set) {
+                coverage_report_stream << std::get<0>(entry)
+                                << ":" << std::get<1>(entry)
+                                << ":" << std::get<2>(entry) << std::endl;
+              }
+              coverage_set.clear();
+            });
+        // Top level class definitions
+        visit_one_to_many({
+            UHDM::uhdmallClasses,
+            },
+            design,
+            visited,
+            &top_nodes,
+            [&](AstNode* class_def) {
+              if (class_def != nullptr) {
+                std::cout << "Adding class " << class_def->name() << std::endl;
+                class_package->addStmtp(class_def);
               }
               for (auto entry : coverage_set) {
                 coverage_report_stream << std::get<0>(entry)
