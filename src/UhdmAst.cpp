@@ -1998,6 +1998,21 @@ namespace UhdmAst {
                 }
             }
           });
+
+        size_t dot_pos = objectName.rfind('.');
+        if (dot_pos != std::string::npos) {
+          // Split object name into prefix.method
+          //TODO: Handle >1 dot, currently all goes into prefix
+          std::string lhs = objectName.substr(0, dot_pos);
+          std::string rhs = objectName.substr(dot_pos + 1, objectName.length());
+          AstParseRef* from = new AstParseRef(new FileLine("uhdm"),
+                                              VParseRefExp::en::PX_TEXT,
+                                              lhs,
+                                              nullptr,
+                                              nullptr);
+          return new AstMethodCall(new FileLine("uhdm"), from, rhs, arguments);
+        }
+
         AstFuncRef* func_call = new AstFuncRef(new FileLine("uhdm"), objectName, arguments);
         return func_call;
       }
