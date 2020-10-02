@@ -179,12 +179,12 @@ namespace UhdmAst {
 
     const unsigned int currentLine = vpi_get(vpiLineNo, obj_h);
     const unsigned int objectType = vpi_get(vpiType, obj_h);
-    std::cout << "Object: " << objectName
+    UINFO(6, "Object: " << objectName
               << " of type " << objectType
               << " (" << UHDM::VpiTypeName(obj_h) << ")"
               << " @ " << currentLine
               << " : " << (file_name != 0 ? file_name : "?")
-              << std::endl;
+              << std::endl);
     if (file_name) {
       coverage_set.insert({file_name, currentLine, UHDM::VpiTypeName(obj_h)});
     }
@@ -2858,7 +2858,7 @@ namespace UhdmAst {
             &top_nodes,
             [&](AstNode* class_def) {
               if (class_def != nullptr) {
-                std::cout << "Adding class " << class_def->name() << std::endl;
+                UINFO(6, "Adding class " << class_def->name() << std::endl);
                 class_package->addStmtp(class_def);
               }
               for (auto entry : coverage_set) {
