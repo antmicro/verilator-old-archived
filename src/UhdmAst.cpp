@@ -2778,7 +2778,7 @@ namespace UhdmAst {
         auto* definition = new AstClass(new FileLine("uhdm"), objectName);
         visit_one_to_many({
             vpiVariables,
-            vpiMethod,
+            //vpiMethods,  // Not supported yet in UHDM
             vpiConstraint,
             vpiParameter,
             vpiNamedEvent,
@@ -2811,7 +2811,8 @@ namespace UhdmAst {
         break;
       default: {
         // Notify we have something unhandled
-        v3error("\t! Unhandled type: " << objectType);
+        v3error("\t! Unhandled type: " << objectType
+            << ":" << UHDM::VpiTypeName(obj_h));
         break;
       }
     }
