@@ -1846,11 +1846,14 @@ namespace UhdmAst {
           case vpiAssignmentPatternOp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
               [&](AstNode* node){
-                // This is always strored as positional pattern
-                node = new AstPatMember(new FileLine("uhdm"),
-                    node,
-                    nullptr,
-                    nullptr);
+                // Wrap only if this is a positional pattern
+                // Tagged patterns will return member nodes
+                if (node && !VN_IS(node, PatMember)) {
+                  node = new AstPatMember(new FileLine("uhdm"),
+                      node,
+                      nullptr,
+                      nullptr);
+                }
                 if (lhs == nullptr) {
                   lhs = node;
                 } else {
@@ -1865,6 +1868,26 @@ namespace UhdmAst {
           }
         }
         return nullptr;
+      }
+      case vpiTaggedPattern: {
+        AstNode* typespec = nullptr;
+        AstNode* pattern = nullptr;
+        auto typespec_h = vpi_handle(vpiTypespec, obj_h);
+        std::string pattern_name;
+        if (auto s = vpi_get_str(vpiName, typespec_h)) {
+          pattern_name = s;
+        }
+        sanitize_str(pattern_name);
+        typespec = new AstText(new FileLine("uhdm"), pattern_name);
+
+        visit_one_to_one({vpiPattern}, obj_h, visited, top_nodes,
+          [&](AstNode* node){
+            pattern = node;
+          });
+        return new AstPatMember(new FileLine("uhdm"),
+                                pattern,
+                                typespec,
+                                nullptr);
       }
       case vpiEnumConst:
       case vpiConstant: {
