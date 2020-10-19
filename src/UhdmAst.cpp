@@ -829,49 +829,15 @@ namespace UhdmAst {
             });
           AstBasicDTypeKwd type_kwd = AstBasicDTypeKwd::UNKNOWN;
           auto type = vpi_get(vpiType, typespec_h);
-          switch(vpi_get(vpiType, typespec_h)) {
-            case vpiLogicTypespec: {
-              type_kwd = AstBasicDTypeKwd::LOGIC;
-              break;
-            }
-            case vpiIntTypespec: {
-              type_kwd = AstBasicDTypeKwd::INT;
-              break;
-            }
-            case vpiIntegerTypespec:
-            case vpiEnumTypespec: {
-              type_kwd = AstBasicDTypeKwd::INTEGER;
-              break;
-            }
-            case vpiBitTypespec: {
-              type_kwd = AstBasicDTypeKwd::BIT;
-              break;
-            }
-            case vpiByteTypespec: {
-              type_kwd = AstBasicDTypeKwd::BYTE;
-              break;
-            }
-            case vpiStringTypespec: {
-              type_kwd = AstBasicDTypeKwd::STRING;
-              break;
-            }
-            case vpiStructTypespec: {
-              // Special case, skip basic type handling
-              type_kwd = AstBasicDTypeKwd::UNKNOWN;
-              // Typespec is visited separately, grab only reference here
-              std::string data_type_name = vpi_get_str(vpiName, typespec_h);
-              dtype = new AstRefDType(new FileLine("uhdm"), data_type_name);
-              break;
-            }
-            default:
-              v3error("Unexpected object type for var: " << UHDM::VpiTypeName(typespec_h));
-          }
+          type_kwd = get_kwd_for_type(type);
           if (type_kwd != AstBasicDTypeKwd::UNKNOWN) {
             // More specific pointer for range setting
             auto* basic_dtype = new AstBasicDType(new FileLine("uhdm"),
                                             type_kwd);
             basic_dtype->rangep(var_range);
             dtype = basic_dtype;
+          } else {
+            v3error("Unexpected object type for parameter: " << UHDM::VpiTypeName(obj_h));
           }
         }
 
