@@ -404,8 +404,6 @@ namespace UhdmAst {
               vpiReg,
               vpiRegArray,
               vpiMemory,
-              vpiParameter,
-              vpiParamAssign,
               vpiInternalScope,
               vpiImport,
               vpiAttribute,
@@ -425,6 +423,8 @@ namespace UhdmAst {
           visit_one_to_many({
               vpiModule,
               vpiContAssign,
+              vpiParamAssign,
+              vpiParameter,
               vpiProcess,
               vpiTaskFunc,
               vpiTypedef,
@@ -848,11 +848,8 @@ namespace UhdmAst {
           temp_dtype->rangep(rangeNode);
           dtype = temp_dtype;
         }
-        parameter = new AstVar(new FileLine("uhdm"),
-                               AstVarType::GPARAM,
-                               objectName,
-                               dtype);
-        parameter->childDTypep(dtype);
+        AstVarType parameter_type;
+        int is_local = 0;
 
         // Get value
         if (objectType == vpiParamAssign) {
@@ -860,9 +857,23 @@ namespace UhdmAst {
               [&](AstNode* node){
                 parameter_value = node;
               });
+          is_local = vpi_get(vpiLocalParam, vpi_handle(vpiLhs, obj_h));
         } else if (objectType == vpiParameter) {
           parameter_value = get_value_as_node(obj_h);
+          is_local = vpi_get(vpiLocalParam, obj_h);
         }
+
+        if (is_local)
+          parameter_type = AstVarType::LPARAM;
+        else
+          parameter_type = AstVarType::GPARAM;
+
+        parameter = new AstVar(new FileLine("uhdm"),
+                               parameter_type,
+                               objectName,
+                               dtype);
+        parameter->childDTypep(dtype);
+
         // if no value: bail
         if (parameter_value == nullptr) {
           return nullptr;
