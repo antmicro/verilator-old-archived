@@ -8,7 +8,7 @@
 
 `define STRINGIFY(x) `"x`"
 `define ratio_error(a,b) (((a)>(b) ? ((a)-(b)) : ((b)-(a))) /(a))
-`define checkr(gotv,expv) do if (`ratio_error((gotv),(expv))>0.0001) begin $write("%%Error: %s:%0d:  got=%g exp=%g\n", `__FILE__,`__LINE__, (gotv), (expv)); $stop; end while(0);
+`define checkr(gotv,expv) do if (`ratio_error((gotv),(expv))>0.0001) begin $write("%%Error: %s:%0d:  got=%f exp=%f\n", `__FILE__,`__LINE__, (gotv), (expv)); $stop; end while(0);
 `define checkh(gotv,expv) do if ((gotv) !== (expv)) begin $write("%%Error: %s:%0d:  got='h%x exp='h%x\n", `__FILE__,`__LINE__, (gotv), (expv)); $stop; end while(0);
 `define checks(gotv,expv) do if ((gotv) !== (expv)) begin $write("%%Error: %s:%0d:  got='%s' exp='%s'\n", `__FILE__,`__LINE__, (gotv), (expv)); $stop; end while(0);
 
@@ -18,6 +18,7 @@ module t;
    integer	chars;
    reg [1*8:1]	letterl;
    reg [8*8:1]	letterq;
+   reg signed [8*8:1] letterqs;
    reg [16*8:1]	letterw;
    reg [16*8:1]	letterz;
    real		r;
@@ -58,9 +59,13 @@ module t;
 
       i = 12;
       $fwrite(file, "d: "); $fwrite(file, i); $fwrite(file, " "); $fdisplay(file, i);
+      $fdisplay(file);
       $fwriteh(file, "h: "); $fwriteh(file, i); $fwriteh(file, " "); $fdisplayh(file, i);
+      $fdisplayh(file);
       $fwriteo(file, "o: "); $fwriteo(file, i); $fwriteo(file, " "); $fdisplayo(file, i);
+      $fdisplayo(file);
       $fwriteb(file, "b: "); $fwriteb(file, i); $fwriteb(file, " "); $fdisplayb(file, i);
+      $fdisplayb(file);
 
       $fflush(file);
       $fflush();
@@ -219,6 +224,13 @@ module t;
 	 if (`verbose) $write("c=%0d d=%0x\n", chars, letterq);
 	 if (chars != 1) $stop;
 	 if (letterq != 64'hfffffffffffc65a5) $stop;
+
+	 if (!sync("\n")) $stop;
+	 if (!sync("*")) $stop;
+	 chars = $fscanf(file, "u=%d", letterqs);
+	 if (`verbose) $write("c=%0d u=%0x\n", chars, letterqs);
+	 if (chars != 1) $stop;
+	 if (letterqs != -236124) $stop;
 
 	 if (!sync("\n")) $stop;
 	 if (!sync("*")) $stop;

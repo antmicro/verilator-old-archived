@@ -22,7 +22,7 @@
 #include "V3Global.h"
 #include "V3Graph.h"
 #include "V3PartitionGraph.h"  // Just for mtask dumping
-#include "V3String.h"  // For VString::parseDouble
+#include "V3String.h"
 #include "V3EmitCBase.h"
 
 #include <iomanip>
@@ -36,7 +36,7 @@ const char* AstIfaceRefDType::broken() const {
     BROKEN_RTN(m_ifacep && !m_ifacep->brokeExists());
     BROKEN_RTN(m_cellp && !m_cellp->brokeExists());
     BROKEN_RTN(m_modportp && !m_modportp->brokeExists());
-    return NULL;
+    return nullptr;
 }
 
 AstIface* AstIfaceRefDType::ifaceViaCellp() const {
@@ -46,7 +46,7 @@ AstIface* AstIfaceRefDType::ifaceViaCellp() const {
 const char* AstNodeVarRef::broken() const {
     BROKEN_RTN(m_varScopep && !m_varScopep->brokeExists());
     BROKEN_RTN(m_varp && !m_varp->brokeExists());
-    return NULL;
+    return nullptr;
 }
 
 void AstNodeVarRef::cloneRelink() {
@@ -74,7 +74,7 @@ void AstNodeUOrStructDType::repairMemberCache() {
 }
 
 const char* AstNodeUOrStructDType::broken() const {
-    vl_unordered_set<AstMemberDType*> exists;
+    std::unordered_set<AstMemberDType*> exists;
     for (AstMemberDType* itemp = membersp(); itemp; itemp = VN_CAST(itemp->nextp(), MemberDType)) {
         exists.insert(itemp);
     }
@@ -84,11 +84,13 @@ const char* AstNodeUOrStructDType::broken() const {
             return "member broken";
         }
     }
-    return NULL;
+    return nullptr;
 }
 
+void AstNodeStmt::dump(std::ostream& str) const { this->AstNode::dump(str); }
+
 void AstNodeCCall::dump(std::ostream& str) const {
-    this->AstNode::dump(str);
+    this->AstNodeStmt::dump(str);
     if (funcp()) {
         str << " " << funcp()->name() << " => ";
         funcp()->dump(str);
@@ -101,7 +103,7 @@ void AstNodeCCall::cloneRelink() {
 }
 const char* AstNodeCCall::broken() const {
     BROKEN_RTN(m_funcp && !m_funcp->brokeExists());
-    return NULL;
+    return nullptr;
 }
 bool AstNodeCCall::isPure() const { return funcp()->pure(); }
 string AstNodeCCall::hiernameProtect() const {
@@ -212,7 +214,7 @@ AstNodeBiop* AstEqWild::newTyped(FileLine* fl, AstNode* lhsp, AstNode* rhsp) {
 }
 
 AstExecGraph::AstExecGraph(FileLine* fileline)
-    : AstNode(AstType::atExecGraph, fileline) {
+    : AstNode{AstType::atExecGraph, fileline} {
     m_depGraphp = new V3Graph;
 }
 AstExecGraph::~AstExecGraph() { VL_DO_DANGLING(delete m_depGraphp, m_depGraphp); }
@@ -253,7 +255,7 @@ AstConst* AstConst::parseParamLiteral(FileLine* fl, const string& literal) {
             return new AstConst(fl, AstConst::StringToParse(), literal.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 void AstNetlist::timeprecisionMerge(FileLine*, const VTimescale& value) {
@@ -315,7 +317,7 @@ public:
     bool m_isRef;  // Is it a reference?
     string m_type;  // The base type, e.g.: "Foo_t"s
     string m_dims;  // Array dimensions, e.g.: "[3][2][1]"
-    string render(const string& name) {
+    string render(const string& name) const {
         string out;
         out += m_type;
         out += " ";
@@ -331,7 +333,7 @@ string AstVar::vlArgType(bool named, bool forReturn, bool forFunc, const string&
     string ostatic;
     if (isStatic() && namespc.empty()) ostatic = "static ";
 
-    VlArgTypeRecursed info = vlArgTypeRecurse(forFunc, dtypep());
+    VlArgTypeRecursed info = vlArgTypeRecurse(forFunc, dtypep(), false);
 
     string oname;
     if (named) {
@@ -462,7 +464,7 @@ string AstVar::vlEnumDir() const {
     return out;
 }
 
-string AstVar::vlPropDecl(string propName) const {
+string AstVar::vlPropDecl(const string& propName) const {
     string out;
 
     std::vector<int> ulims;  // Unpacked dimension limits
@@ -481,9 +483,9 @@ string AstVar::vlPropDecl(string propName) const {
         out += "static const int " + propName + "__ulims[";
         out += cvtToStr(ulims.size());
         out += "] = {";
-        std::vector<int>::const_iterator it = ulims.begin();
+        auto it = ulims.cbegin();
         out += cvtToStr(*it);
-        while (++it != ulims.end()) {
+        while (++it != ulims.cend()) {
             out += ", ";
             out += cvtToStr(*it);
         }
@@ -604,13 +606,13 @@ AstVar* AstVar::scVarRecurse(AstNode* nodep) {
         if (anodep->isSc()) {
             return anodep;
         } else {
-            return NULL;
+            return nullptr;
         }
     } else if (VN_IS(nodep, VarRef)) {
         if (VN_CAST(nodep, VarRef)->varp()->isSc()) {
             return VN_CAST(nodep, VarRef)->varp();
         } else {
-            return NULL;
+            return nullptr;
         }
     } else if (VN_IS(nodep, ArraySel)) {
         if (nodep->op1p()) {
@@ -626,15 +628,13 @@ AstVar* AstVar::scVarRecurse(AstNode* nodep) {
             if (AstVar* p = scVarRecurse(nodep->op4p())) return p;
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 string AstVar::mtasksString() const {
     std::ostringstream os;
     os << "all: ";
-    for (MTaskIdSet::const_iterator it = m_mtaskIds.begin(); it != m_mtaskIds.end(); ++it) {
-        os << *it << " ";
-    }
+    for (const auto& id : m_mtaskIds) os << id << " ";
     return os.str();
 }
 
@@ -664,17 +664,17 @@ AstNodeDType* AstNodeDType::dtypeDimensionp(int dimension) {
             if (adtypep->isRanged()) {
                 if ((dim++) == dimension) return adtypep;
             }
-            return NULL;
+            return nullptr;
         } else if (AstNodeUOrStructDType* adtypep = VN_CAST(dtypep, NodeUOrStructDType)) {
             if (adtypep->packed()) {
                 if ((dim++) == dimension) return adtypep;
             }
-            return NULL;
+            return nullptr;
         }
         // Node no ->next in loop; use continue where necessary
         break;
     }
-    return NULL;
+    return nullptr;
 }
 
 uint32_t AstNodeDType::arrayUnpackedElements() {
@@ -761,7 +761,7 @@ AstNode* AstArraySel::baseFromp(AstNode* nodep) {
 
 const char* AstJumpBlock::broken() const {
     BROKEN_RTN(!labelp()->brokeExistsBelow());
-    return NULL;
+    return nullptr;
 }
 void AstJumpBlock::cloneRelink() {
     if (m_labelp->clonep()) m_labelp = m_labelp->clonep();
@@ -772,7 +772,7 @@ const char* AstScope::broken() const {
     BROKEN_RTN(m_aboveCellp && !m_aboveCellp->brokeExists());
     BROKEN_RTN(!m_modp);
     BROKEN_RTN(m_modp && !m_modp->brokeExists());
-    return NULL;
+    return nullptr;
 }
 void AstScope::cloneRelink() {
     if (m_aboveScopep && m_aboveScopep->clonep()) m_aboveScopep->clonep();
@@ -846,7 +846,7 @@ void AstTypeTable::clearCache() {
     // When we mass-change widthMin in V3WidthCommit, we need to correct the table.
     // Just clear out the maps; the search functions will be used to rebuild the map
     for (int i = 0; i < static_cast<int>(AstBasicDTypeKwd::_ENUM_MAX); ++i) {
-        m_basicps[i] = NULL;
+        m_basicps[i] = nullptr;
     }
     m_detailedMap.clear();
     // Clear generic()'s so dead detection will work
@@ -904,8 +904,9 @@ AstBasicDType* AstTypeTable::findLogicBitDType(FileLine* fl, AstBasicDTypeKwd kw
     return newp;
 }
 
-AstBasicDType* AstTypeTable::findLogicBitDType(FileLine* fl, AstBasicDTypeKwd kwd, VNumRange range,
-                                               int widthMin, VSigning numeric) {
+AstBasicDType* AstTypeTable::findLogicBitDType(FileLine* fl, AstBasicDTypeKwd kwd,
+                                               const VNumRange& range, int widthMin,
+                                               VSigning numeric) {
     AstBasicDType* new1p = new AstBasicDType(fl, kwd, numeric, range, widthMin);
     AstBasicDType* newp = findInsertSameDType(new1p);
     if (newp != new1p) {
@@ -920,7 +921,7 @@ AstBasicDType* AstTypeTable::findInsertSameDType(AstBasicDType* nodep) {
     VBasicTypeKey key(nodep->width(), nodep->widthMin(), nodep->numeric(), nodep->keyword(),
                       nodep->nrange());
     DetailedMap& mapr = m_detailedMap;
-    DetailedMap::const_iterator it = mapr.find(key);
+    const auto it = mapr.find(key);
     if (it != mapr.end()) return it->second;
     mapr.insert(make_pair(key, nodep));
     nodep->generic(true);
@@ -1036,8 +1037,10 @@ void AstNode::dump(std::ostream& str) const {
     }
 }
 
+void AstNodeProcedure::dump(std::ostream& str) const { this->AstNode::dump(str); }
+
 void AstAlways::dump(std::ostream& str) const {
-    this->AstNode::dump(str);
+    this->AstNodeProcedure::dump(str);
     if (keyword() != VAlwaysKwd::ALWAYS) str << " [" << keyword().ascii() << "]";
 }
 
@@ -1058,8 +1061,12 @@ string AstBasicDType::prettyDTypeName() const {
     }
     return os.str();
 }
+
+void AstNodeMath::dump(std::ostream& str) const { this->AstNode::dump(str); }
+void AstNodeUniop::dump(std::ostream& str) const { this->AstNodeMath::dump(str); }
+
 void AstCCast::dump(std::ostream& str) const {
-    this->AstNode::dump(str);
+    this->AstNodeUniop::dump(str);
     str << " sz" << size();
 }
 void AstCell::dump(std::ostream& str) const {
@@ -1079,10 +1086,12 @@ void AstCellInline::dump(std::ostream& str) const {
 const char* AstClassPackage::broken() const {
     BROKEN_BASE_RTN(AstNodeModule::broken());
     BROKEN_RTN(m_classp && !m_classp->brokeExists());
-    return NULL;
+    return nullptr;
 }
 void AstClass::insertCache(AstNode* nodep) {
-    if (VN_IS(nodep, Var) || VN_IS(nodep, NodeFTask) || VN_IS(nodep, EnumItemRef)) {
+    bool doit = (VN_IS(nodep, Var) || VN_IS(nodep, EnumItemRef)
+                 || (VN_IS(nodep, NodeFTask) && !VN_CAST(nodep, NodeFTask)->isExternProto()));
+    if (doit) {
         if (m_members.find(nodep->name()) != m_members.end()) {
             nodep->v3error("Duplicate declaration of member name: " << nodep->prettyNameQ());
         } else {
@@ -1094,7 +1103,11 @@ void AstClass::repairCache() {
     clearCache();
     for (AstNode* itemp = membersp(); itemp; itemp = itemp->nextp()) { insertCache(itemp); }
 }
-void AstClass::dump(std::ostream& str) const { this->AstNode::dump(str); }
+void AstClass::dump(std::ostream& str) const {
+    this->AstNode::dump(str);
+    if (isExtended()) str << " [EXT]";
+    if (isVirtual()) str << " [VIRT]";
+}
 AstClass* AstClassExtends::classp() const {
     AstClassRefDType* refp = VN_CAST(dtypep(), ClassRefDType);
     UASSERT_OBJ(refp, this, "class extends non-ref");
@@ -1114,15 +1127,15 @@ void AstClassRefDType::dumpSmall(std::ostream& str) const {
     str << "class:" << name();
 }
 void AstNodeCoverOrAssert::dump(std::ostream& str) const {
-    this->AstNode::dump(str);
+    this->AstNodeStmt::dump(str);
     if (immediate()) str << " [IMMEDIATE]";
 }
 void AstDisplay::dump(std::ostream& str) const {
-    this->AstNode::dump(str);
+    this->AstNodeStmt::dump(str);
     // str<<" "<<displayType().ascii();
 }
 void AstEnumItemRef::dump(std::ostream& str) const {
-    this->AstNode::dump(str);
+    this->AstNodeMath::dump(str);
     str << " -> ";
     if (itemp()) {
         itemp()->dump(str);
@@ -1162,7 +1175,7 @@ void AstInitArray::dump(std::ostream& str) const {
     }
 }
 void AstJumpGo::dump(std::ostream& str) const {
-    this->AstNode::dump(str);
+    this->AstNodeStmt::dump(str);
     str << " -> ";
     if (labelp()) {
         labelp()->dump(str);
@@ -1171,7 +1184,7 @@ void AstJumpGo::dump(std::ostream& str) const {
     }
 }
 void AstJumpLabel::dump(std::ostream& str) const {
-    this->AstNode::dump(str);
+    this->AstNodeStmt::dump(str);
     str << " -> ";
     if (blockp()) {
         blockp()->dump(str);
@@ -1180,7 +1193,7 @@ void AstJumpLabel::dump(std::ostream& str) const {
     }
 }
 void AstMemberSel::dump(std::ostream& str) const {
-    this->AstNode::dump(str);
+    this->AstNodeMath::dump(str);
     str << " -> ";
     if (varp()) {
         varp()->dump(str);
@@ -1189,7 +1202,7 @@ void AstMemberSel::dump(std::ostream& str) const {
     }
 }
 void AstMethodCall::dump(std::ostream& str) const {
-    this->AstNode::dump(str);
+    this->AstNodeStmt::dump(str);
     if (isStatement()) str << " [STMT]";
     str << " -> ";
     if (taskp()) {
@@ -1230,27 +1243,30 @@ void AstPin::dump(std::ostream& str) const {
     if (svImplicit()) str << " [.SV]";
 }
 void AstPrintTimeScale::dump(std::ostream& str) const {
-    this->AstNode::dump(str);
+    this->AstNodeStmt::dump(str);
     str << " " << timeunit();
 }
+
+void AstNodeTermop::dump(std::ostream& str) const { this->AstNodeMath::dump(str); }
 void AstTime::dump(std::ostream& str) const {
-    this->AstNode::dump(str);
+    this->AstNodeTermop::dump(str);
     str << " " << timeunit();
 }
 void AstTimeD::dump(std::ostream& str) const {
-    this->AstNode::dump(str);
+    this->AstNodeTermop::dump(str);
     str << " " << timeunit();
 }
 void AstTimeImport::dump(std::ostream& str) const {
-    this->AstNode::dump(str);
+    this->AstNodeUniop::dump(str);
     str << " " << timeunit();
 }
 void AstTypedef::dump(std::ostream& str) const {
     this->AstNode::dump(str);
     if (attrPublic()) str << " [PUBLIC]";
 }
+void AstNodeRange::dump(std::ostream& str) const { this->AstNode::dump(str); }
 void AstRange::dump(std::ostream& str) const {
-    this->AstNode::dump(str);
+    this->AstNodeRange::dump(str);
     if (littleEndian()) str << " [LITTLE]";
 }
 void AstRefDType::dump(std::ostream& str) const {
@@ -1347,15 +1363,16 @@ void AstPackageImport::dump(std::ostream& str) const {
     this->AstNode::dump(str);
     str << " -> " << packagep();
 }
+void AstNodeTriop::dump(std::ostream& str) const { this->AstNodeMath::dump(str); }
 void AstSel::dump(std::ostream& str) const {
-    this->AstNode::dump(str);
+    this->AstNodeTriop::dump(str);
     if (declRange().ranged()) {
         str << " decl" << declRange() << "]";
         if (declElWidth() != 1) str << "/" << declElWidth();
     }
 }
 void AstSliceSel::dump(std::ostream& str) const {
-    this->AstNode::dump(str);
+    this->AstNodeTriop::dump(str);
     if (declRange().ranged()) str << " decl" << declRange();
 }
 void AstMTaskBody::dump(std::ostream& str) const {
@@ -1423,10 +1440,11 @@ void AstVarScope::dump(std::ostream& str) const {
         str << " ->UNLINKED";
     }
 }
+void AstNodeVarRef::dump(std::ostream& str) const { this->AstNodeMath::dump(str); }
 void AstVarXRef::dump(std::ostream& str) const {
-    this->AstNode::dump(str);
+    this->AstNodeVarRef::dump(str);
     if (packagep()) { str << " pkg=" << nodeAddr(packagep()); }
-    if (lvalue()) {
+    if (access().isWrite()) {
         str << " [LV] => ";
     } else {
         str << " [RV] <- ";
@@ -1442,9 +1460,9 @@ void AstVarXRef::dump(std::ostream& str) const {
     }
 }
 void AstVarRef::dump(std::ostream& str) const {
-    this->AstNode::dump(str);
+    this->AstNodeVarRef::dump(str);
     if (packagep()) { str << " pkg=" << nodeAddr(packagep()); }
-    if (lvalue()) {
+    if (access().isWrite()) {
         str << " [LV] => ";
     } else {
         str << " [RV] <- ";
@@ -1517,7 +1535,7 @@ void AstActive::dump(std::ostream& str) const {
     }
 }
 void AstNodeFTaskRef::dump(std::ostream& str) const {
-    this->AstNode::dump(str);
+    this->AstNodeStmt::dump(str);
     if (packagep()) { str << " pkg=" << nodeAddr(packagep()); }
     str << " -> ";
     if (dotted() != "") { str << ".=" << dotted() << " "; }
@@ -1549,7 +1567,7 @@ void AstBegin::dump(std::ostream& str) const {
     if (implied()) str << " [IMPLIED]";
 }
 void AstCoverDecl::dump(std::ostream& str) const {
-    this->AstNode::dump(str);
+    this->AstNodeStmt::dump(str);
     if (!page().empty()) str << " page=" << page();
     if (!linescov().empty()) str << " lc=" << linescov();
     if (this->dataDeclNullp()) {
@@ -1560,7 +1578,7 @@ void AstCoverDecl::dump(std::ostream& str) const {
     }
 }
 void AstCoverInc::dump(std::ostream& str) const {
-    this->AstNode::dump(str);
+    this->AstNodeStmt::dump(str);
     str << " -> ";
     if (declp()) {
         declp()->dump(str);
@@ -1573,7 +1591,7 @@ void AstFork::dump(std::ostream& str) const {
     if (!joinType().join()) str << " [" << joinType() << "]";
 }
 void AstTraceInc::dump(std::ostream& str) const {
-    this->AstNode::dump(str);
+    this->AstNodeStmt::dump(str);
     str << " -> ";
     if (declp()) {
         declp()->dump(str);
@@ -1592,10 +1610,11 @@ void AstNodeText::dump(std::ostream& str) const {
     str << " \"" << out << "\"";
 }
 
-void AstVFile::dump(std::ostream& str) const { this->AstNode::dump(str); }
+void AstNodeFile::dump(std::ostream& str) const { this->AstNode::dump(str); }
+void AstVFile::dump(std::ostream& str) const { this->AstNodeFile::dump(str); }
 
 void AstCFile::dump(std::ostream& str) const {
-    this->AstNode::dump(str);
+    this->AstNodeFile::dump(str);
     if (source()) str << " [SRC]";
     if (slow()) str << " [SLOW]";
 }
