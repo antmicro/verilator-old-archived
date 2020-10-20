@@ -111,31 +111,41 @@ namespace UhdmAst {
 
   AstBasicDTypeKwd get_kwd_for_type(int vpi_var_type) {
     switch(vpi_var_type) {
+      case vpiLogicTypespec:
       case vpiLogicVar: {
         return AstBasicDTypeKwd::LOGIC;
       }
+      case vpiIntTypespec:
       case vpiIntVar: {
         return AstBasicDTypeKwd::INT;
       }
+      case vpiLongIntTypespec:
       case vpiLongIntVar: {
         return AstBasicDTypeKwd::LONGINT;
       }
+      case vpiEnumTypespec:
+      case vpiIntegerTypespec:
       case vpiEnumVar:
       case vpiIntegerVar: {
         return AstBasicDTypeKwd::INTEGER;
       }
+      case vpiBitTypespec:
       case vpiBitVar: {
         return AstBasicDTypeKwd::BIT;
       }
+      case vpiByteTypespec:
       case vpiByteVar: {
         return AstBasicDTypeKwd::BYTE;
       }
+      case vpiRealTypespec:
       case vpiRealVar: {
         return AstBasicDTypeKwd::DOUBLE;
       }
+      case vpiStringTypespec:
       case vpiStringVar: {
         return AstBasicDTypeKwd::STRING;
       }
+      case vpiTimeTypespec:
       case vpiTimeVar: {
         return AstBasicDTypeKwd::TIME;
       }
