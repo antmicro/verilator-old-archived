@@ -2107,34 +2107,47 @@ namespace UhdmAst {
           return new AstTime(new FileLine("uhdm"),
               VTimescale::TS_1PS);  //TODO: revisit once we have it in UHDM
         } else if (objectName == "$display") {
+          AstNode* args = nullptr;
+          for (auto a : arguments) {
+            if (args == nullptr)
+              args = a;
+            else
+              args->addNextNull(a);
+          }
           return new AstDisplay(new FileLine("uhdm"),
                                 AstDisplayType(),
                                 nullptr,
-                                arguments[0]);
+                                args);
         } else if (objectName == "$value$plusargs") {
           return new AstValuePlusArgs(new FileLine("uhdm"),
                                       arguments[0],
                                       arguments[1]);
-        } else if (objectName == "$sformat") {
-          // TODO: This asssumes a string constant, but it could be a fairly
-          // complex structure instead
-          auto s = reinterpret_cast<AstConst*>(arguments[1])->num().toString();
+        } else if (objectName == "$sformat"
+                   || objectName == "$swrite") {
+          AstNode* args = nullptr;
+          // Start from second argument
+          for (auto it = ++arguments.begin(); it != arguments.end(); it++) {
+            if (args == nullptr)
+              args = *it;
+            else
+              args->addNextNull(*it);
+          }
           return new AstSFormat(new FileLine("uhdm"),
                                 arguments[0],
-                                s,
-                                arguments[2]);
+                                args);
         } else if (objectName == "$sformatf") {
-          auto s = reinterpret_cast<AstConst*>(arguments[0])->num().toString();
+          AstNode* args = nullptr;
+          // Start from second argument
+          for (auto it = arguments.begin(); it != arguments.end(); it++) {
+            if (args == nullptr)
+              args = *it;
+            else
+              args->addNextNull(*it);
+          }
           return new AstSFormatF(new FileLine("uhdm"),
-                                 s,
+                                 "",
                                  false,
-                                 arguments[1]);
-        } else if (objectName == "$swrite") {
-          auto s = reinterpret_cast<AstConst*>(arguments[1])->num().toString();
-          return new AstSFormat(new FileLine("uhdm"),
-                                arguments[0],
-                                s,
-                                nullptr);
+                                 args);
         } else if (objectName == "$finish") {
           return new AstFinish(new FileLine("uhdm"));
         } else if (objectName == "$fopen") {
