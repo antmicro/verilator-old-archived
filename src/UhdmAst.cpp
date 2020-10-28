@@ -396,17 +396,13 @@ namespace UhdmAst {
           }
           if (packagep != nullptr) {
             std::string symbol_name;
-            visit_one_to_one({
-                vpiImport
-                },
-                obj_h,
-                visited,
-                top_nodes,
-                [&](AstNode* node){
-                  symbol_name = node->name();
-                });
-            // Strip "" from name
-            symbol_name = symbol_name.substr(1, symbol_name.length()-2);
+            vpiHandle imported_name = vpi_handle(vpiImport, obj_h);
+            if (imported_name) {
+              s_vpi_value val;
+              vpi_get_value(imported_name, &val);
+              symbol_name = val.value.str;
+            }
+            vpi_free_object(itr);
             auto* package_import = new AstPackageImport(new FileLine("uhdm"),
                                                     packagep,
                                                     symbol_name);
