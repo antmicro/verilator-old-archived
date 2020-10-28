@@ -155,7 +155,7 @@ namespace UhdmAst {
       case vpiStringVal: {
         std::string valStr(val.value.str);
         value_node = new AstConst(new FileLine("uhdm"),
-                                  AstConst::String(),
+                                  AstConst::VerilogStringLiteral(),
                                   deQuote(new FileLine("uhdm"), valStr));
         break;
       }
