@@ -344,6 +344,7 @@ namespace UhdmAst {
             port = new AstPort(new FileLine("uhdm"), ++numPorts, objectName);
             port->addNextNull(var);
             var->childDTypep(dtype);
+            var->dtypep(dtype);
             return port;
           }
           // Get range from actual
@@ -378,6 +379,7 @@ namespace UhdmAst {
         port = new AstPort(new FileLine("uhdm"), ++numPorts, objectName);
         port->addNextNull(var);
         var->childDTypep(dtype);
+        var->dtypep(dtype);
 
         if (v3Global.opt.trace()) {
             var->trace(true);
@@ -696,6 +698,7 @@ namespace UhdmAst {
                                objectName, unpack_dtypep);
         // FIXME: delete vpi_net? vpi_net->destroy()?
         v->childDTypep(unpack_dtypep);
+        v->dtypep(unpack_dtypep);
         return v;
       }
 
@@ -753,6 +756,7 @@ namespace UhdmAst {
         // Packed or non-arrays
         v = new AstVar(new FileLine("uhdm"), net_type, objectName, dtype);
         v->childDTypep(dtype);
+        v->dtypep(dtype);
 
         return v;
       }
@@ -828,6 +832,7 @@ namespace UhdmAst {
                              objectName,
                              refdtype);
         v->childDTypep(refdtype);
+        v->dtypep(refdtype);
         return v;
       }
       case vpiStructVar: {
@@ -841,6 +846,7 @@ namespace UhdmAst {
                              objectName,
                              dtype);
         v->childDTypep(dtype);
+        v->dtypep(dtype);
         return v;
       }
       case vpiParameter:
@@ -937,6 +943,7 @@ namespace UhdmAst {
                                objectName,
                                dtype);
         parameter->childDTypep(dtype);
+        parameter->dtypep(dtype);
 
         // if no value: bail
         if (parameter_value == nullptr) {
@@ -1101,6 +1108,7 @@ namespace UhdmAst {
                          objectName,
                          dtype);
         var->childDTypep(dtype);
+        var->dtypep(dtype);
         var->declDirection(dir);
         var->direction(dir);
         return var;
@@ -2613,6 +2621,7 @@ namespace UhdmAst {
               objectName,
               reinterpret_cast<AstNodeDType*>(typespec));
           member->childDTypep(typespec);
+          member->dtypep(typespec);
           return member;
         }
         return nullptr;
@@ -2659,6 +2668,8 @@ namespace UhdmAst {
                          AstVarType::VAR,
                          objectName,
                          dtype);
+        var->childDTypep(dtype);
+        var->dtypep(dtype);
         visit_one_to_one({vpiExpr}, obj_h, visited, top_nodes,
             [&](AstNode* item) {
               var->valuep(item);
@@ -2710,6 +2721,8 @@ namespace UhdmAst {
                          objectName,
                          VFlagChildDType(),
                          dtype);
+        var->childDTypep(dtype);
+        var->dtypep(dtype);
         return var;
       }
       case vpiChandleVar: {
@@ -2720,6 +2733,8 @@ namespace UhdmAst {
                                objectName,
                                VFlagChildDType(),
                                dtype);
+        var->childDTypep(dtype);
+        var->dtypep(dtype);
         return var;
       }
       case vpiGenScopeArray: {
