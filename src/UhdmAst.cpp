@@ -214,6 +214,7 @@ namespace UhdmAst {
 
   std::set<std::tuple<std::string, int, std::string>> coverage_set;
   std::map<std::string, AstNode*> pinMap;
+  std::map<std::string, AstNode*> partialModules;
 
   AstNode* visit_object (vpiHandle obj_h,
         std::set<const UHDM::BaseClass*> visited,
@@ -420,8 +421,8 @@ namespace UhdmAst {
         AstModule *module;
 
         // Check if we have encountered this object before
-        auto it = top_nodes->find(modType);
-        if (it != top_nodes->end()) {
+        auto it = partialModules.find(modType);
+        if (it != partialModules.end()) {
           // Was created before, fill missing
           module = reinterpret_cast<AstModule*>(it->second);
           AstModule* full_module = nullptr;
@@ -515,7 +516,7 @@ namespace UhdmAst {
                 // ignore, currently would create duplicate nodes
                 //TODO: Revisit this handling
               });
-          (*top_nodes)[module->name()] = module;
+          (partialModules)[module->name()] = module;
         }
 
         if (objectName != modType) {
