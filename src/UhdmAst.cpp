@@ -2917,7 +2917,8 @@ namespace UhdmAst {
     std::set<const UHDM::BaseClass*> visited;
     std::map<std::string, AstNodeModule*> top_nodes;
     // Package for top-level class definitions
-    auto* class_package = new AstPackage(new FileLine("uhdm"), "AllClasses");
+    // Created and added only if there are classes in the design
+    AstPackage* class_package = nullptr;
     for (auto design : designs) {
         visit_one_to_many({
             UHDM::uhdmallPackages,  // Keep this first, packages need to be defined before any imports
@@ -2951,6 +2952,9 @@ namespace UhdmAst {
             &top_nodes,
             [&](AstNode* class_def) {
               if (class_def != nullptr) {
+                if (class_package == nullptr) {
+                  class_package = new AstPackage(new FileLine("uhdm"), "AllClasses");
+                }
                 UINFO(6, "Adding class " << class_def->name() << std::endl);
                 class_package->addStmtp(class_def);
               }
@@ -2965,7 +2969,9 @@ namespace UhdmAst {
     std::vector<AstNodeModule*> nodes;
     for (auto node : top_nodes)
               nodes.push_back(node.second);
-    nodes.push_back(class_package);
+    if (class_package != nullptr) {
+      nodes.push_back(class_package);
+    }
     return nodes;
   }
 
