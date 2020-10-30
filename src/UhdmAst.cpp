@@ -341,10 +341,10 @@ namespace UhdmAst {
             var = new AstVar(new FileLine("uhdm"),
                              AstVarType::IFACEREF,
                              objectName,
+                             VFlagChildDType(),
                              dtype);
             port = new AstPort(new FileLine("uhdm"), ++numPorts, objectName);
             port->addNextNull(var);
-            var->childDTypep(dtype);
             var->dtypep(dtype);
             return port;
           }
@@ -360,6 +360,7 @@ namespace UhdmAst {
         var = new AstVar(new FileLine("uhdm"),
                          AstVarType::PORT,
                          objectName,
+                         VFlagChildDType(),
                          dtype);
 
         if (const int n = vpi_get(vpiDirection, obj_h)) {
@@ -379,8 +380,6 @@ namespace UhdmAst {
 
         port = new AstPort(new FileLine("uhdm"), ++numPorts, objectName);
         port->addNextNull(var);
-        var->childDTypep(dtype);
-        var->dtypep(dtype);
 
         if (v3Global.opt.trace()) {
             var->trace(true);
@@ -696,9 +695,10 @@ namespace UhdmAst {
                                   vpi_net->subDTypep(), unpacked_range);
 
         AstVar* v = new AstVar(new FileLine("uhdm"), vpi_net->varType(),
-                               objectName, unpack_dtypep);
+                               objectName,
+                               VFlagChildDType(),
+                               unpack_dtypep);
         // FIXME: delete vpi_net? vpi_net->destroy()?
-        v->childDTypep(unpack_dtypep);
         v->dtypep(unpack_dtypep);
         return v;
       }
@@ -755,8 +755,9 @@ namespace UhdmAst {
         }
 
         // Packed or non-arrays
-        v = new AstVar(new FileLine("uhdm"), net_type, objectName, dtype);
-        v->childDTypep(dtype);
+        v = new AstVar(new FileLine("uhdm"), net_type, objectName,
+                       VFlagChildDType(),
+                       dtype);
         v->dtypep(dtype);
 
         return v;
@@ -831,8 +832,8 @@ namespace UhdmAst {
         auto* v = new AstVar(new FileLine("uhdm"),
                              AstVarType::VAR,
                              objectName,
+                             VFlagChildDType(),
                              refdtype);
-        v->childDTypep(refdtype);
         v->dtypep(refdtype);
         return v;
       }
@@ -845,8 +846,8 @@ namespace UhdmAst {
         auto* v = new AstVar(new FileLine("uhdm"),
                              AstVarType::VAR,
                              objectName,
+                             VFlagChildDType(),
                              dtype);
-        v->childDTypep(dtype);
         v->dtypep(dtype);
         return v;
       }
@@ -939,17 +940,16 @@ namespace UhdmAst {
         else
           parameter_type = AstVarType::GPARAM;
 
-        parameter = new AstVar(new FileLine("uhdm"),
-                               parameter_type,
-                               objectName,
-                               dtype);
-        parameter->childDTypep(dtype);
-        parameter->dtypep(dtype);
 
         // if no value: bail
         if (parameter_value == nullptr) {
           return nullptr;
         } else {
+          parameter = new AstVar(new FileLine("uhdm"),
+                                 parameter_type,
+                                 objectName,
+                                 VFlagChildDType(),
+                                 dtype);
           parameter->valuep(parameter_value);
           return parameter;
         }
@@ -1107,8 +1107,8 @@ namespace UhdmAst {
         auto* var = new AstVar(new FileLine("uhdm"),
                          AstVarType::PORT,
                          objectName,
+                         VFlagChildDType(),
                          dtype);
-        var->childDTypep(dtype);
         var->dtypep(dtype);
         var->declDirection(dir);
         var->direction(dir);
@@ -2668,8 +2668,8 @@ namespace UhdmAst {
         auto* var = new AstVar(new FileLine("uhdm"),
                          AstVarType::VAR,
                          objectName,
+                         VFlagChildDType(),
                          dtype);
-        var->childDTypep(dtype);
         var->dtypep(dtype);
         visit_one_to_one({vpiExpr}, obj_h, visited, top_nodes,
             [&](AstNode* item) {
@@ -2722,7 +2722,6 @@ namespace UhdmAst {
                          objectName,
                          VFlagChildDType(),
                          dtype);
-        var->childDTypep(dtype);
         var->dtypep(dtype);
         return var;
       }
@@ -2734,7 +2733,6 @@ namespace UhdmAst {
                                objectName,
                                VFlagChildDType(),
                                dtype);
-        var->childDTypep(dtype);
         var->dtypep(dtype);
         return var;
       }
