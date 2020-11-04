@@ -2529,13 +2529,9 @@ namespace UhdmAst {
         return new AstVoidDType(new FileLine("uhdm"));
       }
       case vpiEnumTypespec: {
-        static std::set<std::string> enum_list;
-        if (enum_list.find(objectName) == enum_list.end()) {
-          enum_list.insert({objectName});
-        } else {
-          v3info("This is a duplicate enum: " << objectName);
-          return new AstRefDType(new FileLine("uhdm"), objectName);
-        }
+        const uhdm_handle* const handle = (const uhdm_handle*) obj_h;
+        const UHDM::BaseClass* const object = (const UHDM::BaseClass*) handle->object;
+        visited_types[object] = package_prefix + objectName;
         AstNode* enum_members = nullptr;
         AstNodeDType* enum_member_dtype = nullptr;
 
