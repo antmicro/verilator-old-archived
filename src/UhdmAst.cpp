@@ -273,6 +273,7 @@ namespace UhdmAst {
     }
     visited.insert(object);
     if (alreadyVisited) {
+      UINFO(6, "Object " << objectName << " was already visited" << std::endl);
       return node;
     }
 
