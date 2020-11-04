@@ -2659,19 +2659,49 @@ namespace UhdmAst {
       case vpiBitVar:
       case vpiByteVar: {
         AstRange* var_range = nullptr;
-        visit_one_to_many({vpiRange}, obj_h, visited, top_nodes,
-          [&](AstNode* item){
-            if (item) {
-                var_range = reinterpret_cast<AstRange*>(item);
-            }
-          });
+        AstNodeDType* dtype = nullptr;
         AstBasicDTypeKwd type_kwd = get_kwd_for_type(objectType);
         if (type_kwd == AstBasicDTypeKwd::UNKNOWN) {
-          v3error("Unexpected object type for var: " << UHDM::VpiTypeName(obj_h));
+          if (objectType == vpiEnumVar) {
+            std::string type_string;
+            auto typespec_h = vpi_handle(vpiTypespec, obj_h);
+            const uhdm_handle* const handle = (const uhdm_handle*) typespec_h;
+            const UHDM::BaseClass* const object = (const UHDM::BaseClass*) handle->object;
+            if (visited_types.find(object) != visited_types.end()) {
+              type_string = visited_types[object];
+              size_t delimiter_pos = type_string.find("::");
+              if (delimiter_pos == string::npos) {
+                dtype = new AstRefDType(new FileLine("uhdm"),
+                                        type_string);
+              } else {
+                auto classpackageName = type_string.substr(0, delimiter_pos);
+                auto type_name = type_string.substr(delimiter_pos + 2, type_string.length());
+                AstPackage* classpackagep = nullptr;
+                auto it = package_map.find(classpackageName);
+                if (it != package_map.end()) {
+                  classpackagep = it->second;
+                }
+                AstNode* classpackageref = new AstClassOrPackageRef(new FileLine("uhdm"),
+                    classpackageName,
+                    classpackagep,
+                    nullptr);
+                dtype = new AstRefDType(new FileLine("uhdm"),
+                                        type_name,
+                                        classpackageref,
+                                        nullptr);
+              }
+            } else {
+              v3error("Unknown object type for enum var: " << objectName);
+            }
+          } else {
+            v3error("Unexpected object type for var: " << UHDM::VpiTypeName(obj_h));
+          }
+        } else {
+          auto basicdtype = new AstBasicDType(new FileLine("uhdm"),
+                                          type_kwd);
+          basicdtype->rangep(var_range);
+          dtype = basicdtype;
         }
-        auto* dtype = new AstBasicDType(new FileLine("uhdm"),
-                                        type_kwd);
-        dtype->rangep(var_range);
         auto* var = new AstVar(new FileLine("uhdm"),
                          AstVarType::VAR,
                          objectName,
