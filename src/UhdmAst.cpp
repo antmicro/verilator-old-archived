@@ -220,6 +220,8 @@ namespace UhdmAst {
   std::set<std::tuple<std::string, int, std::string>> coverage_set;
   std::map<std::string, AstNode*> pinMap;
   std::map<std::string, AstNode*> partialModules;
+  std::string package_prefix;
+  std::unordered_map<const UHDM::BaseClass*, std::string> visited_types;
 
   AstNode* visit_object (vpiHandle obj_h,
         std::set<const UHDM::BaseClass*> visited,
@@ -290,6 +292,7 @@ namespace UhdmAst {
       }
       case vpiPackage: {
         auto* package = new AstPackage(new FileLine("uhdm"), objectName);
+        package_prefix += objectName + "::";
         visit_one_to_many({
             vpiParameter,
             vpiParamAssign,
@@ -308,6 +311,8 @@ namespace UhdmAst {
                 package->addStmtp(item);
               }
             });
+        package_prefix = package_prefix.substr(0,
+            package_prefix.length() - (objectName.length() + 2));
 
         package_map[objectName] = package;
         return package;
