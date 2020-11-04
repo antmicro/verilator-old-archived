@@ -180,9 +180,7 @@ namespace UhdmAst {
       case vpiLongIntVar: {
         return AstBasicDTypeKwd::LONGINT;
       }
-      case vpiEnumTypespec:
       case vpiIntegerTypespec:
-      case vpiEnumVar:
       case vpiIntegerVar: {
         return AstBasicDTypeKwd::INTEGER;
       }
@@ -205,6 +203,13 @@ namespace UhdmAst {
       case vpiTimeTypespec:
       case vpiTimeVar: {
         return AstBasicDTypeKwd::TIME;
+      }
+      case vpiEnumTypespec:
+      case vpiEnumVar:
+      case vpiStructTypespec:
+      case vpiUnionTypespec: {
+        // Not a basic dtype, needs further handling
+        return AstBasicDTypeKwd::UNKNOWN;
       }
       default:
         v3error("Unknown object type");
