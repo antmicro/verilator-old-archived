@@ -881,10 +881,8 @@ namespace UhdmAst {
         return v;
       }
       case vpiStructVar: {
-        // Typespec is visited separately, grab only reference here
         auto typespec_h = vpi_handle(vpiTypespec, obj_h);
-        std::string data_type_name = vpi_get_str(vpiName, typespec_h);
-        auto* dtype = new AstRefDType(new FileLine("uhdm"), data_type_name);
+        AstNodeDType* dtype = getDType(typespec_h, visited, top_nodes);
 
         auto* v = new AstVar(new FileLine("uhdm"),
                              AstVarType::VAR,
@@ -2597,6 +2595,9 @@ namespace UhdmAst {
         return enum_type;
       }
       case vpiStructTypespec: {
+        const uhdm_handle* const handle = (const uhdm_handle*) obj_h;
+        const UHDM::BaseClass* const object = (const UHDM::BaseClass*) handle->object;
+        visited_types[object] = package_prefix + objectName;
         // VSigning below is used in AstStructDtype to indicate
         // if packed or not
         VSigning packed;
