@@ -10,6 +10,11 @@
 namespace UhdmAst {
 
   std::map<std::string, AstPackage*> package_map;
+  std::string package_prefix;
+  std::map<std::string, AstNode*> partialModules;
+  std::unordered_map<const UHDM::BaseClass*, std::string> visited_types;
+  std::set<std::tuple<std::string, int, std::string>> coverage_set;
+
   // Walks through one-to-many relationships from given parent
   // node through the VPI interface, visiting child nodes belonging to
   // ChildrenNodeTypes that are present in the given object.
@@ -217,11 +222,74 @@ namespace UhdmAst {
     return AstBasicDTypeKwd::UNKNOWN;
   }
 
-  std::set<std::tuple<std::string, int, std::string>> coverage_set;
-  std::map<std::string, AstNode*> pinMap;
-  std::map<std::string, AstNode*> partialModules;
-  std::string package_prefix;
-  std::unordered_map<const UHDM::BaseClass*, std::string> visited_types;
+  AstNodeDType* getDType(vpiHandle typespec_h,
+        std::set<const UHDM::BaseClass*> visited,
+        std::map<std::string, AstNodeModule*>* top_nodes) {
+    AstNodeDType* dtype = nullptr;
+    auto type = vpi_get(vpiType, typespec_h);
+    AstBasicDTypeKwd keyword = AstBasicDTypeKwd::UNKNOWN;
+    switch(type) {
+      case vpiLogicTypespec:
+      case vpiIntTypespec:
+      case vpiLongIntTypespec:
+      case vpiIntegerTypespec:
+      case vpiBitTypespec:
+      case vpiByteTypespec:
+      case vpiRealTypespec:
+      case vpiStringTypespec:
+      case vpiTimeTypespec: {
+        AstBasicDTypeKwd keyword = get_kwd_for_type(type);
+        auto basic = new AstBasicDType(new FileLine("uhdm"), keyword);
+        AstRange* rangeNode = nullptr;
+        visit_one_to_many({vpiRange}, typespec_h, visited, top_nodes,
+            [&](AstNode* node){
+              rangeNode = reinterpret_cast<AstRange*>(node);
+            });
+        basic->rangep(rangeNode);
+        dtype = basic;
+        break;
+      }
+      case vpiEnumTypespec:
+      case vpiEnumVar:
+      case vpiStructTypespec:
+      case vpiUnionTypespec: {
+        std::string type_string;
+        const uhdm_handle* const handle = (const uhdm_handle*) typespec_h;
+        const UHDM::BaseClass* const object = (const UHDM::BaseClass*) handle->object;
+        if (visited_types.find(object) != visited_types.end()) {
+          type_string = visited_types[object];
+          size_t delimiter_pos = type_string.find("::");
+          if (delimiter_pos == string::npos) {
+            dtype = new AstRefDType(new FileLine("uhdm"),
+                                    type_string);
+          } else {
+            auto classpackageName = type_string.substr(0, delimiter_pos);
+            auto type_name = type_string.substr(delimiter_pos + 2, type_string.length());
+            AstPackage* classpackagep = nullptr;
+            auto it = package_map.find(classpackageName);
+            if (it != package_map.end()) {
+              classpackagep = it->second;
+            }
+            AstNode* classpackageref = new AstClassOrPackageRef(new FileLine("uhdm"),
+                classpackageName,
+                classpackagep,
+                nullptr);
+            dtype = new AstRefDType(new FileLine("uhdm"),
+                                    type_name,
+                                    classpackageref,
+                                    nullptr);
+          }
+        } else {
+          v3error("Unknown object type for enum/struct/union var");
+        }
+        break;
+      }
+      default:
+        v3error("Unknown object type: " << UHDM::VpiTypeName(typespec_h));
+    }
+    return dtype;
+  }
+
 
   AstNode* visit_object (vpiHandle obj_h,
         std::set<const UHDM::BaseClass*> visited,
@@ -793,43 +861,7 @@ namespace UhdmAst {
           AstRange* var_range = nullptr;
           AstBasicDTypeKwd type_kwd = AstBasicDTypeKwd::UNKNOWN;
           auto type = vpi_get(vpiType, typespec_h);
-          switch(vpi_get(vpiType, typespec_h)) {
-            case vpiLogicTypespec: {
-              type_kwd = AstBasicDTypeKwd::LOGIC;
-              break;
-            }
-            case vpiIntTypespec: {
-              type_kwd = AstBasicDTypeKwd::INT;
-              break;
-            }
-            case vpiIntegerTypespec:
-            case vpiEnumTypespec: {
-              type_kwd = AstBasicDTypeKwd::INTEGER;
-              break;
-            }
-            case vpiBitTypespec: {
-              type_kwd = AstBasicDTypeKwd::BIT;
-              break;
-            }
-            case vpiByteTypespec: {
-              type_kwd = AstBasicDTypeKwd::BYTE;
-              break;
-            }
-            case vpiStringTypespec: {
-              type_kwd = AstBasicDTypeKwd::STRING;
-              break;
-            }
-            case vpiStructTypespec: {
-              // Special case, skip basic type handling
-              type_kwd = AstBasicDTypeKwd::UNKNOWN;
-              // Typespec is visited separately, grab only reference here
-              std::string data_type_name = vpi_get_str(vpiName, typespec_h);
-              dtype = new AstRefDType(new FileLine("uhdm"), data_type_name);
-              break;
-            }
-            default:
-              v3error("Unexpected object type for var: " << UHDM::VpiTypeName(typespec_h));
-          }
+          dtype = getDType(typespec_h, visited, top_nodes);
         } else {
           v3error("Missing typespec for packed_array_var: " << objectName);
         }
@@ -895,33 +927,9 @@ namespace UhdmAst {
         }
 
         AstNodeDType* dtype = nullptr;
-        visit_one_to_one({vpiTypespec}, parameter_h, visited, top_nodes,
-            [&](AstNode* node){
-              // This seems to cause a SegFault in AstVar creation
-              //dtype = reinterpret_cast<AstNodeDType*>(node);
-              // Type is handled below
-            });
         auto typespec_h = vpi_handle(vpiTypespec, parameter_h);
         if (typespec_h) {
-          AstRange* var_range = nullptr;
-          visit_one_to_many({vpiRange}, typespec_h, visited, top_nodes,
-            [&](AstNode* item){
-              if (item) {
-                  var_range = reinterpret_cast<AstRange*>(item);
-              }
-            });
-          AstBasicDTypeKwd type_kwd = AstBasicDTypeKwd::UNKNOWN;
-          auto type = vpi_get(vpiType, typespec_h);
-          type_kwd = get_kwd_for_type(type);
-          if (type_kwd != AstBasicDTypeKwd::UNKNOWN) {
-            // More specific pointer for range setting
-            auto* basic_dtype = new AstBasicDType(new FileLine("uhdm"),
-                                            type_kwd);
-            basic_dtype->rangep(var_range);
-            dtype = basic_dtype;
-          } else {
-            v3error("Unexpected object type for parameter: " << UHDM::VpiTypeName(obj_h));
-          }
+          dtype = getDType(typespec_h, visited, top_nodes);
         }
 
         // If no typespec provided assume default
@@ -2659,44 +2667,12 @@ namespace UhdmAst {
       case vpiBitVar:
       case vpiByteVar: {
         AstRange* var_range = nullptr;
+        auto typespec_h = vpi_handle(vpiTypespec, obj_h);
         AstNodeDType* dtype = nullptr;
-        AstBasicDTypeKwd type_kwd = get_kwd_for_type(objectType);
-        if (type_kwd == AstBasicDTypeKwd::UNKNOWN) {
-          if (objectType == vpiEnumVar) {
-            std::string type_string;
-            auto typespec_h = vpi_handle(vpiTypespec, obj_h);
-            const uhdm_handle* const handle = (const uhdm_handle*) typespec_h;
-            const UHDM::BaseClass* const object = (const UHDM::BaseClass*) handle->object;
-            if (visited_types.find(object) != visited_types.end()) {
-              type_string = visited_types[object];
-              size_t delimiter_pos = type_string.find("::");
-              if (delimiter_pos == string::npos) {
-                dtype = new AstRefDType(new FileLine("uhdm"),
-                                        type_string);
-              } else {
-                auto classpackageName = type_string.substr(0, delimiter_pos);
-                auto type_name = type_string.substr(delimiter_pos + 2, type_string.length());
-                AstPackage* classpackagep = nullptr;
-                auto it = package_map.find(classpackageName);
-                if (it != package_map.end()) {
-                  classpackagep = it->second;
-                }
-                AstNode* classpackageref = new AstClassOrPackageRef(new FileLine("uhdm"),
-                    classpackageName,
-                    classpackagep,
-                    nullptr);
-                dtype = new AstRefDType(new FileLine("uhdm"),
-                                        type_name,
-                                        classpackageref,
-                                        nullptr);
-              }
-            } else {
-              v3error("Unknown object type for enum var: " << objectName);
-            }
-          } else {
-            v3error("Unexpected object type for var: " << UHDM::VpiTypeName(obj_h));
-          }
+        if (typespec_h) {
+          dtype = getDType(typespec_h, visited, top_nodes);
         } else {
+          auto type_kwd = get_kwd_for_type(objectType);
           auto basicdtype = new AstBasicDType(new FileLine("uhdm"),
                                           type_kwd);
           basicdtype->rangep(var_range);
@@ -2727,16 +2703,7 @@ namespace UhdmAst {
           std::string type_name;
           auto type_h = vpi_handle(vpiTypespec, member_h);
           if (type_h) {
-            if (auto s = vpi_get_str(vpiName, type_h)) {
-              type_name = s;
-              sanitize_str(type_name);
-            }
-            dtype = new AstRefDType(new FileLine("uhdm"), type_name);
-          } else {
-            // Basic types
-            AstBasicDTypeKwd type_kwd = get_kwd_for_type(vpi_get(vpiType, member_h));
-            dtype = new AstBasicDType(new FileLine("uhdm"),
-                                      type_kwd);
+            dtype = getDType(type_h, visited, top_nodes);
           }
           vpi_free_object(member_h);
         }
