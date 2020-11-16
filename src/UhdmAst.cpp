@@ -174,6 +174,7 @@ namespace UhdmAst {
   AstBasicDTypeKwd get_kwd_for_type(int vpi_var_type) {
     switch(vpi_var_type) {
       case vpiLogicTypespec:
+      case vpiLogicNet:
       case vpiLogicVar: {
         return AstBasicDTypeKwd::LOGIC;
       }
@@ -186,6 +187,7 @@ namespace UhdmAst {
         return AstBasicDTypeKwd::LONGINT;
       }
       case vpiIntegerTypespec:
+      case vpiIntegerNet:
       case vpiIntegerVar: {
         return AstBasicDTypeKwd::INTEGER;
       }
@@ -206,12 +208,15 @@ namespace UhdmAst {
         return AstBasicDTypeKwd::STRING;
       }
       case vpiTimeTypespec:
+      case vpiTimeNet:
       case vpiTimeVar: {
         return AstBasicDTypeKwd::TIME;
       }
       case vpiEnumTypespec:
       case vpiEnumVar:
+      case vpiEnumNet:
       case vpiStructTypespec:
+      case vpiStructNet:
       case vpiUnionTypespec: {
         // Not a basic dtype, needs further handling
         return AstBasicDTypeKwd::UNKNOWN;
@@ -222,13 +227,47 @@ namespace UhdmAst {
     return AstBasicDTypeKwd::UNKNOWN;
   }
 
-  AstNodeDType* getDType(vpiHandle typespec_h,
+  AstNodeDType* getDType(vpiHandle obj_h,
         std::set<const UHDM::BaseClass*> visited,
         std::map<std::string, AstNodeModule*>* top_nodes) {
     AstNodeDType* dtype = nullptr;
-    auto type = vpi_get(vpiType, typespec_h);
+    auto type = vpi_get(vpiType, obj_h);
+    if (type == vpiPort) {
+      auto ref_h = vpi_handle(vpiLowConn, obj_h);
+      auto actual_h = vpi_handle(vpiActual, ref_h);
+      auto ref_type = vpi_get(vpiType, actual_h);
+      if (ref_type == vpiLogicNet ||
+          ref_type == vpiIntegerNet ||
+          ref_type == vpiTimeNet ||
+          ref_type == vpiArrayNet ||
+          ref_type == vpiPackedArrayNet) {
+        type = ref_type;
+        obj_h = actual_h;
+      } else
+        if (ref_type == vpiEnumNet ||
+            ref_type == vpiStructNet ||
+            ref_type == vpiEnumVar) {
+        auto typespec_h = vpi_handle(vpiTypedef, obj_h);
+        if (typespec_h) {
+          type = vpi_get(vpiType, typespec_h);
+          obj_h = typespec_h;
+        }
+      }
+    }
+    if (type == vpiEnumNet ||
+        type == vpiStructNet ||
+        type == vpiEnumVar) {
+      auto typespec_h = vpi_handle(vpiTypespec, obj_h);
+      if (typespec_h) {
+        type = vpi_get(vpiType, typespec_h);
+        obj_h = typespec_h;
+      }
+    }
     AstBasicDTypeKwd keyword = AstBasicDTypeKwd::UNKNOWN;
     switch(type) {
+      case vpiLogicNet:
+      case vpiIntegerNet:
+      case vpiTimeNet:
       case vpiLogicTypespec:
       case vpiIntTypespec:
       case vpiLongIntTypespec:
@@ -241,7 +280,7 @@ namespace UhdmAst {
         AstBasicDTypeKwd keyword = get_kwd_for_type(type);
         auto basic = new AstBasicDType(new FileLine("uhdm"), keyword);
         AstRange* rangeNode = nullptr;
-        visit_one_to_many({vpiRange}, typespec_h, visited, top_nodes,
+        visit_one_to_many({vpiRange}, obj_h, visited, top_nodes,
             [&](AstNode* node){
               rangeNode = reinterpret_cast<AstRange*>(node);
             });
@@ -249,12 +288,15 @@ namespace UhdmAst {
         dtype = basic;
         break;
       }
-      case vpiEnumTypespec:
+      case vpiEnumNet:
+      case vpiStructNet:
       case vpiEnumVar:
+
+      case vpiEnumTypespec:
       case vpiStructTypespec:
       case vpiUnionTypespec: {
         std::string type_string;
-        const uhdm_handle* const handle = (const uhdm_handle*) typespec_h;
+        const uhdm_handle* const handle = (const uhdm_handle*) obj_h;
         const UHDM::BaseClass* const object = (const UHDM::BaseClass*) handle->object;
         if (visited_types.find(object) != visited_types.end()) {
           type_string = visited_types[object];
@@ -284,8 +326,36 @@ namespace UhdmAst {
         }
         break;
       }
+      case vpiArrayNet: {
+        AstRange* unpacked_range = nullptr;
+        AstNodeDType* subDTypep = nullptr;
+
+        vpiHandle itr = vpi_iterate(vpiNet, obj_h);
+        while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
+          subDTypep = getDType(vpi_child_obj, visited, top_nodes);
+          vpi_free_object(vpi_child_obj);
+        }
+        vpi_free_object(itr);
+
+        visit_one_to_many({vpiRange}, obj_h, visited, top_nodes,
+            [&](AstNode* node){
+              if ((node != nullptr) && (unpacked_range == nullptr)) {
+                unpacked_range = reinterpret_cast<AstRange*>(node);
+              }
+            });
+
+        if ((subDTypep == nullptr) || (unpacked_range == nullptr)) {
+          v3error("Missing net and/or unpacked range");
+          return nullptr;
+        }
+
+        dtype =
+          new AstUnpackArrayDType(new FileLine("uhdm"), VFlagChildDType(),
+                                  subDTypep, unpacked_range);
+        break;
+      }
       default:
-        v3error("Unknown object type: " << UHDM::VpiTypeName(typespec_h));
+        v3error("Unknown object type: " << UHDM::VpiTypeName(obj_h));
     }
     return dtype;
   }
@@ -428,14 +498,17 @@ namespace UhdmAst {
             return port;
           }
           // Get range from actual
-          visit_one_to_many({vpiRange}, actual_h, visited, top_nodes,
-              [&](AstNode* node){
-                rangeNode = reinterpret_cast<AstRange*>(node);
-              });
         }
-        auto* dtype = new AstBasicDType(new FileLine("uhdm"),
-                                  AstBasicDTypeKwd::LOGIC);
-        dtype->rangep(rangeNode);
+        AstNodeDType* dtype = nullptr;
+        dtype = getDType(obj_h, visited, top_nodes);
+        if (dtype == nullptr) {
+          v3info(
+              "Unresolved port dtype for " << objectName << ", falling back to logic");
+          auto* basic = new AstBasicDType(new FileLine("uhdm"),
+                                    AstBasicDTypeKwd::LOGIC);
+          basic->rangep(rangeNode);
+          dtype = basic;
+        }
         var = new AstVar(new FileLine("uhdm"),
                          AstVarType::PORT,
                          objectName,
@@ -748,8 +821,6 @@ namespace UhdmAst {
       case vpiNetArray: {// also defined as vpiArrayNet
         // vpiNetArray is used for unpacked arrays
         AstVar* vpi_net = nullptr;
-        AstRange* unpacked_range = nullptr;
-
         visit_one_to_many({vpiNet}, obj_h, visited, top_nodes,
             [&](AstNode* node){
               if ((node != nullptr) && (vpi_net == nullptr)) {
@@ -757,89 +828,34 @@ namespace UhdmAst {
               }
             });
 
-        visit_one_to_many({vpiRange}, obj_h, visited, top_nodes,
-            [&](AstNode* node){
-              if ((node != nullptr) && (unpacked_range == nullptr)) {
-                unpacked_range = reinterpret_cast<AstRange*>(node);
-              }
-            });
-
-        // FIXME: assert(vpi_net != nullptr && unpacked_range != nullptr);
-        if ((vpi_net == nullptr) || (unpacked_range == nullptr))
-          return nullptr;
-
-        // create unpacked dtype
-        AstUnpackArrayDType* unpack_dtypep =
-          new AstUnpackArrayDType(new FileLine("uhdm"), VFlagChildDType(),
-                                  vpi_net->subDTypep(), unpacked_range);
-
+        auto dtypep = getDType(obj_h, visited, top_nodes);
         AstVar* v = new AstVar(new FileLine("uhdm"), vpi_net->varType(),
                                objectName,
                                VFlagChildDType(),
-                               unpack_dtypep);
-        // FIXME: delete vpi_net? vpi_net->destroy()?
-        v->dtypep(unpack_dtypep);
+                               dtypep);
         return v;
       }
 
-      case vpiNet: {
+      case vpiEnumNet:
+      case vpiStructNet:
+      case vpiIntegerNet:
+      case vpiTimeNet:
+      case vpiPackedArrayNet:
+      case vpiLogicNet: {  // also defined as vpiNet
         AstNodeDType *dtype = nullptr;
-        AstVarType net_type = AstVarType::UNKNOWN;
+        AstVarType net_type = AstVarType::VAR;
         AstBasicDTypeKwd dtypeKwd = AstBasicDTypeKwd::LOGIC_IMPLICIT;
         vpiHandle obj_net;
+          dtype = getDType(obj_h, visited, top_nodes);
 
-        auto netType = vpi_get(vpiNetType, obj_h);
-
-        switch (netType) {
-          case vpiLogicNet:
-          case vpiReg: {
-            net_type = AstVarType::VAR;
-            dtypeKwd = AstBasicDTypeKwd::LOGIC;
-            break;
-          }
-          case vpiWire: {
-            net_type = AstVarType::WIRE;
-            dtypeKwd = AstBasicDTypeKwd::LOGIC;
-            break;
-          }
-          case vpiStructNet: {
-            net_type = AstVarType::VAR;
-            auto typespec_h = vpi_handle(vpiReg, obj_h);
-            std::string data_type_name = vpi_get_str(vpiName, typespec_h);
-            dtype = new AstRefDType(new FileLine("uhdm"), data_type_name);
-            break;
-          }
-          default: {
-            v3info("\t! Unhandled net type: " << netType);
-            break;
-          }
-        }
         if (net_type == AstVarType::UNKNOWN && dtype == nullptr) {
           // Not set in case above, most likely a "false" port net
           return nullptr; // Skip this net
         }
 
-        AstVar *v;
-        AstRange* range_node = nullptr;
-        visit_one_to_many({vpiRange}, obj_h, visited, top_nodes,
-            [&](AstNode* node){
-              if (node != nullptr)
-              range_node = reinterpret_cast<AstRange*>(node);
-            });
-
-        if (dtype == nullptr) {
-          auto* dt = new AstBasicDType(new FileLine("uhdm"), dtypeKwd);
-          dt->rangep(range_node);
-          dtype = dt;
-        }
-
-        // Packed or non-arrays
-        v = new AstVar(new FileLine("uhdm"), net_type, objectName,
+        return new AstVar(new FileLine("uhdm"), net_type, objectName,
                        VFlagChildDType(),
                        dtype);
-        v->dtypep(dtype);
-
-        return v;
       }
       case vpiPackedArrayVar: {
         AstRange* rangep;
@@ -860,8 +876,8 @@ namespace UhdmAst {
         if (typespec_h) {
           AstRange* var_range = nullptr;
           AstBasicDTypeKwd type_kwd = AstBasicDTypeKwd::UNKNOWN;
-          auto type = vpi_get(vpiType, typespec_h);
-          dtype = getDType(typespec_h, visited, top_nodes);
+          dtype = getDType(element_h, visited, top_nodes);
+
         } else {
           v3error("Missing typespec for packed_array_var: " << objectName);
         }
@@ -881,8 +897,7 @@ namespace UhdmAst {
         return v;
       }
       case vpiStructVar: {
-        auto typespec_h = vpi_handle(vpiTypespec, obj_h);
-        AstNodeDType* dtype = getDType(typespec_h, visited, top_nodes);
+        AstNodeDType* dtype = getDType(obj_h, visited, top_nodes);
 
         auto* v = new AstVar(new FileLine("uhdm"),
                              AstVarType::VAR,
@@ -925,10 +940,7 @@ namespace UhdmAst {
         }
 
         AstNodeDType* dtype = nullptr;
-        auto typespec_h = vpi_handle(vpiTypespec, parameter_h);
-        if (typespec_h) {
-          dtype = getDType(typespec_h, visited, top_nodes);
-        }
+        dtype = getDType(obj_h, visited, top_nodes);
 
         // If no typespec provided assume default
         if (dtype == nullptr) {
@@ -2671,7 +2683,7 @@ namespace UhdmAst {
         auto typespec_h = vpi_handle(vpiTypespec, obj_h);
         AstNodeDType* dtype = nullptr;
         if (typespec_h) {
-          dtype = getDType(typespec_h, visited, top_nodes);
+          dtype = getDType(obj_h, visited, top_nodes);
         } else {
           auto type_kwd = get_kwd_for_type(objectType);
           auto basicdtype = new AstBasicDType(new FileLine("uhdm"),
@@ -2704,7 +2716,7 @@ namespace UhdmAst {
           std::string type_name;
           auto type_h = vpi_handle(vpiTypespec, member_h);
           if (type_h) {
-            dtype = getDType(type_h, visited, top_nodes);
+            dtype = getDType(obj_h, visited, top_nodes);
           }
           vpi_free_object(member_h);
         }
