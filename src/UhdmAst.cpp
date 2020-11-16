@@ -940,7 +940,10 @@ namespace UhdmAst {
         }
 
         AstNodeDType* dtype = nullptr;
-        dtype = getDType(obj_h, visited, top_nodes);
+        auto typespec_h = vpi_handle(vpiTypespec, parameter_h);
+        if (typespec_h) {
+          dtype = getDType(typespec_h, visited, top_nodes);
+        }
 
         // If no typespec provided assume default
         if (dtype == nullptr) {
