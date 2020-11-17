@@ -217,6 +217,7 @@ namespace UhdmAst {
       case vpiEnumNet:
       case vpiStructTypespec:
       case vpiStructNet:
+      case vpiStructVar:
       case vpiUnionTypespec: {
         // Not a basic dtype, needs further handling
         return AstBasicDTypeKwd::UNKNOWN;
@@ -243,10 +244,10 @@ namespace UhdmAst {
           ref_type == vpiPackedArrayNet) {
         type = ref_type;
         obj_h = actual_h;
-      } else
-        if (ref_type == vpiEnumNet ||
-            ref_type == vpiStructNet ||
-            ref_type == vpiEnumVar) {
+      } else if (ref_type == vpiEnumNet ||
+                 ref_type == vpiStructNet ||
+                 ref_type == vpiStructVar ||
+                 ref_type == vpiEnumVar) {
         auto typespec_h = vpi_handle(vpiTypedef, obj_h);
         if (typespec_h) {
           type = vpi_get(vpiType, typespec_h);
@@ -256,6 +257,7 @@ namespace UhdmAst {
     }
     if (type == vpiEnumNet ||
         type == vpiStructNet ||
+        type == vpiStructVar ||
         type == vpiEnumVar) {
       auto typespec_h = vpi_handle(vpiTypespec, obj_h);
       if (typespec_h) {
@@ -291,9 +293,9 @@ namespace UhdmAst {
       case vpiEnumNet:
       case vpiStructNet:
       case vpiEnumVar:
-
       case vpiEnumTypespec:
       case vpiStructTypespec:
+      case vpiStructVar:
       case vpiUnionTypespec: {
         std::string type_string;
         const uhdm_handle* const handle = (const uhdm_handle*) obj_h;
