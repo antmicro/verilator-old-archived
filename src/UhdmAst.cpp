@@ -2555,7 +2555,14 @@ namespace UhdmAst {
       case vpiEnumTypespec: {
         const uhdm_handle* const handle = (const uhdm_handle*) obj_h;
         const UHDM::BaseClass* const object = (const UHDM::BaseClass*) handle->object;
+        if (visited_types.find(object) != visited_types.end()) {
+          // Already seen this, do not create a duplicate
+          // References are handled using getDType, not in visit_object
+          return nullptr;
+        }
+
         visited_types[object] = package_prefix + objectName;
+
         AstNode* enum_members = nullptr;
         AstNodeDType* enum_member_dtype = nullptr;
 
