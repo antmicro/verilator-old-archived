@@ -1968,10 +1968,19 @@ namespace UhdmAst {
           [&](AstNode* node){
             pattern = node;
           });
-        return new AstPatMember(new FileLine("uhdm"),
-                                pattern,
-                                typespec,
-                                nullptr);
+        if (pattern_name == "default") {
+          auto* patm = new AstPatMember(new FileLine("uhdm"),
+                                        pattern,
+                                        nullptr,
+                                        nullptr);
+          patm->isDefault(true);
+          return patm;
+        } else {
+          return new AstPatMember(new FileLine("uhdm"),
+                                  pattern,
+                                  typespec,
+                                  nullptr);
+        }
       }
       case vpiEnumConst:
       case vpiConstant: {
