@@ -349,6 +349,64 @@ namespace UhdmAst {
         }
         break;
       }
+      case vpiPackedArrayVar: {
+        // Get the typespec
+        vpiHandle element_h;
+        auto itr = vpi_iterate(vpiElement, obj_h);
+        while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
+          // Expect all elements to be the same - grab just one
+          element_h = vpi_child_obj;
+        }
+        auto typespec_h = vpi_handle(vpiTypespec, element_h);
+        if (typespec_h) {
+          dtype = getDType(element_h, visited, top_nodes);
+        } else {
+          v3error("Missing typespec for unpacked/packed_array_var");
+        }
+        AstRange* rangep = nullptr;
+
+        visit_one_to_many({vpiRange}, obj_h, visited, top_nodes,
+            [&](AstNode* node){
+              rangep = reinterpret_cast<AstRange*>(node);
+            });
+
+        dtype = new AstPackArrayDType(new FileLine("uhdm"),
+                                      VFlagChildDType(),
+                                      dtype,
+                                      rangep);
+        break;
+      }
+      case vpiArrayVar: {
+        auto array_type = vpi_get(vpiArrayType, obj_h);
+        // todo: static/dynamic/assoc/queue
+        auto rand_type = vpi_get(vpiRandType, obj_h);
+        // todo: rand/randc/notrand
+        AstNodeDType* element_dtype = nullptr;
+
+        vpiHandle itr = vpi_iterate(vpiReg, obj_h);
+        while (vpiHandle member_h = vpi_scan(itr) ) {
+          std::string type_name;
+          auto type_h = vpi_handle(vpiTypespec, member_h);
+          if (type_h) {
+            element_dtype = getDType(type_h, visited, top_nodes);
+          }
+          vpi_free_object(member_h);
+        }
+        vpi_free_object(itr);
+
+        AstRange* range = nullptr;
+        visit_one_to_many({vpiRange}, obj_h, visited, top_nodes,
+            [&](AstNode* item) {
+              if (item != nullptr) {
+                range = reinterpret_cast<AstRange*>(item);
+              }
+            });
+        dtype = new AstUnpackArrayDType(new FileLine("uhdm"),
+                                        VFlagChildDType(),
+                                        element_dtype,
+                                        range);
+        break;
+      }
       case vpiArrayNet: {
         AstRange* unpacked_range = nullptr;
         AstNodeDType* subDTypep = nullptr;
@@ -854,45 +912,6 @@ namespace UhdmAst {
         return new AstVar(new FileLine("uhdm"), net_type, objectName,
                        VFlagChildDType(),
                        dtype);
-      }
-      case vpiPackedArrayVar: {
-        AstRange* rangep;
-        visit_one_to_many({vpiRange}, obj_h, visited, top_nodes,
-            [&](AstNode* node){
-              rangep = reinterpret_cast<AstRange*>(node);
-            });
-
-        AstNodeDType* dtype = nullptr;
-        // Get the typespec
-        vpiHandle element_h;
-        auto itr = vpi_iterate(vpiElement, obj_h);
-        while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
-          // Expect all elements to be the same - grab just one
-          element_h = vpi_child_obj;
-        }
-        auto typespec_h = vpi_handle(vpiTypespec, element_h);
-        if (typespec_h) {
-          AstRange* var_range = nullptr;
-          AstBasicDTypeKwd type_kwd = AstBasicDTypeKwd::UNKNOWN;
-          dtype = getDType(element_h, visited, top_nodes);
-
-        } else {
-          v3error("Missing typespec for packed_array_var: " << objectName);
-        }
-        if (dtype == nullptr) {
-          v3error("Dtype was not set for " << objectName);
-        }
-        auto refdtype = new AstPackArrayDType(new FileLine("uhdm"),
-                                              VFlagChildDType(),
-                                              dtype,
-                                              rangep);
-        auto* v = new AstVar(new FileLine("uhdm"),
-                             AstVarType::VAR,
-                             objectName,
-                             VFlagChildDType(),
-                             refdtype);
-        v->dtypep(refdtype);
-        return v;
       }
       case vpiStructVar: {
         AstNodeDType* dtype = getDType(obj_h, visited, top_nodes);
@@ -2720,36 +2739,9 @@ namespace UhdmAst {
             });
         return var;
       }
+      case vpiPackedArrayVar:
       case vpiArrayVar: {
-        auto array_type = vpi_get(vpiArrayType, obj_h);
-        // TODO: Static/Dynamic/Assoc/Queue
-        auto rand_type = vpi_get(vpiRandType, obj_h);
-        // TODO: Rand/RandC/NotRand
-        AstNodeDType* element_dtype = nullptr;
-        AstNodeDType* dtype = nullptr;
-
-        vpiHandle itr = vpi_iterate(vpiReg, obj_h);
-        while (vpiHandle member_h = vpi_scan(itr) ) {
-          std::string type_name;
-          auto type_h = vpi_handle(vpiTypespec, member_h);
-          if (type_h) {
-            dtype = getDType(obj_h, visited, top_nodes);
-          }
-          vpi_free_object(member_h);
-        }
-        vpi_free_object(itr);
-
-        AstRange* range = nullptr;
-        visit_one_to_many({vpiRange}, obj_h, visited, top_nodes,
-            [&](AstNode* item) {
-              if (item != nullptr) {
-                range = reinterpret_cast<AstRange*>(item);
-                dtype = new AstUnpackArrayDType(new FileLine("uhdm"),
-                                                VFlagChildDType(),
-                                                dtype,
-                                                range);
-              }
-            });
+        auto dtype = getDType(obj_h, visited, top_nodes);
 
         auto* var = new AstVar(new FileLine("uhdm"),
                          AstVarType::VAR,
