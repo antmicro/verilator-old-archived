@@ -253,6 +253,27 @@ namespace UhdmAst {
           type = vpi_get(vpiType, typespec_h);
           obj_h = typespec_h;
         }
+      } else if (ref_type == vpiModport ||
+                 ref_type == vpiInterface) {
+        // Special handling, generate only reference
+        vpiHandle iface_h = nullptr;
+        if (ref_type == vpiModport) {
+          iface_h = vpi_handle(vpiInterface, actual_h);
+        } else if (ref_type == vpiInterface) {
+          iface_h = actual_h;
+        }
+        std::string cellName, ifaceName;
+        if (auto s = vpi_get_str(vpiName, ref_h)) {
+          cellName = s;
+          sanitize_str(cellName);
+        }
+        if (auto s = vpi_get_str(vpiDefName, iface_h)) {
+          ifaceName = s;
+          sanitize_str(ifaceName);
+        }
+        return new AstIfaceRefDType(new FileLine("uhdm"),
+                                     cellName,
+                                     ifaceName);
       }
     }
     if (type == vpiEnumNet ||
@@ -464,45 +485,7 @@ namespace UhdmAst {
         AstVar *var = nullptr;
         AstRange* rangeNode = nullptr;
 
-        // Get actual type
-        vpiHandle lowConn_h = vpi_handle(vpiLowConn, obj_h);
-        if (lowConn_h != nullptr) {
-          vpiHandle actual_h = vpi_handle(vpiActual, lowConn_h);
-          auto actual_type = vpi_get(vpiType, actual_h);
-          vpiHandle iface_h = nullptr;
-          if (actual_type == vpiModport) {
-            iface_h = vpi_handle(vpiInterface, actual_h);
-          } else if (actual_type == vpiInterface) {
-            iface_h = actual_h;
-          }
-          if (iface_h != nullptr) {
-            // Only if was set above
-            std::string cellName, ifaceName;
-            if (auto s = vpi_get_str(vpiName, actual_h)) {
-              cellName = s;
-              sanitize_str(cellName);
-            }
-            if (auto s = vpi_get_str(vpiDefName, iface_h)) {
-              ifaceName = s;
-              sanitize_str(ifaceName);
-            }
-            auto* dtype = new AstIfaceRefDType(new FileLine("uhdm"),
-                                         cellName,
-                                         ifaceName);
-            var = new AstVar(new FileLine("uhdm"),
-                             AstVarType::IFACEREF,
-                             objectName,
-                             VFlagChildDType(),
-                             dtype);
-            port = new AstPort(new FileLine("uhdm"), ++numPorts, objectName);
-            port->addNextNull(var);
-            var->dtypep(dtype);
-            return port;
-          }
-          // Get range from actual
-        }
-        AstNodeDType* dtype = nullptr;
-        dtype = getDType(obj_h, visited, top_nodes);
+        AstNodeDType* dtype = getDType(obj_h, visited, top_nodes);
         if (dtype == nullptr) {
           v3info(
               "Unresolved port dtype for " << objectName << ", falling back to logic");
@@ -511,24 +494,37 @@ namespace UhdmAst {
           basic->rangep(rangeNode);
           dtype = basic;
         }
-        var = new AstVar(new FileLine("uhdm"),
-                         AstVarType::PORT,
-                         objectName,
-                         VFlagChildDType(),
-                         dtype);
+        if (VN_IS(dtype, IfaceRefDType)) {
+          var = new AstVar(new FileLine("uhdm"),
+                           AstVarType::IFACEREF,
+                           objectName,
+                           VFlagChildDType(),
+                           dtype);
+        } else {
+          var = new AstVar(new FileLine("uhdm"),
+                           AstVarType::PORT,
+                           objectName,
+                           VFlagChildDType(),
+                           dtype);
 
-        if (const int n = vpi_get(vpiDirection, obj_h)) {
-          if (n == vpiInput) {
-            var->declDirection(VDirection::INPUT);
-            var->direction(VDirection::INPUT);
-            var->varType(AstVarType::WIRE);
-          } else if (n == vpiOutput) {
-            var->declDirection(VDirection::OUTPUT);
-            var->direction(VDirection::OUTPUT);
-            var->varType(AstVarType::PORT);
-          } else if (n == vpiInout) {
-            var->declDirection(VDirection::INOUT);
-            var->direction(VDirection::INOUT);
+          if (const int n = vpi_get(vpiDirection, obj_h)) {
+            v3info(
+                "Got direction for " << objectName);
+            if (n == vpiInput) {
+              var->declDirection(VDirection::INPUT);
+              var->direction(VDirection::INPUT);
+              var->varType(AstVarType::WIRE);
+            } else if (n == vpiOutput) {
+              var->declDirection(VDirection::OUTPUT);
+              var->direction(VDirection::OUTPUT);
+              var->varType(AstVarType::PORT);
+            } else if (n == vpiInout) {
+              var->declDirection(VDirection::INOUT);
+              var->direction(VDirection::INOUT);
+            }
+          } else {
+            v3info("Got no direction for " << objectName << ", skipping");
+            return nullptr;
           }
         }
 
