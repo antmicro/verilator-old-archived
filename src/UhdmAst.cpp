@@ -345,7 +345,10 @@ namespace UhdmAst {
                                     nullptr);
           }
         } else {
-          v3error("Unknown object type for enum/struct/union var");
+          // Typedefed types were visited earlier, probably anonymous struct
+          // Get the typespec here
+          AstNode* typespec_p = visit_object(obj_h, visited, top_nodes);
+          dtype = typespec_p->getChildDTypep();
         }
         break;
       }
