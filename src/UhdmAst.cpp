@@ -152,7 +152,7 @@ namespace UhdmAst {
       case vpiOctStrVal:
       case vpiDecStrVal:
       case vpiHexStrVal: {
-        std::string valStr(val.value.str);
+        std::string valStr = vpi_get_str(vpiDecompile, obj_h);
         V3Number value(value_node, valStr.c_str());
         value_node = new AstConst(new FileLine("uhdm"), value);
         break;
