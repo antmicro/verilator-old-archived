@@ -1,4 +1,5 @@
 #include <vector>
+#include <stack>
 #include <functional>
 #include <algorithm>
 
@@ -308,12 +309,32 @@ namespace UhdmAst {
         AstBasicDTypeKwd keyword = get_kwd_for_type(type);
         auto basic = new AstBasicDType(new FileLine("uhdm"), keyword);
         AstRange* rangeNode = nullptr;
+        std::stack<AstRange*> range_stack;
         visit_one_to_many({vpiRange}, obj_h, visited, top_nodes,
             [&](AstNode* node){
               rangeNode = reinterpret_cast<AstRange*>(node);
+              range_stack.push(rangeNode);
             });
-        basic->rangep(rangeNode);
-        dtype = basic;
+        rangeNode = nullptr;
+        while (!range_stack.empty()) {
+          if (rangeNode == nullptr) {
+            // Last node serves for basic type
+            rangeNode = range_stack.top();
+            basic->rangep(rangeNode);
+            dtype = basic;
+          } else {
+            // For other levels create a PackedArray
+            rangeNode = range_stack.top();
+            dtype = new AstPackArrayDType(new FileLine("uhdm"),
+                                VFlagChildDType(),
+                                dtype,
+                                rangeNode);
+          }
+          range_stack.pop();
+        }
+        if (dtype == nullptr) {
+          dtype = basic;
+        }
         break;
       }
       case vpiEnumNet:
