@@ -378,6 +378,7 @@ namespace UhdmAst {
         }
         break;
       }
+      case vpiPackedArrayNet:
       case vpiPackedArrayVar: {
         // Get the typespec
         vpiHandle element_h;
