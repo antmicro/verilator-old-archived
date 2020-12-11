@@ -153,7 +153,21 @@ namespace UhdmAst {
       case vpiOctStrVal:
       case vpiDecStrVal:
       case vpiHexStrVal: {
-        std::string valStr = vpi_get_str(vpiDecompile, obj_h);
+        std::string valStr;
+        if (auto s = vpi_get_str(vpiDecompile, obj_h)) {
+          valStr = s;
+        } else {
+          // if vpiDecompile is unavailable i.e. in EnumConst, cast the string
+          // size is stored in enum typespec
+          if (val.format == vpiBinStrVal)
+            valStr = "'b" + std::string(val.value.str);
+          else if (val.format == vpiOctStrVal)
+            valStr = "'o" + std::string(val.value.str);
+          else if (val.format == vpiDecStrVal)
+            valStr = "'d" + std::string(val.value.str);
+          else if (val.format == vpiHexStrVal)
+            valStr = "'h" + std::string(val.value.str);
+        }
         auto size = vpi_get(vpiSize, obj_h);
         if (size == 1) {
           // Add the size manually
