@@ -54,7 +54,10 @@ namespace UhdmAst {
   }
 
   void sanitize_str(std::string &s) {
-    std::replace(s.begin(), s.end(), '@','_');
+    if (!s.empty()) {
+      auto pos = s.find_last_of("@");
+      s = s.substr(pos+1);
+    }
   }
 
   string deQuote(FileLine* fileline, string text) {
