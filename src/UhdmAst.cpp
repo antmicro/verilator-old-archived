@@ -867,7 +867,7 @@ namespace UhdmAst {
                                                      lvalue->name(),
                                                      nullptr,
                                                      nullptr);
-              auto* assign = new AstAssignDly(new FileLine("uhdm"), lvalue, rvalue);
+              auto* assign = new AstAssign(new FileLine("uhdm"), lvalue, rvalue);
               var->addNextNull(assign);
               return var;
             } else {
