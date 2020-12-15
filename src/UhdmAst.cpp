@@ -2725,11 +2725,8 @@ namespace UhdmAst {
       }
       case vpiTypespecMember: {
         AstNodeDType* typespec = nullptr;
-        visit_one_to_one({vpiTypespec}, obj_h, visited, top_nodes,
-            [&](AstNode* item) {
-              // Do not create duplicates, just create reference below
-              typespec = reinterpret_cast<AstNodeDType*> (item);
-            });
+        auto typespec_h = vpi_handle(vpiTypespec, obj_h);
+        typespec = getDType(typespec_h, visited, top_nodes);
         if (typespec != nullptr) {
           auto * member =  new AstMemberDType(new FileLine("uhdm"),
               objectName,
