@@ -398,7 +398,7 @@ namespace UhdmAst {
           // Typedefed types were visited earlier, probably anonymous struct
           // Get the typespec here
           AstNode* typespec_p = visit_object(obj_h, visited, top_nodes);
-          dtype = typespec_p->getChildDTypep();
+          dtype = typespec_p->getChildDTypep()->cloneTree(false);
         }
         break;
       }
@@ -2084,7 +2084,10 @@ namespace UhdmAst {
           [&](AstNode* item){
             bitp = item;
             if (item->type() == AstType::en::atSelExtract) {
-	      select = new AstSelExtract(new FileLine("uhdm"), fromp, ((AstSelExtract*)item)->msbp(), ((AstSelExtract*)item)->lsbp());
+              select = new AstSelExtract(new FileLine("uhdm"),
+                  fromp,
+                  ((AstSelExtract*)item)->msbp()->cloneTree(true),
+                  ((AstSelExtract*)item)->lsbp()->cloneTree(true));
             } else {
               select = new AstSelBit(new FileLine("uhdm"), fromp, bitp);
             }
