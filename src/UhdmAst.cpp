@@ -373,19 +373,26 @@ namespace UhdmAst {
           } else {
             auto classpackageName = type_string.substr(0, delimiter_pos);
             auto type_name = type_string.substr(delimiter_pos + 2, type_string.length());
-            AstPackage* classpackagep = nullptr;
-            auto it = package_map.find(classpackageName);
-            if (it != package_map.end()) {
-              classpackagep = it->second;
+            // If we are in the same package - do not create reference,
+            // as it will confuse Verilator
+            if (classpackageName == package_prefix.substr(0, package_prefix.length()-2)) {
+              dtype = new AstRefDType(new FileLine("uhdm"),
+                                      type_name);
+            } else {
+              AstPackage* classpackagep = nullptr;
+              auto it = package_map.find(classpackageName);
+              if (it != package_map.end()) {
+                classpackagep = it->second;
+              }
+              AstNode* classpackageref = new AstClassOrPackageRef(new FileLine("uhdm"),
+                  classpackageName,
+                  classpackagep,
+                  nullptr);
+              dtype = new AstRefDType(new FileLine("uhdm"),
+                                      type_name,
+                                      classpackageref,
+                                      nullptr);
             }
-            AstNode* classpackageref = new AstClassOrPackageRef(new FileLine("uhdm"),
-                classpackageName,
-                classpackagep,
-                nullptr);
-            dtype = new AstRefDType(new FileLine("uhdm"),
-                                    type_name,
-                                    classpackageref,
-                                    nullptr);
           }
         } else {
           // Typedefed types were visited earlier, probably anonymous struct
