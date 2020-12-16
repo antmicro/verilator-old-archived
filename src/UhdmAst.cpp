@@ -666,7 +666,6 @@ namespace UhdmAst {
               vpi_get_value(imported_name, &val);
               symbol_name = val.value.str;
             }
-            vpi_free_object(itr);
             auto* package_import = new AstPackageImport(new FileLine("uhdm"),
                                                     packagep,
                                                     symbol_name);
@@ -2788,7 +2787,6 @@ namespace UhdmAst {
                          objectName,
                          VFlagChildDType(),
                          dtype);
-        var->dtypep(dtype);
         visit_one_to_one({vpiExpr}, obj_h, visited, top_nodes,
             [&](AstNode* item) {
               var->valuep(item);
