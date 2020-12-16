@@ -2077,7 +2077,7 @@ namespace UhdmAst {
           [&](AstNode* item){
             bitp = item;
             if (item->type() == AstType::en::atSelExtract) {
-              select = item;
+	      select = new AstSelExtract(new FileLine("uhdm"), fromp, ((AstSelExtract*)item)->msbp(), ((AstSelExtract*)item)->lsbp());
             } else {
               select = new AstSelBit(new FileLine("uhdm"), fromp, bitp);
             }
