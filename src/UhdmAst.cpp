@@ -134,13 +134,18 @@ namespace UhdmAst {
         break;
       }
       case vpiIntVal: {
-        std::string valStr = std::to_string(val.value.integer);
-        if (valStr[0] == '-') {
-          valStr = valStr.substr(1);
-          V3Number value(value_node, valStr.c_str());
-          auto* inner = new AstConst(new FileLine("uhdm"), value);
-          value_node = new AstNegate(new FileLine("uhdm"), inner);
-          break;
+        std::string valStr;
+        if (auto s = vpi_get_str(vpiDecompile, obj_h)) {
+          valStr = s;
+        } else {
+          valStr = std::to_string(val.value.integer);
+          if (valStr[0] == '-') {
+            valStr = valStr.substr(1);
+            V3Number value(value_node, valStr.c_str());
+            auto* inner = new AstConst(new FileLine("uhdm"), value);
+            value_node = new AstNegate(new FileLine("uhdm"), inner);
+            break;
+          }
         }
         V3Number value(value_node, valStr.c_str());
         value_node = new AstConst(new FileLine("uhdm"), value);
