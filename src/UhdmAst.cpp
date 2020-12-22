@@ -177,10 +177,6 @@ namespace UhdmAst {
             valStr = "'h" + std::string(val.value.str);
         }
         auto size = vpi_get(vpiSize, obj_h);
-        if (size == 1) {
-          // Add the size manually
-          valStr = std::to_string(size) + valStr;
-        }
         V3Number value(value_node, valStr.c_str());
         value_node = new AstConst(new FileLine("uhdm"), value);
         break;
