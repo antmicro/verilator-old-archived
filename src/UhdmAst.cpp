@@ -884,6 +884,26 @@ namespace UhdmAst {
         }
         break;
       }
+      case vpiHierPath: {
+        AstNode* lhsNode = nullptr;
+        AstNode* rhsNode = nullptr;
+
+        visit_one_to_many({vpiActual},
+            obj_h,
+            visited,
+            top_nodes,
+            [&](AstNode* child){
+              if (lhsNode == nullptr) {
+                lhsNode = child;
+              } else if (rhsNode == nullptr) {
+                rhsNode = child;
+              } else {
+                v3error("Unexpected node in hier_path");
+              }
+            });
+
+        return new AstDot(new FileLine("uhdm"), false, lhsNode, rhsNode);
+      }
       case vpiRefObj: {
         size_t dot_pos = objectName.rfind('.');
         if (dot_pos != std::string::npos) {
