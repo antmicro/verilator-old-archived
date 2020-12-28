@@ -3,6 +3,11 @@ Revision history for Verilator
 The contributors that suggested a given feature are shown in []. Thanks!
 
 
+* Verilator 4.107 devel
+
+****  Fix tracing empty sc module (#2729).
+
+
 * Verilator 4.101 devel
 
 ****  Support const object new() assignments.
