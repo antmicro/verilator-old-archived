@@ -1015,20 +1015,12 @@ namespace UhdmAst {
           parameter_h = obj_h;
         }
 
-        AstNode* msbNode = nullptr;
-        AstNode* lsbNode = nullptr;
         AstRange* rangeNode = nullptr;
-        auto leftRange_h  = vpi_handle(vpiLeftRange, parameter_h);
-        if (leftRange_h) {
-          msbNode = visit_object(leftRange_h, visited, top_nodes);
-        }
-        auto rightRange_h  = vpi_handle(vpiRightRange, parameter_h);
-        if (rightRange_h) {
-          lsbNode = visit_object(rightRange_h, visited, top_nodes);
-        }
-        if (msbNode && lsbNode) {
-          rangeNode = new AstRange(new FileLine("uhdm"), msbNode, lsbNode);
-        }
+        visit_one_to_many({vpiRange}, parameter_h, visited, top_nodes,
+            [&](AstNode* node){
+	      if (node)
+	        rangeNode = reinterpret_cast<AstRange*>(node);
+            });
 
         AstNodeDType* dtype = nullptr;
         auto typespec_h = vpi_handle(vpiTypespec, parameter_h);
@@ -1040,8 +1032,13 @@ namespace UhdmAst {
         if (dtype == nullptr) {
           auto* temp_dtype = new AstBasicDType(new FileLine("uhdm"),
                                                AstBasicDTypeKwd::LOGIC_IMPLICIT);
-          temp_dtype->rangep(rangeNode);
           dtype = temp_dtype;
+        }
+        if (rangeNode) {
+          dtype = new AstUnpackArrayDType(new FileLine("uhdm"),
+                                          VFlagChildDType(),
+                                          dtype,
+                                          rangeNode);
         }
         AstVarType parameter_type;
         int is_local = 0;
