@@ -2174,6 +2174,15 @@ namespace UhdmAst {
                 statements = item;
             }
           });
+        visit_one_to_many({vpiVariables}, obj_h, visited, top_nodes,
+          [&](AstNode* item){
+            if (item) {
+              if (statements)
+                statements->addNextNull(item);
+              else
+                statements = item;
+            }
+          });
         visit_one_to_one({vpiStmt}, obj_h, visited, top_nodes,
           [&](AstNode* item){
             if (item) {
