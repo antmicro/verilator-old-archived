@@ -2642,9 +2642,17 @@ namespace UhdmAst {
         return dtype;
       }
       case vpiIntTypespec: {
-        auto* dtype = new AstBasicDType(new FileLine("uhdm"),
-                                        AstBasicDTypeKwd::INT);
-        return dtype;
+        auto* name = vpi_get_str(vpiName, obj_h);
+        if (name == nullptr) {
+          auto* dtype = new AstBasicDType(new FileLine("uhdm"),
+                                          AstBasicDTypeKwd::INT);
+          return dtype;
+        }
+        return new AstParseRef(new FileLine("uhdm"),
+			               VParseRefExp::en::PX_TEXT,
+			               name,
+				       nullptr,
+				       nullptr);
       }
       case vpiStringTypespec: {
         auto* dtype = new AstBasicDType(new FileLine("uhdm"),
