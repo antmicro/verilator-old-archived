@@ -749,13 +749,13 @@ namespace UhdmAst {
           // Encountered for the first time
           module = new AstModule(new FileLine("uhdm"), modType);
           visit_one_to_many({
+              vpiTypedef,  // Keep this before parameters
               vpiModule,
               vpiContAssign,
               vpiParamAssign,
               vpiParameter,
               vpiProcess,
               vpiTaskFunc,
-              vpiTypedef,
               },
               obj_h,
               visited,
