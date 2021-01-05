@@ -598,7 +598,31 @@ namespace UhdmAst {
         AstVar *var = nullptr;
         AstRange* rangeNode = nullptr;
 
-        AstNodeDType* dtype = getDType(obj_h, visited, top_nodes);
+        AstNodeDType* dtype = nullptr;
+        auto parent_h = vpi_handle(vpiParent, obj_h);
+        std::string netName = "";
+        for (auto net : {vpiNet,
+                         vpiNetArray,
+                         vpiArrayVar,
+                         vpiArrayNet,
+                         vpiVariables
+                         }) {
+          vpiHandle itr = vpi_iterate(net, parent_h);
+          while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
+            if (auto s = vpi_get_str(vpiName, vpi_child_obj)) {
+              netName = s;
+              sanitize_str(netName);
+              UINFO(7, "Net name is " << netName);
+            }
+            if (netName == objectName) {
+              UINFO(7, "Found matching net for " << objectName);
+              dtype = getDType(vpi_child_obj, visited, top_nodes);
+              break;
+            }
+            vpi_free_object(vpi_child_obj);
+          }
+          vpi_free_object(itr);
+        }
         if (dtype == nullptr) {
           v3info(
               "Unresolved port dtype for " << objectName << ", falling back to logic");
