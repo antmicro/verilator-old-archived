@@ -835,6 +835,28 @@ namespace UhdmAst {
             std::string name = vpi_get_str(vpiName, vpi_child_obj);
             sanitize_str(name);
             auto* value = get_value_as_node(vpi_child_obj);
+            if (value == nullptr) {
+              v3info("Did not get value for parameter " << name
+                     << " for object " << objectName
+                     << ", reconstructing assignment");
+            // Try to construct complex expression
+            // Find corresponding nodes by iterating over ParamAssigns
+            itr = vpi_iterate(vpiParamAssign, obj_h);
+            while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
+              vpiHandle param_handle = vpi_handle(vpiLhs, vpi_child_obj);
+              std::string param_name = vpi_get_str(vpiName, param_handle);
+              sanitize_str(param_name);
+              if (param_name != name)
+                continue;
+              visit_one_to_one({vpiRhs}, vpi_child_obj, visited, top_nodes,
+                  [&](AstNode* node){
+                    if (node != nullptr)
+                      value = node;
+                    else
+                      v3error("No value for parameter: " << name);
+                  });
+              }
+            }
             // Although those are parameters, they are stored as pins
             AstPin *pin = new AstPin(new FileLine("uhdm"), ++np, name, value);
             if (!modParams)
