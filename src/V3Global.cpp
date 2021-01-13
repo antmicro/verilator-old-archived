@@ -98,6 +98,76 @@ void V3Global::readFiles() {
                 designRoot->addModulep(*itr);
             }
         }
+    } else if (v3Global.opt.uhdmAstSv()) {
+        std::cout << "uhdmAst-SV frontend" << std::endl;
+
+        // Use UHDM-SV frontend
+        const V3StringList& vFiles = v3Global.opt.vFiles();
+	V3StringList svFiles;
+	V3StringList uhdmFiles;
+
+        for (auto file : vFiles) {
+	    std::string::size_type ext_idx;
+	    std::string ext;
+	    ext_idx = file.rfind('.');
+
+	    if(ext_idx != std::string::npos) {
+	        ext = file.substr(ext_idx+1);
+	    } else {
+	       return;
+	    }
+
+	    if (ext == "sv" || ext == "vlt") {
+		    svFiles.push_back(file);
+		    //std::cout << "File:" << file << std::endl;
+	    } else if (ext == "uhdm") {
+		    uhdmFiles.push_back(file);
+                    //std::cout << "File:" << file << std::endl;
+	    } else {
+                    //std::cout << "File:" << file << std::endl;
+		    //return;
+	    }
+	}
+
+	for (auto uhdmFile : uhdmFiles) {
+            UHDM::Serializer serializer;
+            std::vector<AstNodeModule*> modules;
+            std::vector<vpiHandle> restoredDesigns = serializer.Restore(uhdmFile);
+            std::ostringstream uhdm_lines_dump;
+
+	    if(v3Global.opt.dumpUhdm()) {
+                std::cout << UHDM::visit_designs(restoredDesigns) << std::endl;
+            }
+
+	    std::cout << "dump_visited" << std::endl;
+            uhdm_lines_dump << UHDM::dump_visited(restoredDesigns);
+
+            std::ostringstream dummy;
+            modules = UhdmAst::visit_designs(restoredDesigns, dummy);
+
+	    std::cout << "Add to design" << std::endl;
+            AstNetlist *designRoot = v3Global.rootp();
+            for (auto itr = modules.begin(); itr != modules.end(); ++itr) {
+                designRoot->addModulep(*itr);
+            }
+	}
+
+        std::cout << "Verilator frontend2" << std::endl;
+	V3Parse parser(v3Global.rootp(), &filter, &parseSyms);
+
+	for (auto svFile : svFiles) {
+		    parser.parseFile(new FileLine(FileLine::commandLineFilename()), svFile, false,
+                             "Cannot find file containing module: ");
+	}
+
+        const V3StringSet& libraryFiles = v3Global.opt.libraryFiles();
+        for (const string& filename : libraryFiles) {
+	    std::cout << "Library: " << filename;
+            parser.parseFile(new FileLine(FileLine::commandLineFilename()), filename, true,
+                             "Cannot find file containing library module: ");
+        }
+
+
     } else {
         // Use standard Verilator frontend
 
@@ -105,6 +175,7 @@ void V3Global::readFiles() {
         // Read top module
         const V3StringList& vFiles = v3Global.opt.vFiles();
         for (const string& filename : vFiles) {
+//	    std::cout << "File: " << filename << std::endl;
             parser.parseFile(new FileLine(FileLine::commandLineFilename()), filename, false,
                              "Cannot find file containing module: ");
         }
@@ -123,8 +194,11 @@ void V3Global::readFiles() {
 
     if (!v3Global.opt.preprocOnly()) {
         // Resolve all modules cells refer to
+	std::cout << "link!!!" << std::endl;
         V3LinkCells::link(v3Global.rootp(), &filter, &parseSyms);
     }
+
+    std::cout << "end of readFiles()" << std::endl;
 }
 
 void V3Global::dumpCheckGlobalTree(const string& stagename, int newNumber, bool doDump) {
