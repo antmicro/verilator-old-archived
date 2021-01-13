@@ -1103,6 +1103,7 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
 
     DECL_OPTION("-json-ast", OnOff, &m_jsonAst);
     DECL_OPTION("-uhdm-ast", OnOff, &m_uhdmAst);
+    DECL_OPTION("-uhdm-ast-sv", OnOff, &m_uhdmAstSv);
     DECL_OPTION("-dump-uhdm", OnOff, &m_dumpUhdm);
 
     DECL_OPTION("-LDFLAGS", CbVal, callStrSetter(&V3Options::addLdLibs));
