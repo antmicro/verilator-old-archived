@@ -596,7 +596,6 @@ namespace UhdmAst {
         static unsigned numPorts;
         AstPort *port = nullptr;
         AstVar *var = nullptr;
-        AstRange* rangeNode = nullptr;
 
         AstNodeDType* dtype = nullptr;
         auto parent_h = vpi_handle(vpiParent, obj_h);
@@ -624,12 +623,9 @@ namespace UhdmAst {
           vpi_free_object(itr);
         }
         if (dtype == nullptr) {
-          v3info(
-              "Unresolved port dtype for " << objectName << ", falling back to logic");
-          auto* basic = new AstBasicDType(new FileLine("uhdm"),
-                                    AstBasicDTypeKwd::LOGIC);
-          basic->rangep(rangeNode);
-          dtype = basic;
+          // If no matching net was found, get info from port node connections
+          // This is the case for interface ports
+          dtype = getDType(obj_h, visited, top_nodes);
         }
         if (VN_IS(dtype, IfaceRefDType)) {
           var = new AstVar(new FileLine("uhdm"),
@@ -672,10 +668,7 @@ namespace UhdmAst {
             var->trace(true);
         }
 
-        if (port) {
-          return port;
-        }
-        break;
+        return port;
       }
       case UHDM::uhdmimport: {
           AstPackage* packagep = nullptr;
