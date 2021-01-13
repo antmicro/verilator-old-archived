@@ -834,12 +834,13 @@ namespace UhdmAst {
           while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
             std::string name = vpi_get_str(vpiName, vpi_child_obj);
             sanitize_str(name);
+            UINFO(3, "Got parameter (pin) " << name);
+            auto is_local = vpi_get(vpiLocalParam, vpi_child_obj);
+            if (is_local) {
+              // Skip local parameters
+              continue;
+            }
             auto* value = get_value_as_node(vpi_child_obj);
-            if (value == nullptr) {
-              v3info("Did not get value for parameter " << name
-                     << " for object " << objectName
-                     << ", reconstructing assignment");
-            // Try to construct complex expression
             // Find corresponding nodes by iterating over ParamAssigns
             itr = vpi_iterate(vpiParamAssign, obj_h);
             while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
@@ -848,14 +849,25 @@ namespace UhdmAst {
               sanitize_str(param_name);
               if (param_name != name)
                 continue;
-              visit_one_to_one({vpiRhs}, vpi_child_obj, visited, top_nodes,
-                  [&](AstNode* node){
-                    if (node != nullptr)
-                      value = node;
-                    else
-                      v3error("No value for parameter: " << name);
-                  });
+              is_local = vpi_get(vpiLocalParam, param_handle);
+              if (value == nullptr) {
+                UINFO(3, "Did not get value for parameter " << name
+                       << " for object " << objectName
+                       << ", reconstructing assignment");
+                // Try to construct complex expression
+                visit_one_to_one({vpiRhs}, vpi_child_obj, visited, top_nodes,
+                    [&](AstNode* node){
+                      if (node != nullptr)
+                        value = node;
+                      else
+                        v3error("No value for parameter: " << name);
+                    });
               }
+            }
+            if (is_local) {
+              // Skip local parameters
+              UINFO(3, "Skipping local parameter (pin) " << name);
+              continue;
             }
             // Although those are parameters, they are stored as pins
             AstPin *pin = new AstPin(new FileLine("uhdm"), ++np, name, value);
@@ -868,6 +880,7 @@ namespace UhdmAst {
           vpi_free_object(itr);
           std::string fullname = vpi_get_str(vpiFullName, obj_h);
           sanitize_str(fullname);
+          UINFO(8, "Adding cell " << fullname);
           AstCell *cell = new AstCell(new FileLine("uhdm"), new FileLine("uhdm"),
               objectName, name, modPins, modParams, nullptr);
           return cell;
