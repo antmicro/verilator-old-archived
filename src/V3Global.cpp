@@ -98,6 +98,67 @@ void V3Global::readFiles() {
                 designRoot->addModulep(*itr);
             }
         }
+    } else if (v3Global.opt.uhdmAstSv()) {
+        // Use UHDM-SV frontend
+        const V3StringList& vFiles = v3Global.opt.vFiles();
+	V3StringList svFiles;
+	V3StringList uhdmFiles;
+
+        for (auto file : vFiles) {
+	    std::string::size_type ext_idx;
+	    std::string ext;
+	    ext_idx = file.rfind('.');
+
+	    if(ext_idx != std::string::npos) {
+	        ext = file.substr(ext_idx+1);
+	    } else {
+	       return;
+	    }
+
+	    if (ext == "sv" || ext == "vlt") {
+		    svFiles.push_back(file);
+	    } else if (ext == "uhdm") {
+		    uhdmFiles.push_back(file);
+	    } else {
+		    //return;
+	    }
+	}
+
+	for (auto uhdmFile : uhdmFiles) {
+            UHDM::Serializer serializer;
+            std::vector<AstNodeModule*> modules;
+            std::vector<vpiHandle> restoredDesigns = serializer.Restore(uhdmFile);
+            std::ostringstream uhdm_lines_dump;
+
+	    if(v3Global.opt.dumpUhdm()) {
+                std::cout << UHDM::visit_designs(restoredDesigns) << std::endl;
+            }
+
+            uhdm_lines_dump << UHDM::dump_visited(restoredDesigns);
+
+            std::ostringstream dummy;
+            modules = UhdmAst::visit_designs(restoredDesigns, dummy);
+
+            AstNetlist *designRoot = v3Global.rootp();
+            for (auto itr = modules.begin(); itr != modules.end(); ++itr) {
+                designRoot->addModulep(*itr);
+            }
+	}
+
+	V3Parse parser(v3Global.rootp(), &filter, &parseSyms);
+
+	for (auto svFile : svFiles) {
+		    parser.parseFile(new FileLine(FileLine::commandLineFilename()), svFile, false,
+                             "Cannot find file containing module: ");
+	}
+
+        const V3StringSet& libraryFiles = v3Global.opt.libraryFiles();
+        for (const string& filename : libraryFiles) {
+            parser.parseFile(new FileLine(FileLine::commandLineFilename()), filename, true,
+                             "Cannot find file containing library module: ");
+        }
+
+
     } else {
         // Use standard Verilator frontend
 
