@@ -569,6 +569,7 @@ namespace UhdmAst {
         auto* package = new AstPackage(new FileLine("uhdm"), objectName);
         package_prefix += objectName + "::";
         visit_one_to_many({
+            vpiTypedef,
             vpiParameter,
             vpiParamAssign,
             vpiProgram,
@@ -576,7 +577,6 @@ namespace UhdmAst {
             vpiTaskFunc,
             vpiSpecParam,
             vpiAssertion,
-            vpiTypedef
             },
             obj_h,
             visited,
@@ -1378,6 +1378,7 @@ namespace UhdmAst {
       case vpiBegin: {
         AstNode* body = nullptr;
         visit_one_to_many({
+            vpiTypedef,
             vpiStmt,
             vpiPropertyDecl,
             vpiSequenceDecl,
@@ -1392,7 +1393,6 @@ namespace UhdmAst {
             vpiParameter,
             vpiParamAssign,
             vpiInternalScope,
-            vpiTypedef,
             vpiImport,
             vpiAttribute,
             vpiNet,
@@ -2923,6 +2923,7 @@ namespace UhdmAst {
       case vpiGenScope: {
         AstNode* statements = nullptr;
         visit_one_to_many({
+            vpiTypedef,
             vpiInternalScope,
             vpiArrayNet,
             //vpiLogicVar,
@@ -2949,7 +2950,6 @@ namespace UhdmAst {
             vpiInterfaceArray,
             vpiAliasStmt,
             vpiClockingBlock,
-            vpiTypedef,
             },
             obj_h,
             visited,
@@ -3035,13 +3035,13 @@ namespace UhdmAst {
       case vpiClassDefn: {
         auto* definition = new AstClass(new FileLine("uhdm"), objectName);
         visit_one_to_many({
+            vpiTypedef,
             vpiVariables,
             //vpiMethods,  // Not supported yet in UHDM
             vpiConstraint,
             vpiParameter,
             vpiNamedEvent,
             vpiNamedEventArray,
-            vpiTypedef,
             vpiInternalScope,
             },
             obj_h,
