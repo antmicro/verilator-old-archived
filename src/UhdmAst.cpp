@@ -596,16 +596,36 @@ namespace UhdmAst {
         static unsigned numPorts;
         AstPort *port = nullptr;
         AstVar *var = nullptr;
-        AstRange* rangeNode = nullptr;
 
-        AstNodeDType* dtype = getDType(obj_h, visited, top_nodes);
+        AstNodeDType* dtype = nullptr;
+        auto parent_h = vpi_handle(vpiParent, obj_h);
+        std::string netName = "";
+        for (auto net : {vpiNet,
+                         vpiNetArray,
+                         vpiArrayVar,
+                         vpiArrayNet,
+                         vpiVariables
+                         }) {
+          vpiHandle itr = vpi_iterate(net, parent_h);
+          while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
+            if (auto s = vpi_get_str(vpiName, vpi_child_obj)) {
+              netName = s;
+              sanitize_str(netName);
+              UINFO(7, "Net name is " << netName << std::endl);
+            }
+            if (netName == objectName) {
+              UINFO(7, "Found matching net for " << objectName << std::endl);
+              dtype = getDType(vpi_child_obj, visited, top_nodes);
+              break;
+            }
+            vpi_free_object(vpi_child_obj);
+          }
+          vpi_free_object(itr);
+        }
         if (dtype == nullptr) {
-          v3info(
-              "Unresolved port dtype for " << objectName << ", falling back to logic");
-          auto* basic = new AstBasicDType(new FileLine("uhdm"),
-                                    AstBasicDTypeKwd::LOGIC);
-          basic->rangep(rangeNode);
-          dtype = basic;
+          // If no matching net was found, get info from port node connections
+          // This is the case for interface ports
+          dtype = getDType(obj_h, visited, top_nodes);
         }
         if (VN_IS(dtype, IfaceRefDType)) {
           var = new AstVar(new FileLine("uhdm"),
@@ -648,10 +668,7 @@ namespace UhdmAst {
             var->trace(true);
         }
 
-        if (port) {
-          return port;
-        }
-        break;
+        return port;
       }
       case UHDM::uhdmimport: {
           AstPackage* packagep = nullptr;
@@ -810,7 +827,41 @@ namespace UhdmAst {
           while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
             std::string name = vpi_get_str(vpiName, vpi_child_obj);
             sanitize_str(name);
+            UINFO(3, "Got parameter (pin) " << name << std::endl);
+            auto is_local = vpi_get(vpiLocalParam, vpi_child_obj);
+            if (is_local) {
+              // Skip local parameters
+              continue;
+            }
             auto* value = get_value_as_node(vpi_child_obj);
+            // Find corresponding nodes by iterating over ParamAssigns
+            itr = vpi_iterate(vpiParamAssign, obj_h);
+            while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
+              vpiHandle param_handle = vpi_handle(vpiLhs, vpi_child_obj);
+              std::string param_name = vpi_get_str(vpiName, param_handle);
+              sanitize_str(param_name);
+              if (param_name != name)
+                continue;
+              is_local = vpi_get(vpiLocalParam, param_handle);
+              if (value == nullptr) {
+                UINFO(3, "Did not get value for parameter " << name
+                       << " for object " << objectName
+                       << ", reconstructing assignment" << std::endl);
+                // Try to construct complex expression
+                visit_one_to_one({vpiRhs}, vpi_child_obj, visited, top_nodes,
+                    [&](AstNode* node){
+                      if (node != nullptr)
+                        value = node;
+                      else
+                        v3error("No value for parameter: " << name);
+                    });
+              }
+            }
+            if (is_local) {
+              // Skip local parameters
+              UINFO(3, "Skipping local parameter (pin) " << name << std::endl);
+              continue;
+            }
             // Although those are parameters, they are stored as pins
             AstPin *pin = new AstPin(new FileLine("uhdm"), ++np, name, value);
             if (!modParams)
@@ -822,6 +873,7 @@ namespace UhdmAst {
           vpi_free_object(itr);
           std::string fullname = vpi_get_str(vpiFullName, obj_h);
           sanitize_str(fullname);
+          UINFO(8, "Adding cell " << fullname << std::endl);
           AstCell *cell = new AstCell(new FileLine("uhdm"), new FileLine("uhdm"),
               objectName, name, modPins, modParams, nullptr);
           return cell;
