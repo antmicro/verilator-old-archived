@@ -1,0 +1,6 @@
+[submodule "Surelog"]
+	path = Surelog
+	url = https://github.com/alainmarcel/Surelog.git
+[submodule "uhdm-integration"]
+	path = uhdm-integration
+	url = https://github.com/antmicro/uhdm-integration.git
