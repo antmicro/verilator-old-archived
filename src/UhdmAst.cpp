@@ -611,10 +611,10 @@ namespace UhdmAst {
             if (auto s = vpi_get_str(vpiName, vpi_child_obj)) {
               netName = s;
               sanitize_str(netName);
-              UINFO(7, "Net name is " << netName);
+              UINFO(7, "Net name is " << netName << std::endl);
             }
             if (netName == objectName) {
-              UINFO(7, "Found matching net for " << objectName);
+              UINFO(7, "Found matching net for " << objectName << std::endl);
               dtype = getDType(vpi_child_obj, visited, top_nodes);
               break;
             }
@@ -827,7 +827,7 @@ namespace UhdmAst {
           while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
             std::string name = vpi_get_str(vpiName, vpi_child_obj);
             sanitize_str(name);
-            UINFO(3, "Got parameter (pin) " << name);
+            UINFO(3, "Got parameter (pin) " << name << std::endl);
             auto is_local = vpi_get(vpiLocalParam, vpi_child_obj);
             if (is_local) {
               // Skip local parameters
@@ -846,7 +846,7 @@ namespace UhdmAst {
               if (value == nullptr) {
                 UINFO(3, "Did not get value for parameter " << name
                        << " for object " << objectName
-                       << ", reconstructing assignment");
+                       << ", reconstructing assignment" << std::endl);
                 // Try to construct complex expression
                 visit_one_to_one({vpiRhs}, vpi_child_obj, visited, top_nodes,
                     [&](AstNode* node){
@@ -859,7 +859,7 @@ namespace UhdmAst {
             }
             if (is_local) {
               // Skip local parameters
-              UINFO(3, "Skipping local parameter (pin) " << name);
+              UINFO(3, "Skipping local parameter (pin) " << name << std::endl);
               continue;
             }
             // Although those are parameters, they are stored as pins
@@ -873,7 +873,7 @@ namespace UhdmAst {
           vpi_free_object(itr);
           std::string fullname = vpi_get_str(vpiFullName, obj_h);
           sanitize_str(fullname);
-          UINFO(8, "Adding cell " << fullname);
+          UINFO(8, "Adding cell " << fullname << std::endl);
           AstCell *cell = new AstCell(new FileLine("uhdm"), new FileLine("uhdm"),
               objectName, name, modPins, modParams, nullptr);
           return cell;
