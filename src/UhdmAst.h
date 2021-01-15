@@ -6,6 +6,7 @@
 #include "headers/uhdm.h"
 
 #include "V3Ast.h"
+#include "V3ParseSym.h"
 
 namespace UhdmAst {
 
@@ -16,6 +17,7 @@ namespace UhdmAst {
 
   // Visits all VPI design objects and returns created ASTs
   std::vector<AstNodeModule*> visit_designs (const std::vector<vpiHandle>& designs,
-                                             std::ostream& coverage_report_stream);
+                                             std::ostream& coverage_report_stream,
+                                             V3ParseSym* symp);
 }
 #endif  // Guard
