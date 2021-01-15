@@ -6,6 +6,7 @@
 #include "headers/uhdm.h"
 
 #include "V3Ast.h"
+#include "V3ParseSym.h"
 #include "UhdmAst.h"
 
 namespace UhdmAst {
@@ -15,6 +16,7 @@ namespace UhdmAst {
   std::map<std::string, AstNode*> partialModules;
   std::unordered_map<const UHDM::BaseClass*, std::string> visited_types;
   std::set<std::tuple<std::string, int, std::string>> coverage_set;
+  V3ParseSym* m_symp;
 
   // Walks through one-to-many relationships from given parent
   // node through the VPI interface, visiting child nodes belonging to
@@ -590,6 +592,7 @@ namespace UhdmAst {
             package_prefix.length() - (objectName.length() + 2));
 
         package_map[objectName] = package;
+        m_symp->pushNew(package);
         return package;
       }
       case vpiPort: {
@@ -795,6 +798,7 @@ namespace UhdmAst {
                 //TODO: Revisit this handling
               });
           (partialModules)[module->name()] = module;
+          m_symp->pushNew(module);
         }
 
         if (objectName != modType) {
@@ -2785,6 +2789,7 @@ namespace UhdmAst {
                                          nullptr,
                                          VFlagChildDType(),
                                          dtype);
+        m_symp->reinsert(enum_type);
         return enum_type;
       }
       case vpiStructTypespec: {
@@ -2821,6 +2826,7 @@ namespace UhdmAst {
                                            nullptr,
                                            VFlagChildDType(),
                                            dtype);
+        m_symp->reinsert(struct_type);
         return struct_type;
       }
       case vpiTypespecMember: {
@@ -2845,11 +2851,13 @@ namespace UhdmAst {
                 dtype = reinterpret_cast<AstNodeDType*>(item);
               }
             });
-        return new AstTypedef(new FileLine("uhdm"),
+        auto *ast_typedef = new AstTypedef(new FileLine("uhdm"),
                               objectName,
                               nullptr,
                               VFlagChildDType(),
                               dtype);
+        m_symp->reinsert(ast_typedef);
+        return ast_typedef;
       }
       case vpiLogicVar:
       case vpiStringVar:
@@ -3083,7 +3091,9 @@ namespace UhdmAst {
   }
 
   std::vector<AstNodeModule*> visit_designs (const std::vector<vpiHandle>& designs,
-                                             std::ostream& coverage_report_stream) {
+                                             std::ostream& coverage_report_stream,
+                                             V3ParseSym* symp) {
+    m_symp = symp;
     std::set<const UHDM::BaseClass*> visited;
     std::map<std::string, AstNodeModule*> top_nodes;
     // Package for top-level class definitions
