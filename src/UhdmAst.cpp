@@ -569,7 +569,9 @@ namespace UhdmAst {
       }
       case vpiPackage: {
         auto* package = new AstPackage(new FileLine("uhdm"), objectName);
+        package->inLibrary(true);
         package_prefix += objectName + "::";
+        m_symp->pushNew(package);
         visit_one_to_many({
             vpiTypedef,
             vpiParameter,
@@ -588,11 +590,11 @@ namespace UhdmAst {
                 package->addStmtp(item);
               }
             });
+        m_symp->popScope(package);
         package_prefix = package_prefix.substr(0,
             package_prefix.length() - (objectName.length() + 2));
 
         package_map[objectName] = package;
-        m_symp->pushNew(package);
         return package;
       }
       case vpiPort: {
@@ -768,6 +770,7 @@ namespace UhdmAst {
         } else {
           // Encountered for the first time
           module = new AstModule(new FileLine("uhdm"), modType);
+          m_symp->pushNew(module);
           visit_one_to_many({
               vpiTypedef,  // Keep this before parameters
               vpiModule,
@@ -798,7 +801,7 @@ namespace UhdmAst {
                 //TODO: Revisit this handling
               });
           (partialModules)[module->name()] = module;
-          m_symp->pushNew(module);
+          m_symp->popScope(module);
         }
 
         if (objectName != modType) {
