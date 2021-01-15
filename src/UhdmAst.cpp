@@ -569,6 +569,7 @@ namespace UhdmAst {
         auto* package = new AstPackage(new FileLine("uhdm"), objectName);
         package_prefix += objectName + "::";
         visit_one_to_many({
+            vpiTypedef,
             vpiParameter,
             vpiParamAssign,
             vpiProgram,
@@ -576,7 +577,6 @@ namespace UhdmAst {
             vpiTaskFunc,
             vpiSpecParam,
             vpiAssertion,
-            vpiTypedef
             },
             obj_h,
             visited,
@@ -810,7 +810,7 @@ namespace UhdmAst {
             if (highConn) {
               std::string portName = vpi_get_str(vpiName, vpi_child_obj);
               sanitize_str(portName);
-              AstParseRef *ref = reinterpret_cast<AstParseRef *>(visit_object(highConn, visited, top_nodes));
+              AstNode *ref = visit_object(highConn, visited, top_nodes);
               AstPin *pin = new AstPin(new FileLine("uhdm"), ++np, portName, ref);
               if (!modPins)
                   modPins = pin;
@@ -1378,6 +1378,7 @@ namespace UhdmAst {
       case vpiBegin: {
         AstNode* body = nullptr;
         visit_one_to_many({
+            vpiTypedef,
             vpiStmt,
             vpiPropertyDecl,
             vpiSequenceDecl,
@@ -1392,7 +1393,6 @@ namespace UhdmAst {
             vpiParameter,
             vpiParamAssign,
             vpiInternalScope,
-            vpiTypedef,
             vpiImport,
             vpiAttribute,
             vpiNet,
@@ -2790,6 +2790,10 @@ namespace UhdmAst {
       case vpiStructTypespec: {
         const uhdm_handle* const handle = (const uhdm_handle*) obj_h;
         const UHDM::BaseClass* const object = (const UHDM::BaseClass*) handle->object;
+        if (visited_types.find(object) != visited_types.end()) {
+          UINFO(6, "Object " << objectName << " was already visited" << std::endl);
+          return node;
+        }
         visited_types[object] = package_prefix + objectName;
         // VSigning below is used in AstStructDtype to indicate
         // if packed or not
@@ -2923,6 +2927,7 @@ namespace UhdmAst {
       case vpiGenScope: {
         AstNode* statements = nullptr;
         visit_one_to_many({
+            vpiTypedef,
             vpiInternalScope,
             vpiArrayNet,
             //vpiLogicVar,
@@ -2949,7 +2954,6 @@ namespace UhdmAst {
             vpiInterfaceArray,
             vpiAliasStmt,
             vpiClockingBlock,
-            vpiTypedef,
             },
             obj_h,
             visited,
@@ -3035,13 +3039,13 @@ namespace UhdmAst {
       case vpiClassDefn: {
         auto* definition = new AstClass(new FileLine("uhdm"), objectName);
         visit_one_to_many({
+            vpiTypedef,
             vpiVariables,
             //vpiMethods,  // Not supported yet in UHDM
             vpiConstraint,
             vpiParameter,
             vpiNamedEvent,
             vpiNamedEventArray,
-            vpiTypedef,
             vpiInternalScope,
             },
             obj_h,
