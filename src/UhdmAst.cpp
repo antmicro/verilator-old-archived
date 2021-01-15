@@ -810,7 +810,7 @@ namespace UhdmAst {
             if (highConn) {
               std::string portName = vpi_get_str(vpiName, vpi_child_obj);
               sanitize_str(portName);
-              AstParseRef *ref = reinterpret_cast<AstParseRef *>(visit_object(highConn, visited, top_nodes));
+              AstNode *ref = visit_object(highConn, visited, top_nodes);
               AstPin *pin = new AstPin(new FileLine("uhdm"), ++np, portName, ref);
               if (!modPins)
                   modPins = pin;
