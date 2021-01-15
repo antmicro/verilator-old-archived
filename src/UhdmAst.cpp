@@ -2790,6 +2790,10 @@ namespace UhdmAst {
       case vpiStructTypespec: {
         const uhdm_handle* const handle = (const uhdm_handle*) obj_h;
         const UHDM::BaseClass* const object = (const UHDM::BaseClass*) handle->object;
+        if (visited_types.find(object) != visited_types.end()) {
+          UINFO(6, "Object " << objectName << " was already visited" << std::endl);
+          return node;
+        }
         visited_types[object] = package_prefix + objectName;
         // VSigning below is used in AstStructDtype to indicate
         // if packed or not
