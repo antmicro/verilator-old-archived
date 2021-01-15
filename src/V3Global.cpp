@@ -82,10 +82,10 @@ void V3Global::readFiles() {
                 coverage_output << "UHDM contents:" << std::endl;
                 coverage_output << uhdm_lines_dump.str();
                 coverage_output << "Visited nodes:" << std::endl;
-                modules = UhdmAst::visit_designs(restoredDesigns, coverage_output);
+                modules = UhdmAst::visit_designs(restoredDesigns, coverage_output, &parseSyms);
             } else {
                 std::ostringstream dummy;
-                modules = UhdmAst::visit_designs(restoredDesigns, dummy);
+                modules = UhdmAst::visit_designs(restoredDesigns, dummy, &parseSyms);
             }
 
             /* Add to design */
@@ -133,14 +133,13 @@ void V3Global::readFiles() {
             uhdm_lines_dump << UHDM::dump_visited(restoredDesigns);
 
             std::ostringstream dummy;
-            modules = UhdmAst::visit_designs(restoredDesigns, dummy);
+            modules = UhdmAst::visit_designs(restoredDesigns, dummy, &parseSyms);
 
             AstNetlist *designRoot = v3Global.rootp();
             for (auto itr = modules.begin(); itr != modules.end(); ++itr) {
                 designRoot->addModulep(*itr);
             }
 	}
-
 	V3Parse parser(v3Global.rootp(), &filter, &parseSyms);
 
 	for (auto svFile : svFiles) {
