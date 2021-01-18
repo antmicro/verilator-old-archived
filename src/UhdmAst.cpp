@@ -408,6 +408,7 @@ namespace UhdmAst {
                   classpackageName,
                   classpackagep,
                   nullptr);
+              m_symp->nextId(classpackagep);
               dtype = new AstRefDType(new FileLine("uhdm"),
                                       type_name,
                                       classpackageref,
@@ -717,6 +718,7 @@ namespace UhdmAst {
             auto* package_import = new AstPackageImport(new FileLine("uhdm"),
                                                     packagep,
                                                     symbol_name);
+            m_symp->importItem(packagep, symbol_name);
             return package_import;
           }
       }
@@ -741,6 +743,8 @@ namespace UhdmAst {
             // Use more specific name
             name = modType + "_" + objectName + std::to_string(module_counter++);
           }
+          module->name(name);
+          m_symp->pushNew(module);
           visit_one_to_many({
               vpiPort,
               vpiInterface,
@@ -791,12 +795,11 @@ namespace UhdmAst {
                 if (node != nullptr)
                   module->addStmtp(node);
               });
-          module->name(name);
           (*top_nodes)[name] = module;
+          m_symp->popScope(module);
         } else {
           // Encountered for the first time
           module = new AstModule(new FileLine("uhdm"), modType);
-          m_symp->pushNew(module);
           visit_one_to_many({
               vpiTypedef,  // Keep this before parameters
               vpiModule,
@@ -827,7 +830,6 @@ namespace UhdmAst {
                 //TODO: Revisit this handling
               });
           (partialModules)[module->name()] = module;
-          m_symp->popScope(module);
         }
 
         if (objectName != modType) {
