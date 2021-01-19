@@ -367,21 +367,27 @@ namespace UhdmAst {
         std::string type_string;
         const uhdm_handle* const handle = (const uhdm_handle*) obj_h;
         const UHDM::BaseClass* const object = (const UHDM::BaseClass*) handle->object;
+        std::string type_name = vpi_get_str(vpiName, obj_h);
+        sanitize_str(type_name);
         if (visited_types.find(object) != visited_types.end()) {
           type_string = visited_types[object];
           size_t delimiter_pos = type_string.find("::");
           if (delimiter_pos == string::npos) {
+            UINFO(7, "No package prefix found, creating ref" << std::endl);
             dtype = new AstRefDType(new FileLine("uhdm"),
                                     type_string);
           } else {
             auto classpackageName = type_string.substr(0, delimiter_pos);
             auto type_name = type_string.substr(delimiter_pos + 2, type_string.length());
+            UINFO(7, "Found package prefix: " << classpackageName << std::endl);
             // If we are in the same package - do not create reference,
             // as it will confuse Verilator
             if (classpackageName == package_prefix.substr(0, package_prefix.length()-2)) {
+              UINFO(7, "In the same package, creating simple ref" << std::endl);
               dtype = new AstRefDType(new FileLine("uhdm"),
                                       type_name);
             } else {
+              UINFO(7, "Creating ClassOrPackageRef" << std::endl);
               AstPackage* classpackagep = nullptr;
               auto it = package_map.find(classpackageName);
               if (it != package_map.end()) {
@@ -397,9 +403,17 @@ namespace UhdmAst {
                                       nullptr);
             }
           }
+        } else if (type_name != "") {
+          // Type not found or object pointer mismatch, but let's try to create a reference
+          // to be resolved later
+          // Simple reference only, prefix is not stored in name
+          UINFO(7, "No match found, creating ref to name" << type_name << std::endl);
+          dtype = new AstRefDType(new FileLine("uhdm"),
+                                  type_name);
         } else {
           // Typedefed types were visited earlier, probably anonymous struct
           // Get the typespec here
+          UINFO(7, "Encountered anonymous struct");
           AstNode* typespec_p = visit_object(obj_h, visited, top_nodes);
           dtype = typespec_p->getChildDTypep()->cloneTree(false);
         }
