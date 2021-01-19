@@ -814,16 +814,17 @@ namespace UhdmAst {
           int np = 0;
           while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
             vpiHandle highConn = vpi_handle(vpiHighConn, vpi_child_obj);
+            std::string portName = vpi_get_str(vpiName, vpi_child_obj);
+            sanitize_str(portName);
+            AstNode* ref = nullptr;
             if (highConn) {
-              std::string portName = vpi_get_str(vpiName, vpi_child_obj);
-              sanitize_str(portName);
-              AstNode *ref = visit_object(highConn, visited, top_nodes);
-              AstPin *pin = new AstPin(new FileLine("uhdm"), ++np, portName, ref);
-              if (!modPins)
-                  modPins = pin;
-              else
-                  modPins->addNextNull(pin);
+              ref = visit_object(highConn, visited, top_nodes);
             }
+            AstPin *pin = new AstPin(new FileLine("uhdm"), ++np, portName, ref);
+            if (!modPins)
+                modPins = pin;
+            else
+                modPins->addNextNull(pin);
 
             vpi_free_object(vpi_child_obj);
           }
