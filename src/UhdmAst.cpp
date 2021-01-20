@@ -1069,7 +1069,6 @@ namespace UhdmAst {
                              objectName,
                              VFlagChildDType(),
                              dtype);
-        v->dtypep(dtype);
         return v;
       }
       case vpiParameter:
@@ -1303,7 +1302,6 @@ namespace UhdmAst {
                          objectName,
                          VFlagChildDType(),
                          dtype);
-        var->dtypep(dtype);
         var->declDirection(dir);
         var->direction(dir);
         return var;
@@ -2854,9 +2852,8 @@ namespace UhdmAst {
         if (typespec != nullptr) {
           auto * member =  new AstMemberDType(new FileLine("uhdm"),
               objectName,
+              VFlagChildDType(),
               reinterpret_cast<AstNodeDType*>(typespec));
-          member->childDTypep(typespec);
-          member->dtypep(typespec);
           return member;
         }
         return nullptr;
@@ -2919,7 +2916,6 @@ namespace UhdmAst {
                          objectName,
                          VFlagChildDType(),
                          dtype);
-        var->dtypep(dtype);
         return var;
       }
       case vpiChandleVar: {
@@ -2930,7 +2926,6 @@ namespace UhdmAst {
                                objectName,
                                VFlagChildDType(),
                                dtype);
-        var->dtypep(dtype);
         return var;
       }
       case vpiGenScopeArray: {
