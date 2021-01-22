@@ -261,7 +261,15 @@ namespace UhdmAst {
     auto type = vpi_get(vpiType, obj_h);
     if (type == vpiPort) {
       auto ref_h = vpi_handle(vpiLowConn, obj_h);
+      if (!ref_h) {
+        v3error("Could not get lowconn handle for port, aborting");
+        return nullptr;
+      }
       auto actual_h = vpi_handle(vpiActual, ref_h);
+      if (!actual_h) {
+        v3error("Could not get actual handle for port, aborting");
+        return nullptr;
+      }
       auto ref_type = vpi_get(vpiType, actual_h);
       if (ref_type == vpiLogicNet ||
           ref_type == vpiIntegerNet ||
