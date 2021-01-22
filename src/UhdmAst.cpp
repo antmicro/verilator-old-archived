@@ -732,10 +732,11 @@ namespace UhdmAst {
           module = reinterpret_cast<AstModule*>(it->second);
           AstModule* full_module = nullptr;
           if (objectName != modType) {
+            static int module_counter;
             // Not a top module, create separate node with proper params
             module = module->cloneTree(false);
             // Use more specific name
-            name = modType + "_" + objectName;
+            name = modType + "_" + objectName + std::to_string(module_counter++);
           }
           visit_one_to_many({
               vpiPort,
@@ -905,7 +906,7 @@ namespace UhdmAst {
           sanitize_str(fullname);
           UINFO(8, "Adding cell " << fullname << std::endl);
           AstCell *cell = new AstCell(new FileLine("uhdm"), new FileLine("uhdm"),
-              objectName, name, modPins, modParams, nullptr);
+              name, name, modPins, modParams, nullptr);
           return cell;
         }
         break;
