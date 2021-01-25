@@ -375,7 +375,10 @@ namespace UhdmAst {
         std::string type_string;
         const uhdm_handle* const handle = (const uhdm_handle*) obj_h;
         const UHDM::BaseClass* const object = (const UHDM::BaseClass*) handle->object;
-        std::string type_name = vpi_get_str(vpiName, obj_h);
+        std::string type_name = "";
+        if (auto s = vpi_get_str(vpiName, obj_h)) {
+          type_name = s;
+        }
         sanitize_str(type_name);
         if (visited_types.find(object) != visited_types.end()) {
           type_string = visited_types[object];
