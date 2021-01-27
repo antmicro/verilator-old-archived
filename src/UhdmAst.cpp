@@ -873,7 +873,6 @@ namespace UhdmAst {
                   else
                     v3error("No value for parameter: " << param_name);
                 });
-            }
             if (is_local) {
               // Skip local parameters
               UINFO(3, "Skipping local parameter (pin) " << param_name << std::endl);
