@@ -857,47 +857,30 @@ namespace UhdmAst {
           vpi_free_object(itr);
 
           // Get parameter assignments
-          itr = vpi_iterate(vpiParameter, obj_h);
+          itr = vpi_iterate(vpiParamAssign, obj_h);
           while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
-            std::string name = vpi_get_str(vpiName, vpi_child_obj);
-            sanitize_str(name);
-            UINFO(3, "Got parameter (pin) " << name << std::endl);
-            auto is_local = vpi_get(vpiLocalParam, vpi_child_obj);
-            if (is_local) {
-              // Skip local parameters
-              continue;
-            }
-            auto* value = get_value_as_node(vpi_child_obj);
-            // Find corresponding nodes by iterating over ParamAssigns
-            itr = vpi_iterate(vpiParamAssign, obj_h);
-            while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
-              vpiHandle param_handle = vpi_handle(vpiLhs, vpi_child_obj);
-              std::string param_name = vpi_get_str(vpiName, param_handle);
-              sanitize_str(param_name);
-              if (param_name != name)
-                continue;
-              is_local = vpi_get(vpiLocalParam, param_handle);
-              if (value == nullptr) {
-                UINFO(3, "Did not get value for parameter " << name
-                       << " for object " << objectName
-                       << ", reconstructing assignment" << std::endl);
-                // Try to construct complex expression
-                visit_one_to_one({vpiRhs}, vpi_child_obj, visited, top_nodes,
-                    [&](AstNode* node){
-                      if (node != nullptr)
-                        value = node;
-                      else
-                        v3error("No value for parameter: " << name);
-                    });
-              }
+            vpiHandle param_handle = vpi_handle(vpiLhs, vpi_child_obj);
+            std::string param_name = vpi_get_str(vpiName, param_handle);
+            sanitize_str(param_name);
+            UINFO(3, "Got parameter (pin) " << param_name << std::endl);
+            auto is_local = vpi_get(vpiLocalParam, param_handle);
+            AstNode* value = nullptr;
+            // Try to construct complex expression
+            visit_one_to_one({vpiRhs}, vpi_child_obj, visited, top_nodes,
+                [&](AstNode* node){
+                  if (node != nullptr)
+                    value = node;
+                  else
+                    v3error("No value for parameter: " << param_name);
+                });
             }
             if (is_local) {
               // Skip local parameters
-              UINFO(3, "Skipping local parameter (pin) " << name << std::endl);
+              UINFO(3, "Skipping local parameter (pin) " << param_name << std::endl);
               continue;
             }
             // Although those are parameters, they are stored as pins
-            AstPin *pin = new AstPin(new FileLine("uhdm"), ++np, name, value);
+            AstPin *pin = new AstPin(new FileLine("uhdm"), ++np, param_name, value);
             if (!modParams)
                 modParams = pin;
             else
