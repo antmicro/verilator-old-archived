@@ -261,7 +261,15 @@ namespace UhdmAst {
     auto type = vpi_get(vpiType, obj_h);
     if (type == vpiPort) {
       auto ref_h = vpi_handle(vpiLowConn, obj_h);
+      if (!ref_h) {
+        v3error("Could not get lowconn handle for port, aborting");
+        return nullptr;
+      }
       auto actual_h = vpi_handle(vpiActual, ref_h);
+      if (!actual_h) {
+        v3error("Could not get actual handle for port, aborting");
+        return nullptr;
+      }
       auto ref_type = vpi_get(vpiType, actual_h);
       if (ref_type == vpiLogicNet ||
           ref_type == vpiIntegerNet ||
@@ -367,21 +375,30 @@ namespace UhdmAst {
         std::string type_string;
         const uhdm_handle* const handle = (const uhdm_handle*) obj_h;
         const UHDM::BaseClass* const object = (const UHDM::BaseClass*) handle->object;
+        std::string type_name = "";
+        if (auto s = vpi_get_str(vpiName, obj_h)) {
+          type_name = s;
+        }
+        sanitize_str(type_name);
         if (visited_types.find(object) != visited_types.end()) {
           type_string = visited_types[object];
           size_t delimiter_pos = type_string.find("::");
           if (delimiter_pos == string::npos) {
+            UINFO(7, "No package prefix found, creating ref" << std::endl);
             dtype = new AstRefDType(new FileLine("uhdm"),
                                     type_string);
           } else {
             auto classpackageName = type_string.substr(0, delimiter_pos);
             auto type_name = type_string.substr(delimiter_pos + 2, type_string.length());
+            UINFO(7, "Found package prefix: " << classpackageName << std::endl);
             // If we are in the same package - do not create reference,
             // as it will confuse Verilator
             if (classpackageName == package_prefix.substr(0, package_prefix.length()-2)) {
+              UINFO(7, "In the same package, creating simple ref" << std::endl);
               dtype = new AstRefDType(new FileLine("uhdm"),
                                       type_name);
             } else {
+              UINFO(7, "Creating ClassOrPackageRef" << std::endl);
               AstPackage* classpackagep = nullptr;
               auto it = package_map.find(classpackageName);
               if (it != package_map.end()) {
@@ -397,9 +414,17 @@ namespace UhdmAst {
                                       nullptr);
             }
           }
+        } else if (type_name != "") {
+          // Type not found or object pointer mismatch, but let's try to create a reference
+          // to be resolved later
+          // Simple reference only, prefix is not stored in name
+          UINFO(7, "No match found, creating ref to name" << type_name << std::endl);
+          dtype = new AstRefDType(new FileLine("uhdm"),
+                                  type_name);
         } else {
           // Typedefed types were visited earlier, probably anonymous struct
           // Get the typespec here
+          UINFO(7, "Encountered anonymous struct");
           AstNode* typespec_p = visit_object(obj_h, visited, top_nodes);
           dtype = typespec_p->getChildDTypep()->cloneTree(false);
         }
@@ -710,10 +735,11 @@ namespace UhdmAst {
           module = reinterpret_cast<AstModule*>(it->second);
           AstModule* full_module = nullptr;
           if (objectName != modType) {
+            static int module_counter;
             // Not a top module, create separate node with proper params
             module = module->cloneTree(false);
             // Use more specific name
-            name = modType + "_" + objectName;
+            name = modType + "_" + objectName + std::to_string(module_counter++);
           }
           visit_one_to_many({
               vpiPort,
@@ -814,63 +840,47 @@ namespace UhdmAst {
           int np = 0;
           while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
             vpiHandle highConn = vpi_handle(vpiHighConn, vpi_child_obj);
+            std::string portName = vpi_get_str(vpiName, vpi_child_obj);
+            sanitize_str(portName);
+            AstNode* ref = nullptr;
             if (highConn) {
-              std::string portName = vpi_get_str(vpiName, vpi_child_obj);
-              sanitize_str(portName);
-              AstNode *ref = visit_object(highConn, visited, top_nodes);
-              AstPin *pin = new AstPin(new FileLine("uhdm"), ++np, portName, ref);
-              if (!modPins)
-                  modPins = pin;
-              else
-                  modPins->addNextNull(pin);
+              ref = visit_object(highConn, visited, top_nodes);
             }
+            AstPin *pin = new AstPin(new FileLine("uhdm"), ++np, portName, ref);
+            if (!modPins)
+                modPins = pin;
+            else
+                modPins->addNextNull(pin);
 
             vpi_free_object(vpi_child_obj);
           }
           vpi_free_object(itr);
 
           // Get parameter assignments
-          itr = vpi_iterate(vpiParameter, obj_h);
+          itr = vpi_iterate(vpiParamAssign, obj_h);
           while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
-            std::string name = vpi_get_str(vpiName, vpi_child_obj);
-            sanitize_str(name);
-            UINFO(3, "Got parameter (pin) " << name << std::endl);
-            auto is_local = vpi_get(vpiLocalParam, vpi_child_obj);
-            if (is_local) {
-              // Skip local parameters
-              continue;
-            }
-            auto* value = get_value_as_node(vpi_child_obj);
-            // Find corresponding nodes by iterating over ParamAssigns
-            itr = vpi_iterate(vpiParamAssign, obj_h);
-            while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
-              vpiHandle param_handle = vpi_handle(vpiLhs, vpi_child_obj);
-              std::string param_name = vpi_get_str(vpiName, param_handle);
-              sanitize_str(param_name);
-              if (param_name != name)
-                continue;
-              is_local = vpi_get(vpiLocalParam, param_handle);
-              if (value == nullptr) {
-                UINFO(3, "Did not get value for parameter " << name
-                       << " for object " << objectName
-                       << ", reconstructing assignment" << std::endl);
-                // Try to construct complex expression
-                visit_one_to_one({vpiRhs}, vpi_child_obj, visited, top_nodes,
-                    [&](AstNode* node){
-                      if (node != nullptr)
-                        value = node;
-                      else
-                        v3error("No value for parameter: " << name);
-                    });
-              }
+            vpiHandle param_handle = vpi_handle(vpiLhs, vpi_child_obj);
+            std::string param_name = vpi_get_str(vpiName, param_handle);
+            sanitize_str(param_name);
+            UINFO(3, "Got parameter (pin) " << param_name << std::endl);
+            auto is_local = vpi_get(vpiLocalParam, param_handle);
+            AstNode* value = nullptr;
+            // Try to construct complex expression
+            visit_one_to_one({vpiRhs}, vpi_child_obj, visited, top_nodes,
+                [&](AstNode* node){
+                  if (node != nullptr)
+                    value = node;
+                  else
+                    v3error("No value for parameter: " << param_name);
+                });
             }
             if (is_local) {
               // Skip local parameters
-              UINFO(3, "Skipping local parameter (pin) " << name << std::endl);
+              UINFO(3, "Skipping local parameter (pin) " << param_name << std::endl);
               continue;
             }
             // Although those are parameters, they are stored as pins
-            AstPin *pin = new AstPin(new FileLine("uhdm"), ++np, name, value);
+            AstPin *pin = new AstPin(new FileLine("uhdm"), ++np, param_name, value);
             if (!modParams)
                 modParams = pin;
             else
@@ -882,7 +892,7 @@ namespace UhdmAst {
           sanitize_str(fullname);
           UINFO(8, "Adding cell " << fullname << std::endl);
           AstCell *cell = new AstCell(new FileLine("uhdm"), new FileLine("uhdm"),
-              objectName, name, modPins, modParams, nullptr);
+              name, name, modPins, modParams, nullptr);
           return cell;
         }
         break;
@@ -1054,7 +1064,6 @@ namespace UhdmAst {
                              objectName,
                              VFlagChildDType(),
                              dtype);
-        v->dtypep(dtype);
         return v;
       }
       case vpiParameter:
@@ -1288,7 +1297,6 @@ namespace UhdmAst {
                          objectName,
                          VFlagChildDType(),
                          dtype);
-        var->dtypep(dtype);
         var->declDirection(dir);
         var->direction(dir);
         return var;
@@ -2839,9 +2847,8 @@ namespace UhdmAst {
         if (typespec != nullptr) {
           auto * member =  new AstMemberDType(new FileLine("uhdm"),
               objectName,
+              VFlagChildDType(),
               reinterpret_cast<AstNodeDType*>(typespec));
-          member->childDTypep(typespec);
-          member->dtypep(typespec);
           return member;
         }
         return nullptr;
@@ -2904,7 +2911,6 @@ namespace UhdmAst {
                          objectName,
                          VFlagChildDType(),
                          dtype);
-        var->dtypep(dtype);
         return var;
       }
       case vpiChandleVar: {
@@ -2915,7 +2921,6 @@ namespace UhdmAst {
                                objectName,
                                VFlagChildDType(),
                                dtype);
-        var->dtypep(dtype);
         return var;
       }
       case vpiGenScopeArray: {
