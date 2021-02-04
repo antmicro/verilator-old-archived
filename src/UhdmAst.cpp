@@ -935,6 +935,12 @@ namespace UhdmAst {
               return new AstAssignDly(new FileLine("uhdm"), lvalue, rvalue);
             }
           } else if (objectType == vpiContAssign || objectType == vpiAssignStmt){
+            AstNode* assign;
+            if (objectType == vpiContAssign) {
+              assign = new AstAssignW(new FileLine("uhdm"), lvalue, rvalue);
+            } else {
+              assign = new AstAssign(new FileLine("uhdm"), lvalue, rvalue);
+            }
             if (lvalue->type() == AstType::en::atVar) {
               // If a variable was declared along with the assignment,
               // return it as well. Create a reference for the assignment.
@@ -944,11 +950,10 @@ namespace UhdmAst {
                                                      lvalue->name(),
                                                      nullptr,
                                                      nullptr);
-              auto* assign = new AstAssign(new FileLine("uhdm"), lvalue, rvalue);
               var->addNextNull(assign);
               return var;
             } else {
-              return new AstAssignW(new FileLine("uhdm"), lvalue, rvalue);
+              return assign;
             }
           }
         }
