@@ -677,7 +677,7 @@ namespace UhdmAst {
             if (n == vpiInput) {
               var->declDirection(VDirection::INPUT);
               var->direction(VDirection::INPUT);
-              var->varType(AstVarType::WIRE);
+              var->varType(AstVarType::PORT);
             } else if (n == vpiOutput) {
               var->declDirection(VDirection::OUTPUT);
               var->direction(VDirection::OUTPUT);
@@ -1526,10 +1526,10 @@ namespace UhdmAst {
           case vpiBitAndOp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
               [&](AstNode* node){
-                if (rhs == nullptr) {
-                  rhs = node;
-                } else {
+                if (lhs == nullptr) {
                   lhs = node;
+                } else {
+                  rhs = node;
                 }
               });
             return new AstAnd(new FileLine("uhdm"), lhs, rhs);
@@ -1548,10 +1548,10 @@ namespace UhdmAst {
           case vpiBitOrOp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
               [&](AstNode* node){
-                if (rhs == nullptr) {
-                  rhs = node;
-                } else {
+                if (lhs == nullptr) {
                   lhs = node;
+                } else {
+                  rhs = node;
                 }
               });
             return new AstOr(new FileLine("uhdm"), lhs, rhs);
