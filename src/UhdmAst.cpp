@@ -1372,7 +1372,8 @@ namespace UhdmAst {
           [&](AstNode* node){
             body = node;
           });
-        return new AstAlways(new FileLine("uhdm"), VAlwaysKwd::ALWAYS, senTree, body);
+        auto* tctrl = new AstTimingControl(new FileLine("uhdm"), senTree, body);
+        return new AstAlways(new FileLine("uhdm"), VAlwaysKwd::ALWAYS_FF, nullptr, tctrl);
       }
       case vpiInitial: {
         AstNode* body = nullptr;
