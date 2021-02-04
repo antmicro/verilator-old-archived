@@ -893,7 +893,7 @@ namespace UhdmAst {
           sanitize_str(fullname);
           UINFO(8, "Adding cell " << fullname << std::endl);
           AstCell *cell = new AstCell(new FileLine("uhdm"), new FileLine("uhdm"),
-              name, name, modPins, modParams, nullptr);
+              objectName, name, modPins, modParams, nullptr);
           return cell;
         }
         break;
