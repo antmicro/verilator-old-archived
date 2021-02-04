@@ -594,7 +594,7 @@ namespace UhdmAst {
         return node;
       }
       case vpiPackage: {
-        auto* package = new AstPackage(new FileLine("uhdm"), objectName);
+        auto* package = new AstPackage(new FileLine(objectName), objectName);
         package->inLibrary(true);
         package_prefix += objectName + "::";
         m_symp->pushNew(package);
@@ -799,7 +799,7 @@ namespace UhdmAst {
           m_symp->popScope(module);
         } else {
           // Encountered for the first time
-          module = new AstModule(new FileLine("uhdm"), modType);
+          module = new AstModule(new FileLine(modType), modType);
           visit_one_to_many({
               vpiTypedef,  // Keep this before parameters
               vpiModule,
