@@ -594,7 +594,7 @@ namespace UhdmAst {
         return node;
       }
       case vpiPackage: {
-        auto* package = new AstPackage(new FileLine("uhdm"), objectName);
+        auto* package = new AstPackage(new FileLine(objectName), objectName);
         package->inLibrary(true);
         package_prefix += objectName + "::";
         m_symp->pushNew(package);
@@ -677,7 +677,7 @@ namespace UhdmAst {
             if (n == vpiInput) {
               var->declDirection(VDirection::INPUT);
               var->direction(VDirection::INPUT);
-              var->varType(AstVarType::WIRE);
+              var->varType(AstVarType::PORT);
             } else if (n == vpiOutput) {
               var->declDirection(VDirection::OUTPUT);
               var->direction(VDirection::OUTPUT);
@@ -799,7 +799,7 @@ namespace UhdmAst {
           m_symp->popScope(module);
         } else {
           // Encountered for the first time
-          module = new AstModule(new FileLine("uhdm"), modType);
+          module = new AstModule(new FileLine(modType), modType);
           visit_one_to_many({
               vpiTypedef,  // Keep this before parameters
               vpiModule,
@@ -893,7 +893,7 @@ namespace UhdmAst {
           sanitize_str(fullname);
           UINFO(8, "Adding cell " << fullname << std::endl);
           AstCell *cell = new AstCell(new FileLine("uhdm"), new FileLine("uhdm"),
-              name, name, modPins, modParams, nullptr);
+              objectName, name, modPins, modParams, nullptr);
           return cell;
         }
         break;
@@ -934,21 +934,29 @@ namespace UhdmAst {
             } else {
               return new AstAssignDly(new FileLine("uhdm"), lvalue, rvalue);
             }
-          } else if (objectType == vpiContAssign || objectType == vpiAssignStmt){
+          } else {
+            AstNode* assign;
             if (lvalue->type() == AstType::en::atVar) {
               // If a variable was declared along with the assignment,
               // return it as well. Create a reference for the assignment.
               AstNode* var = lvalue;
-              lvalue = new AstParseRef(new FileLine("uhdm"),
+              auto* var_ref = new AstParseRef(new FileLine("uhdm"),
                                                      VParseRefExp::en::PX_TEXT,
                                                      lvalue->name(),
                                                      nullptr,
                                                      nullptr);
-              auto* assign = new AstAssign(new FileLine("uhdm"), lvalue, rvalue);
+              if (objectType == vpiContAssign)
+                assign = new AstAssignW(new FileLine("uhdm"), var_ref, rvalue);
+              else
+                assign = new AstAssign(new FileLine("uhdm"), var_ref, rvalue);
               var->addNextNull(assign);
               return var;
             } else {
-              return new AstAssignW(new FileLine("uhdm"), lvalue, rvalue);
+              if (objectType == vpiContAssign)
+                assign = new AstAssignW(new FileLine("uhdm"), lvalue, rvalue);
+              else
+                assign = new AstAssign(new FileLine("uhdm"), lvalue, rvalue);
+              return assign;
             }
           }
         }
@@ -1372,7 +1380,8 @@ namespace UhdmAst {
           [&](AstNode* node){
             body = node;
           });
-        return new AstAlways(new FileLine("uhdm"), VAlwaysKwd::ALWAYS, senTree, body);
+        auto* tctrl = new AstTimingControl(new FileLine("uhdm"), senTree, body);
+        return new AstAlways(new FileLine("uhdm"), VAlwaysKwd::ALWAYS_FF, nullptr, tctrl);
       }
       case vpiInitial: {
         AstNode* body = nullptr;
@@ -1526,10 +1535,10 @@ namespace UhdmAst {
           case vpiBitAndOp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
               [&](AstNode* node){
-                if (rhs == nullptr) {
-                  rhs = node;
-                } else {
+                if (lhs == nullptr) {
                   lhs = node;
+                } else {
+                  rhs = node;
                 }
               });
             return new AstAnd(new FileLine("uhdm"), lhs, rhs);
@@ -1548,10 +1557,10 @@ namespace UhdmAst {
           case vpiBitOrOp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
               [&](AstNode* node){
-                if (rhs == nullptr) {
-                  rhs = node;
-                } else {
+                if (lhs == nullptr) {
                   lhs = node;
+                } else {
+                  rhs = node;
                 }
               });
             return new AstOr(new FileLine("uhdm"), lhs, rhs);
