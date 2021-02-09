@@ -2267,7 +2267,11 @@ namespace UhdmAst {
                 statements = item;
             }
           });
-        return new AstFunc(new FileLine("uhdm"), objectName, statements, function_vars);
+        if (return_h) {
+          return new AstFunc(new FileLine("uhdm"), objectName, statements, function_vars);
+        } else {
+          return new AstTask(new FileLine("uhdm"), objectName, statements);
+        }
       }
       case vpiReturn:
       case vpiReturnStmt: {
