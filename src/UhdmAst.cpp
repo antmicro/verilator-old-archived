@@ -325,6 +325,15 @@ namespace UhdmAst {
       case vpiLogicNet:
       case vpiIntegerNet:
       case vpiTimeNet:
+      case vpiLogicVar:
+      case vpiIntVar:
+      case vpiLongIntVar:
+      case vpiIntegerVar:
+      case vpiBitVar:
+      case vpiByteVar:
+      case vpiRealVar:
+      case vpiStringVar:
+      case vpiTimeVar:
       case vpiLogicTypespec:
       case vpiIntTypespec:
       case vpiLongIntTypespec:
