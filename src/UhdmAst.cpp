@@ -2310,9 +2310,13 @@ namespace UhdmAst {
                                               nullptr);
           return new AstMethodCall(new FileLine("uhdm"), from, rhs, arguments);
         }
-
-        AstFuncRef* func_call = new AstFuncRef(new FileLine("uhdm"), objectName, arguments);
-        return func_call;
+        // Check if this is a task or function by looking for return value
+        auto function_h = vpi_handle(vpiFunction, obj_h);
+        auto return_h = vpi_handle(vpiReturn, function_h);
+        if (return_h)
+          return new AstFuncRef(new FileLine("uhdm"), objectName, arguments);
+        else
+          return new AstTaskRef(new FileLine("uhdm"), objectName, arguments);
       }
       case vpiSysFuncCall: {
         std::vector<AstNode*> arguments;
