@@ -2224,17 +2224,9 @@ namespace UhdmAst {
         AstRange* returnRange = nullptr;
         auto return_h = vpi_handle(vpiReturn, obj_h);
         if (return_h) {
-          visit_one_to_many({vpiRange}, return_h, visited, top_nodes,
-            [&](AstNode* item){
-              if (item) {
-                  returnRange = reinterpret_cast<AstRange*>(item);
-              }
-            });
+          AstNode* dtype = getDType(return_h, visited, top_nodes);
+          function_vars = dtype;
         }
-        auto* dtype = new AstBasicDType(new FileLine("uhdm"),
-                                  AstBasicDTypeKwd::LOGIC);
-        dtype->rangep(returnRange);
-        function_vars = dtype;
 
         visit_one_to_many({vpiIODecl}, obj_h, visited, top_nodes,
           [&](AstNode* item){
