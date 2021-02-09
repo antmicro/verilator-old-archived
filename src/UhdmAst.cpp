@@ -2401,10 +2401,17 @@ namespace UhdmAst {
           return new AstFClose(new FileLine("uhdm"),
                               arguments[0]);
         } else if (objectName == "$fwrite") {
+          AstNode* args = nullptr;
+          for (auto a : arguments) {
+            if (args == nullptr)
+              args = a;
+            else
+              args->addNextNull(a);
+          }
           return new AstDisplay(new FileLine("uhdm"),
                                 AstDisplayType(AstDisplayType::en::DT_WRITE),
-                                arguments[0],
-                                arguments[1]);
+                                nullptr,
+                                args);
         } else if (objectName == "$fflush") {
           return new AstFFlush(new FileLine("uhdm"),
                                arguments[0]);
