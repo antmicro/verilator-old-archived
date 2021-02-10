@@ -321,7 +321,7 @@ jobs:
         unzip ${test_name}.zip -d uhdm-integration/build
       env:
         TEST_CASE: ${{ matrix.TEST_CASE_VCDDIFF }}
-        BRANCH: remove-verilator
+        BRANCH: uhdm-yosys
         REPO: antmicro/yosys
         WORKFLOW_FILE: main.yml
 
