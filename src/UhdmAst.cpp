@@ -1949,10 +1949,10 @@ namespace UhdmAst {
             if (rhs != nullptr) {
               lhs = new AstConcat(new FileLine("uhdm"), lhs, rhs);
               rhs = new AstConst(new FileLine("uhdm"), 1);
-              return new AstReplicate(new FileLine("uhdm"), lhs, rhs);
             } else {
-              return lhs;
+              rhs = new AstConst(new FileLine("uhdm"), 1);
             }
+            return new AstReplicate(new FileLine("uhdm"), lhs, rhs);
           }
           case vpiMultiConcatOp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
