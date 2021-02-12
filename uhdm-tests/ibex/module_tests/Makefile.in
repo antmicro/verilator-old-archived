@@ -1,0 +1,3 @@
+curr_dir:=$(dir $(lastword $(MAKEFILE_LIST)))
+IBEX = ${curr_dir}/../ibex
+IBEX_BUILD = ${IBEX}/build/lowrisc_ibex_top_artya7_0.1
