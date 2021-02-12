@@ -876,6 +876,9 @@ namespace UhdmAst {
             sanitize_str(param_name);
             UINFO(3, "Got parameter (pin) " << param_name << std::endl);
             auto is_local = vpi_get(vpiLocalParam, param_handle);
+            std::string is_imported;
+            if (auto s = vpi_get_str(vpiImported, param_handle))
+              is_imported = s;
             AstNode* value = nullptr;
             // Try to construct complex expression
             visit_one_to_one({vpiRhs}, vpi_child_obj, visited, top_nodes,
@@ -890,7 +893,7 @@ namespace UhdmAst {
               UINFO(3, "Skipping local parameter (pin) " << param_name << std::endl);
               continue;
             }
-            if (vpi_get_str(vpiImported, param_handle) != "") {
+            if (is_imported != "") {
               // Skip imported parameters when creating cells
               UINFO(3, "Skipping imported parameter (pin) " << param_name << std::endl);
               continue;
