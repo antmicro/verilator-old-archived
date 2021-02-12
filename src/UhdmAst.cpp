@@ -890,6 +890,11 @@ namespace UhdmAst {
               UINFO(3, "Skipping local parameter (pin) " << param_name << std::endl);
               continue;
             }
+            if (vpi_get_str(vpiImported, param_handle) != "") {
+              // Skip imported parameters when creating cells
+              UINFO(3, "Skipping imported parameter (pin) " << param_name << std::endl);
+              continue;
+            }
             if (parameter_map.find(param_name) == parameter_map.end()) {
               // Although those are parameters, they are stored as pins
               AstPin *pin = new AstPin(new FileLine("uhdm"), ++np, param_name, value);
