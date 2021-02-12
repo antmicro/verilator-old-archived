@@ -62,7 +62,7 @@ jobs:
       - name: Generate matrix
         id: generate-matrix
         run: |
-          matrix="$(cd uhdm-integration && python list.py -d tests -s ibex synthesis OneClass hello-uvm OneThis array-copy assignment-pattern)"
+          matrix="$(cd uhdm-integration && python list.py -d tests -s ibex synthesis OneClass hello-uvm OneThis array-copy assignment-pattern opentitan)"
           echo "::set-output name=matrix::$matrix"
           echo "Matrix: $matrix"
 
@@ -181,10 +181,10 @@ jobs:
         pip install virtualenv
         virtualenv venv-ibex
         . venv-ibex/bin/activate
-        pip install -r uhdm-integration/tests/ibex/ibex/python-requirements.txt
-        cd uhdm-integration/tests/ibex/ibex
+        pip install -r uhdm-tests/ibex/ibex/python-requirements.txt
+        cd uhdm-tests/ibex/ibex
         fusesoc --cores-root=. run --target=synth --setup lowrisc:ibex:top_artya7 --part xc7a35ticsg324-1L
-        cd ../../../..
+        cd ../../..
         ./uhdm-integration/.github/ci.sh
       env:
         TEST_CASE: ${{ matrix.TEST_CASE }}
@@ -226,7 +226,7 @@ jobs:
       run: |
         pip install virtualenv
         ./uhdm-integration/.github/ci.sh
-        ./uhdm-integration/build/lowrisc_ibex_ibex_simple_system_0/sim-verilator/Vibex_simple_system --meminit=ram,uhdm-integration/hello_test.elf
+        ./uhdm-integration/build/lowrisc_ibex_ibex_simple_system_0/sim-verilator/Vibex_simple_system --meminit=ram,uhdm-tests/ibex/hello_test.elf
         mkdir output_uhdm
         cp ibex_simple_system.log ibex_simple_system_pcount.csv trace_core_00000000.log output_uhdm/
       env:
@@ -236,7 +236,7 @@ jobs:
     - name: Build & Test (vanilla verilator)
       run: |
         ./uhdm-integration/.github/ci.sh
-        ./uhdm-integration/build/lowrisc_ibex_ibex_simple_system_0/sim-verilator/Vibex_simple_system --meminit=ram,uhdm-integration/hello_test.elf
+        ./uhdm-integration/build/lowrisc_ibex_ibex_simple_system_0/sim-verilator/Vibex_simple_system --meminit=ram,uhdm-tests/ibex/hello_test.elf
         diff -y ibex_simple_system.log output_uhdm/ibex_simple_system.log
       env:
         TARGET: verilator/simple-system
