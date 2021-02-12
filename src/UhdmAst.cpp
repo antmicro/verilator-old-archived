@@ -869,6 +869,7 @@ namespace UhdmAst {
 
           // Get parameter assignments
           itr = vpi_iterate(vpiParamAssign, obj_h);
+          std::map<std::string, AstNode*> parameter_map;
           while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
             vpiHandle param_handle = vpi_handle(vpiLhs, vpi_child_obj);
             std::string param_name = vpi_get_str(vpiName, param_handle);
@@ -889,12 +890,20 @@ namespace UhdmAst {
               UINFO(3, "Skipping local parameter (pin) " << param_name << std::endl);
               continue;
             }
-            // Although those are parameters, they are stored as pins
-            AstPin *pin = new AstPin(new FileLine("uhdm"), ++np, param_name, value);
-            if (!modParams)
-                modParams = pin;
-            else
-                modParams->addNextNull(pin);
+            if (parameter_map.find(param_name) == parameter_map.end()) {
+              // Although those are parameters, they are stored as pins
+              AstPin *pin = new AstPin(new FileLine("uhdm"), ++np, param_name, value);
+              if (!modParams)
+                  modParams = pin;
+              else
+                  modParams->addNextNull(pin);
+              parameter_map[param_name] = pin;
+            } else {
+              // Duplicate
+              UINFO(3, "Duplicate parameter assignment: " << param_name 
+                      << " in " << objectName <<std::endl );
+              continue;
+            }
             vpi_free_object(vpi_child_obj);
           }
           vpi_free_object(itr);
