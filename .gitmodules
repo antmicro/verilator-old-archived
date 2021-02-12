@@ -7,3 +7,6 @@
 [submodule "vcddiff"]
 	path = vcddiff
 	url = https://github.com/veripool/vcddiff.git
+[submodule "uhdm-tests/ibex/ibex"]
+	path = uhdm-tests/ibex/ibex
+	url = https://github.com/lowRISC/ibex.git
