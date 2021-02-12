@@ -1,0 +1,66 @@
+curr_dir:=$(dir $(lastword $(MAKEFILE_LIST)))
+IBEX = ${curr_dir}/ibex
+
+################################
+#### verilator - simulation ####
+################################
+IBEX_BUILD = ${root_dir}/build/lowrisc_ibex_ibex_simple_system_0
+
+IBEX_INCLUDE = \
+	-I$(IBEX_BUILD)/src/lowrisc_dv_verilator_ibex_pcounts_0/cpp \
+	-I$(IBEX_BUILD)/src/lowrisc_dv_verilator_memutil_dpi_0/cpp \
+	-I$(IBEX_BUILD)/src/lowrisc_dv_verilator_simutil_verilator_0/cpp \
+	-I$(IBEX_BUILD)/src/lowrisc_prim_assert_0.1/rtl \
+	-I$(IBEX_BUILD)/src/lowrisc_prim_util_memload_0/rtl \
+	-I$(IBEX_BUILD)/src/lowrisc_dv_verilator_memutil_verilator_0/cpp
+
+#Sources that will be skipped by Surelog uhdm
+SKIP_SOURCES=ibex_tracer.sv\|prim_generic_ram_2p.sv\|prim_ram_2p.sv\|ram_2p.sv\|bus.sv\|simulator_ctrl.sv\|ibex_register_file_latch.sv\|ibex_core_tracing.sv\|ibex_simple_system.sv
+
+# Top-level parameters in skipped modules that need to be known to Surelog
+SURELOG_PARAMETERS = -PMHPMCounterNum=29 +define+RVFI #TODO: Remove when ibex_simple_system is removed from skip list
+
+IBEX_SOURCES = \
+        $(shell \
+                cat ${IBEX_BUILD}/sim-verilator/lowrisc_ibex_ibex_simple_system_0.vc | \
+                grep -F .sv | grep -v '${SKIP_SOURCES}' | \
+                sed 's@^..@${IBEX_BUILD}@')
+
+IBEX_SOURCES_DELETE = \
+        $(shell \
+                cat ${IBEX_BUILD}/sim-verilator/lowrisc_ibex_ibex_simple_system_0.vc | \
+                grep -F .sv | grep -v '${SKIP_SOURCES}' | sed "s/.*\///")
+
+IBEX_SOURCES_DELETE_OR = \
+	$(shell \
+		echo ${IBEX_SOURCES_DELETE} | sed 's/\s/\\|/g')
+
+prepare-sources:
+	virtualenv ${root_dir}/venv-ibex
+	(export PATH=${root_dir}/../image/bin:${PATH} && \
+		. ${root_dir}/venv-ibex/bin/activate && \
+		pip install -r ${IBEX}/python-requirements.txt && \
+		pip install git+https://github.com/antmicro/edalize@surelog && \
+		fusesoc --cores-root=${IBEX} run --target=sim --setup lowrisc:ibex:ibex_simple_system --RV32E=0 --RV32M=ibex_pkg::RV32MFast)
+
+uhdm/verilator/simple-system: clean-build | prepare-sources
+	(export PATH=${root_dir}/../image/bin:${PATH} && \
+		. ${root_dir}/venv-ibex/bin/activate && \
+		cd ${root_dir}/build && \
+		${root_dir}/../image/bin/surelog -parse -sverilog +define+VERILATOR \
+			${SURELOG_PARAMETERS} \
+			$(IBEX_INCLUDE) \
+			$(IBEX_SOURCES) && \
+		cp ${root_dir}/build/slpp_all/surelog.uhdm ${root_dir}/build/simple_system.uhdm && \
+		cd ${IBEX_BUILD}/sim-verilator/ && \
+		sed 's/-Wall --unroll-count 72/--unroll-count 72/g' -i config.mk && \
+		sed '/${IBEX_SOURCES_DELETE_OR}/d' -i lowrisc_ibex_ibex_simple_system_0.vc && \
+		sed '/--cc/a --uhdm-ast-sv' -i lowrisc_ibex_ibex_simple_system_0.vc && \
+		sed '/--top-module.*/i ${curr_dir}/simple_system.vlt ${root_dir}/build/simple_system.uhdm' -i lowrisc_ibex_ibex_simple_system_0.vc && \
+		$(MAKE))
+
+verilator/simple-system: clean-build | prepare-sources
+	(export PATH=${root_dir}/../image/bin:${PATH} && \
+		. ${root_dir}/venv-ibex/bin/activate && \
+		cd ${IBEX_BUILD}/sim-verilator/ && \
+		$(MAKE))
