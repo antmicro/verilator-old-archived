@@ -4,7 +4,7 @@ OPEN_TITAN = ${curr_dir}/opentitan
 ################################
 #### verilator - simulation ####
 ################################
-OPEN_TITAN_BUILD = ${root_dir}/build/lowrisc_systems_top_earlgrey_verilator_0
+OPEN_TITAN_BUILD = ${root_dir}/build/lowrisc_systems_top_earlgrey_verilator_0.1
 
 OPEN_TITAN_INCLUDE = \
 	-I$(OPEN_TITAN_BUILD)/src/lowrisc_dv_verilator_ibex_pcounts_0/cpp \
@@ -22,13 +22,13 @@ SURELOG_PARAMETERS = -PMHPMCounterNum=29 +define+RVFI #TODO: Remove when ibex_si
 
 OPEN_TITAN_SOURCES = \
         $(shell \
-                cat ${OPEN_TITAN_BUILD}/sim-verilator/lowrisc_ibex_ibex_simple_system_0.vc | \
+                cat ${OPEN_TITAN_BUILD}/sim-verilator/lowrisc_systems_top_earlgrey_verilator_0.1.vc | \
                 grep -F .sv | grep -v '${SKIP_SOURCES}' | \
                 sed 's@^..@${OPEN_TITAN_BUILD}@')
 
 OPEN_TITAN_SOURCES_DELETE = \
         $(shell \
-                cat ${OPEN_TITAN_BUILD}/sim-verilator/lowrisc_ibex_ibex_simple_system_0.vc | \
+                cat ${OPEN_TITAN_BUILD}/sim-verilator/lowrisc_systems_top_earlgrey_verilator_0.1.vc | \
                 grep -F .sv | grep -v '${SKIP_SOURCES}' | sed "s/.*\///")
 
 OPEN_TITAN_SOURCES_DELETE_OR = \
