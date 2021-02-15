@@ -2370,7 +2370,7 @@ namespace UhdmAst {
                                 nullptr,
                                 args);
         } else if (objectName == "$value$plusargs") {
-          return new AstValuePlusArgs(new FileLine("uhdm"),
+          node = new AstValuePlusArgs(new FileLine("uhdm"),
                                       arguments[0],
                                       arguments[1]);
         } else if (objectName == "$sformat"
@@ -2540,8 +2540,18 @@ namespace UhdmAst {
         } else {
             v3error("\t! Encountered unhandled SysFuncCall: " << objectName);
         }
-        // Should not be reached
-        return nullptr;
+        auto parent_h = vpi_handle(vpiParent, obj_h);
+        int parent_type = 0;
+        if (parent_h) {
+          parent_type = vpi_get(vpiType, parent_h);
+        }
+        if (parent_type == vpiBegin) { // TODO: Are other contexts missing here?
+          // In task-like context return values are discarded
+          // This is indicated by wrapping the node
+          return new AstSysFuncAsTask(new FileLine("uhdm"), node);
+        } else {
+          return node;
+        }
       }
       case vpiRange: {
         AstNode* msbNode = nullptr;
