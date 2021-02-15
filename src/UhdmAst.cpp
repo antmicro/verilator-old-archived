@@ -2932,18 +2932,7 @@ namespace UhdmAst {
       case vpiEnumVar:
       case vpiBitVar:
       case vpiByteVar: {
-        AstRange* var_range = nullptr;
-        auto typespec_h = vpi_handle(vpiTypespec, obj_h);
-        AstNodeDType* dtype = nullptr;
-        if (typespec_h) {
-          dtype = getDType(obj_h, visited, top_nodes);
-        } else {
-          auto type_kwd = get_kwd_for_type(objectType);
-          auto basicdtype = new AstBasicDType(new FileLine("uhdm"),
-                                          type_kwd);
-          basicdtype->rangep(var_range);
-          dtype = basicdtype;
-        }
+        AstNodeDType* dtype = getDType(obj_h, visited, top_nodes);
         auto* var = new AstVar(new FileLine("uhdm"),
                          AstVarType::VAR,
                          objectName,
