@@ -230,7 +230,7 @@ jobs:
         cp uart0.log output_uhdm/uhdm_verilator_uart.log
         cp trace_core_00000000.log output_uhdm/uhdm_verilator_trace.log
       env:
-        TARGET: prepare-sources
+        TARGET: uhdm/verilator/simple-system
         TEST_CASE: tests/opentitan
 
     - name: Build & Test (vanilla verilator)
@@ -240,7 +240,7 @@ jobs:
         cp uart0.log output_uhdm/vanilla_verilator_uart.log
         cp trace_core_00000000.log output_uhdm/vanilla_verilator_trace.log
       env:
-        TARGET: prepare-sources
+        TARGET: verilator/simple-system
         TEST_CASE: tests/opentitan
 
     - uses: actions/upload-artifact@v2
