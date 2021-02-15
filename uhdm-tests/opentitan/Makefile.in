@@ -7,7 +7,6 @@ OPEN_TITAN = ${curr_dir}/opentitan
 OPEN_TITAN_BUILD = ${root_dir}/build/lowrisc_systems_top_earlgrey_verilator_0.1
 
 OPEN_TITAN_INCLUDE = \
-	-I$(OPEN_TITAN_BUILD)/src/lowrisc_dv_verilator_ibex_pcounts_0/cpp \
 	-I$(OPEN_TITAN_BUILD)/src/lowrisc_dv_verilator_memutil_dpi_0/cpp \
 	-I$(OPEN_TITAN_BUILD)/src/lowrisc_dv_verilator_simutil_verilator_0/cpp \
 	-I$(OPEN_TITAN_BUILD)/src/lowrisc_prim_assert_0.1/rtl \
