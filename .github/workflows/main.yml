@@ -44,150 +44,150 @@ jobs:
         name: binaries
         path: binaries.tar
 
-  generate-matrix:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.generate-matrix.outputs.matrix }}
-    steps:
-      - name: Checkout master
-        uses: actions/checkout@v2
-        with:
-          submodules: recursive
-          fetch-depth: 1
+  #generate-matrix:
+    #runs-on: ubuntu-latest
+    #outputs:
+      #matrix: ${{ steps.generate-matrix.outputs.matrix }}
+    #steps:
+      #- name: Checkout master
+        #uses: actions/checkout@v2
+        #with:
+          #submodules: recursive
+          #fetch-depth: 1
 
-      - uses: actions/setup-python@v2
-        with:
-           python-version: '3.7'
+      #- uses: actions/setup-python@v2
+        #with:
+           #python-version: '3.7'
 
-      - name: Generate matrix
-        id: generate-matrix
-        run: |
-          matrix="$(cd uhdm-integration && python list.py -d tests -s ibex synthesis OneClass hello-uvm OneThis array-copy assignment-pattern StreamOp opentitan)"
-          echo "::set-output name=matrix::$matrix"
-          echo "Matrix: $matrix"
+      #- name: Generate matrix
+        #id: generate-matrix
+        #run: |
+          #matrix="$(cd uhdm-integration && python list.py -d tests -s ibex synthesis OneClass hello-uvm OneThis array-copy assignment-pattern StreamOp opentitan)"
+          #echo "::set-output name=matrix::$matrix"
+          #echo "Matrix: $matrix"
 
-  generate-ibex-modules:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.generate-ibex-modules.outputs.matrix }}
-    steps:
-      - name: Checkout master
-        uses: actions/checkout@v2
-        with:
-          submodules: recursive
-          fetch-depth: 1
+  #generate-ibex-modules:
+    #runs-on: ubuntu-latest
+    #outputs:
+      #matrix: ${{ steps.generate-ibex-modules.outputs.matrix }}
+    #steps:
+      #- name: Checkout master
+        #uses: actions/checkout@v2
+        #with:
+          #submodules: recursive
+          #fetch-depth: 1
 
-      - uses: actions/setup-python@v2
-        with:
-           python-version: '3.7'
+      #- uses: actions/setup-python@v2
+        #with:
+           #python-version: '3.7'
 
-      - name: Generate matrix
-        id: generate-ibex-modules
-        run: |
-          matrix="$(cd uhdm-integration && python list.py -d tests/ibex/module_tests)"
-          echo "::set-output name=matrix::$matrix"
-          echo "Matrix: $matrix"
+      #- name: Generate matrix
+        #id: generate-ibex-modules
+        #run: |
+          #matrix="$(cd uhdm-integration && python list.py -d tests/ibex/module_tests)"
+          #echo "::set-output name=matrix::$matrix"
+          #echo "Matrix: $matrix"
 
-  tests:
-    runs-on: ubuntu-latest
-    needs: [build-binaries, generate-matrix]
-    strategy:
-      matrix:
-        TEST_CASE: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
-      fail-fast:
-        false
-    env:
-      CC: gcc-9
-      CXX: g++-9
-      GIT_HTTP_LOW_SPEED_LIMIT: 1
-      GIT_HTTP_LOW_SPEED_TIME: 600
-      TARGET: uhdm/verilator/test-ast
+  #tests:
+    #runs-on: ubuntu-latest
+    #needs: [build-binaries, generate-matrix]
+    #strategy:
+      #matrix:
+        #TEST_CASE: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
+      #fail-fast:
+        #false
+    #env:
+      #CC: gcc-9
+      #CXX: g++-9
+      #GIT_HTTP_LOW_SPEED_LIMIT: 1
+      #GIT_HTTP_LOW_SPEED_TIME: 600
+      #TARGET: uhdm/verilator/test-ast
 
-    steps:
+    #steps:
 
-    - name: Install dependencies
-      run: |
-        sudo apt-get update -qq
-        sudo apt install -y g++-9 build-essential cmake tclsh ant default-jre swig google-perftools libgoogle-perftools-dev python3 python3-dev uuid uuid-dev tcl-dev flex libfl-dev
+    #- name: Install dependencies
+      #run: |
+        #sudo apt-get update -qq
+        #sudo apt install -y g++-9 build-essential cmake tclsh ant default-jre swig google-perftools libgoogle-perftools-dev python3 python3-dev uuid uuid-dev tcl-dev flex libfl-dev
 
-    - uses: actions/checkout@v2
-      with:
-        submodules: recursive
-        fetch-depth: 1
+    #- uses: actions/checkout@v2
+      #with:
+        #submodules: recursive
+        #fetch-depth: 1
 
-    - uses: actions/setup-python@v2
-      with:
-         python-version: '3.7'
+    #- uses: actions/setup-python@v2
+      #with:
+         #python-version: '3.7'
 
-    - name: Download binaries
-      uses: actions/download-artifact@v2
-      with:
-        name: binaries
+    #- name: Download binaries
+      #uses: actions/download-artifact@v2
+      #with:
+        #name: binaries
 
-    # See https://github.com/actions/upload-artifact/issues/38
-    - name: Extract
-      run: tar -xf binaries.tar
+    ## See https://github.com/actions/upload-artifact/issues/38
+    #- name: Extract
+      #run: tar -xf binaries.tar
 
-    - name: Build & Test
-      run: ./uhdm-integration/.github/ci.sh
-      env:
-        TEST_CASE: ${{ matrix.TEST_CASE }}
+    #- name: Build & Test
+      #run: ./uhdm-integration/.github/ci.sh
+      #env:
+        #TEST_CASE: ${{ matrix.TEST_CASE }}
 
 
-  ibex-module-tests:
-    runs-on: ubuntu-latest
-    needs: [build-binaries, generate-ibex-modules]
-    strategy:
-      matrix:
-        TEST_CASE: ${{ fromJson(needs.generate-ibex-modules.outputs.matrix) }}
-        TARGET:
-          - uhdm/verilator/test-ast
-      fail-fast:
-        false
-    env:
-      CC: gcc-9
-      CXX: g++-9
-      GIT_HTTP_LOW_SPEED_LIMIT: 1
-      GIT_HTTP_LOW_SPEED_TIME: 600
+  #ibex-module-tests:
+    #runs-on: ubuntu-latest
+    #needs: [build-binaries, generate-ibex-modules]
+    #strategy:
+      #matrix:
+        #TEST_CASE: ${{ fromJson(needs.generate-ibex-modules.outputs.matrix) }}
+        #TARGET:
+          #- uhdm/verilator/test-ast
+      #fail-fast:
+        #false
+    #env:
+      #CC: gcc-9
+      #CXX: g++-9
+      #GIT_HTTP_LOW_SPEED_LIMIT: 1
+      #GIT_HTTP_LOW_SPEED_TIME: 600
 
-    steps:
+    #steps:
 
-    - name: Install dependencies
-      run: |
-        sudo apt-get update -qq
-        sudo apt install -y g++-9 build-essential cmake tclsh ant default-jre swig google-perftools libgoogle-perftools-dev python3 python3-dev uuid uuid-dev tcl-dev flex libfl-dev
+    #- name: Install dependencies
+      #run: |
+        #sudo apt-get update -qq
+        #sudo apt install -y g++-9 build-essential cmake tclsh ant default-jre swig google-perftools libgoogle-perftools-dev python3 python3-dev uuid uuid-dev tcl-dev flex libfl-dev
 
-    - uses: actions/checkout@v2
-      with:
-        submodules: recursive
-        fetch-depth: 1
+    #- uses: actions/checkout@v2
+      #with:
+        #submodules: recursive
+        #fetch-depth: 1
 
-    - uses: actions/setup-python@v2
-      with:
-         python-version: '3.7'
+    #- uses: actions/setup-python@v2
+      #with:
+         #python-version: '3.7'
 
-    - name: Download binaries
-      uses: actions/download-artifact@v2
-      with:
-        name: binaries
+    #- name: Download binaries
+      #uses: actions/download-artifact@v2
+      #with:
+        #name: binaries
 
-    # See https://github.com/actions/upload-artifact/issues/38
-    - name: Extract
-      run: tar -xf binaries.tar
+    ## See https://github.com/actions/upload-artifact/issues/38
+    #- name: Extract
+      #run: tar -xf binaries.tar
 
-    - name: Build & Test
-      run: |
-        pip install virtualenv
-        virtualenv venv-ibex
-        . venv-ibex/bin/activate
-        pip install -r uhdm-tests/ibex/ibex/python-requirements.txt
-        cd uhdm-tests/ibex/ibex
-        fusesoc --cores-root=. run --target=synth --setup lowrisc:ibex:top_artya7 --part xc7a35ticsg324-1L
-        cd ../../..
-        ./uhdm-integration/.github/ci.sh
-      env:
-        TEST_CASE: ${{ matrix.TEST_CASE }}
-        TARGET: ${{ matrix.TARGET }}
+    #- name: Build & Test
+      #run: |
+        #pip install virtualenv
+        #virtualenv venv-ibex
+        #. venv-ibex/bin/activate
+        #pip install -r uhdm-tests/ibex/ibex/python-requirements.txt
+        #cd uhdm-tests/ibex/ibex
+        #fusesoc --cores-root=. run --target=synth --setup lowrisc:ibex:top_artya7 --part xc7a35ticsg324-1L
+        #cd ../../..
+        #./uhdm-integration/.github/ci.sh
+      #env:
+        #TEST_CASE: ${{ matrix.TEST_CASE }}
+        #TARGET: ${{ matrix.TARGET }}
 
   opentitan-simple-system-sim:
     runs-on: ubuntu-latest
@@ -248,200 +248,200 @@ jobs:
         name: simple-system-simulation-output
         path: output_uhdm
 
-  simple-system-sim:
-    runs-on: ubuntu-latest
-    needs: build-binaries
-    env:
-      CC: gcc-9
-      CXX: g++-9
+  #simple-system-sim:
+    #runs-on: ubuntu-latest
+    #needs: build-binaries
+    #env:
+      #CC: gcc-9
+      #CXX: g++-9
 
-    steps:
+    #steps:
 
-    - name: Install dependencies
-      run: |
-        sudo apt-get update -qq
-        sudo apt install -y g++-9 build-essential cmake tclsh ant default-jre swig google-perftools libgoogle-perftools-dev python3 python3-dev uuid uuid-dev tcl-dev flex libfl-dev libelf-dev
+    #- name: Install dependencies
+      #run: |
+        #sudo apt-get update -qq
+        #sudo apt install -y g++-9 build-essential cmake tclsh ant default-jre swig google-perftools libgoogle-perftools-dev python3 python3-dev uuid uuid-dev tcl-dev flex libfl-dev libelf-dev
 
-    - uses: actions/checkout@v2
-      with:
-        submodules: recursive
-        fetch-depth: 1
+    #- uses: actions/checkout@v2
+      #with:
+        #submodules: recursive
+        #fetch-depth: 1
 
-    - uses: actions/setup-python@v2
-      with:
-         python-version: '3.7'
+    #- uses: actions/setup-python@v2
+      #with:
+         #python-version: '3.7'
 
-    - name: Download binaries
-      uses: actions/download-artifact@v2
-      with:
-        name: binaries
+    #- name: Download binaries
+      #uses: actions/download-artifact@v2
+      #with:
+        #name: binaries
 
-    # See https://github.com/actions/upload-artifact/issues/38
-    - name: Extract
-      run: tar -xf binaries.tar
+    ## See https://github.com/actions/upload-artifact/issues/38
+    #- name: Extract
+      #run: tar -xf binaries.tar
 
-    - name: Build & Test (uhdm verilator)
-      run: |
-        pip install virtualenv
-        ./uhdm-integration/.github/ci.sh
-        ./uhdm-integration/build/lowrisc_ibex_ibex_simple_system_0/sim-verilator/Vibex_simple_system --meminit=ram,uhdm-tests/ibex/hello_test.elf
-        mkdir output_uhdm
-        cp ibex_simple_system.log ibex_simple_system_pcount.csv trace_core_00000000.log output_uhdm/
-      env:
-        TARGET: uhdm/verilator/simple-system
-        TEST_CASE: tests/ibex
+    #- name: Build & Test (uhdm verilator)
+      #run: |
+        #pip install virtualenv
+        #./uhdm-integration/.github/ci.sh
+        #./uhdm-integration/build/lowrisc_ibex_ibex_simple_system_0/sim-verilator/Vibex_simple_system --meminit=ram,uhdm-tests/ibex/hello_test.elf
+        #mkdir output_uhdm
+        #cp ibex_simple_system.log ibex_simple_system_pcount.csv trace_core_00000000.log output_uhdm/
+      #env:
+        #TARGET: uhdm/verilator/simple-system
+        #TEST_CASE: tests/ibex
 
-    - name: Build & Test (vanilla verilator)
-      run: |
-        ./uhdm-integration/.github/ci.sh
-        ./uhdm-integration/build/lowrisc_ibex_ibex_simple_system_0/sim-verilator/Vibex_simple_system --meminit=ram,uhdm-tests/ibex/hello_test.elf
-        diff -y ibex_simple_system.log output_uhdm/ibex_simple_system.log
-      env:
-        TARGET: verilator/simple-system
-        TEST_CASE: tests/ibex
+    #- name: Build & Test (vanilla verilator)
+      #run: |
+        #./uhdm-integration/.github/ci.sh
+        #./uhdm-integration/build/lowrisc_ibex_ibex_simple_system_0/sim-verilator/Vibex_simple_system --meminit=ram,uhdm-tests/ibex/hello_test.elf
+        #diff -y ibex_simple_system.log output_uhdm/ibex_simple_system.log
+      #env:
+        #TARGET: verilator/simple-system
+        #TEST_CASE: tests/ibex
 
-    - uses: actions/upload-artifact@v2
-      with:
-        name: simple-system-simulation-output
-        path: output_uhdm
+    #- uses: actions/upload-artifact@v2
+      #with:
+        #name: simple-system-simulation-output
+        #path: output_uhdm
 
-  generate-matrix-vcddiff:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.generate-matrix-vcddiff.outputs.matrix }}
-    steps:
-      - name: Checkout master
-        uses: actions/checkout@v2
-        with:
-          submodules: recursive
-          fetch-depth: 1
+  #generate-matrix-vcddiff:
+    #runs-on: ubuntu-latest
+    #outputs:
+      #matrix: ${{ steps.generate-matrix-vcddiff.outputs.matrix }}
+    #steps:
+      #- name: Checkout master
+        #uses: actions/checkout@v2
+        #with:
+          #submodules: recursive
+          #fetch-depth: 1
 
-      - uses: actions/setup-python@v2
-        with:
-           python-version: '3.7'
+      #- uses: actions/setup-python@v2
+        #with:
+           #python-version: '3.7'
 
-      - name: Generate matrix (vcddiff)
-        id: generate-matrix-vcddiff
-        run: |
-          matrix="$(cd uhdm-integration && python list.py -d tests -s ibex synthesis OneClass hello-uvm OneThis array-copy assignment-pattern MultiplePrints OneNetInterf OneNetRange StreamOp opentitan)"
-          echo "::set-output name=matrix::$matrix"
-          echo "matrix vcddiff: $matrix"
+      #- name: Generate matrix (vcddiff)
+        #id: generate-matrix-vcddiff
+        #run: |
+          #matrix="$(cd uhdm-integration && python list.py -d tests -s ibex synthesis OneClass hello-uvm OneThis array-copy assignment-pattern MultiplePrints OneNetInterf OneNetRange StreamOp opentitan)"
+          #echo "::set-output name=matrix::$matrix"
+          #echo "matrix vcddiff: $matrix"
 
-  tests-vcddiff:
-    runs-on: ubuntu-latest
-    needs: [build-binaries, generate-matrix-vcddiff]
-    strategy:
-      matrix:
-        TEST_CASE_VCDDIFF: ${{ fromJson(needs.generate-matrix-vcddiff.outputs.matrix) }}
-      fail-fast:
-        false
-    env:
-      CC: gcc-9
-      CXX: g++-9
-      GIT_HTTP_LOW_SPEED_LIMIT: 1
-      GIT_HTTP_LOW_SPEED_TIME: 600
+  #tests-vcddiff:
+    #runs-on: ubuntu-latest
+    #needs: [build-binaries, generate-matrix-vcddiff]
+    #strategy:
+      #matrix:
+        #TEST_CASE_VCDDIFF: ${{ fromJson(needs.generate-matrix-vcddiff.outputs.matrix) }}
+      #fail-fast:
+        #false
+    #env:
+      #CC: gcc-9
+      #CXX: g++-9
+      #GIT_HTTP_LOW_SPEED_LIMIT: 1
+      #GIT_HTTP_LOW_SPEED_TIME: 600
 
-    steps:
-    - name: Install dependencies
-      run: |
-        sudo apt-get update -qq
-        sudo apt install -y g++-9 build-essential cmake tclsh ant default-jre swig google-perftools libgoogle-perftools-dev python3 python3-dev uuid uuid-dev tcl-dev flex libfl-dev
+    #steps:
+    #- name: Install dependencies
+      #run: |
+        #sudo apt-get update -qq
+        #sudo apt install -y g++-9 build-essential cmake tclsh ant default-jre swig google-perftools libgoogle-perftools-dev python3 python3-dev uuid uuid-dev tcl-dev flex libfl-dev
 
-    - uses: actions/checkout@v2
-      with:
-        submodules: recursive
-        fetch-depth: 1
+    #- uses: actions/checkout@v2
+      #with:
+        #submodules: recursive
+        #fetch-depth: 1
 
-    - uses: actions/setup-python@v2
-      with:
-         python-version: '3.7'
+    #- uses: actions/setup-python@v2
+      #with:
+         #python-version: '3.7'
 
-    - name: Download binaries
-      uses: actions/download-artifact@v2
-      with:
-        name: binaries
+    #- name: Download binaries
+      #uses: actions/download-artifact@v2
+      #with:
+        #name: binaries
 
-    # See https://github.com/actions/upload-artifact/issues/38
-    - name: Extract
-      run: |
-        tar -xf binaries.tar
+    ## See https://github.com/actions/upload-artifact/issues/38
+    #- name: Extract
+      #run: |
+        #tar -xf binaries.tar
 
-    - name: 'Download artifact'
-      uses: actions/github-script@v3.1.0
-      with:
-        script: |
-          var TESTNAME = process.env.TEST_CASE.substring(6) + ".sv"
-          console.log("==> TESTNAME:", TESTNAME)
-          console.log("==> OWNER:", process.env.OWNER)
-          console.log("==> REPO:", process.env.REPO)
-          console.log("==> WORKFLOW:", process.env.WORKFLOW)
-          console.log("==> BRANCH:", process.env.BRANCH)
-          console.log("==> STATUS:", process.env.STATUS)
-          var runID
-          const endpoint = "GET /repos/:owner/:repo/actions/workflows/:id/runs?status=:status"
-          const params = {
-            owner: process.env.OWNER,
-            repo: process.env.REPO,
-            id: process.env.WORKFLOW,
-            branch: process.env.BRANCH,
-            status: process.env.STATUS,
-          }
-          for await (const runs of github.paginate.iterator(endpoint, params)) {
-            const run = runs.data.find(r => {
-              return true
-            })
+    #- name: 'Download artifact'
+      #uses: actions/github-script@v3.1.0
+      #with:
+        #script: |
+          #var TESTNAME = process.env.TEST_CASE.substring(6) + ".sv"
+          #console.log("==> TESTNAME:", TESTNAME)
+          #console.log("==> OWNER:", process.env.OWNER)
+          #console.log("==> REPO:", process.env.REPO)
+          #console.log("==> WORKFLOW:", process.env.WORKFLOW)
+          #console.log("==> BRANCH:", process.env.BRANCH)
+          #console.log("==> STATUS:", process.env.STATUS)
+          #var runID
+          #const endpoint = "GET /repos/:owner/:repo/actions/workflows/:id/runs?status=:status"
+          #const params = {
+            #owner: process.env.OWNER,
+            #repo: process.env.REPO,
+            #id: process.env.WORKFLOW,
+            #branch: process.env.BRANCH,
+            #status: process.env.STATUS,
+          #}
+          #for await (const runs of github.paginate.iterator(endpoint, params)) {
+            #const run = runs.data.find(r => {
+              #return true
+            #})
 
-            if (run) {
-              runID = run.id
-              break
-            }
-          }
+            #if (run) {
+              #runID = run.id
+              #break
+            #}
+          #}
 
-          console.log("==> RunID:", runID)
-          var artifacts = await github.actions.listWorkflowRunArtifacts({
-            owner: process.env.OWNER,
-            repo: process.env.REPO,
-            run_id: runID,
-            per_page: 100,
-          });
-          var matchArtifact = artifacts.data.artifacts.filter((artifact) => {
-            return !artifact.name.localeCompare(TESTNAME)
-          })[0];
-          var download = await github.actions.downloadArtifact({
-            owner: process.env.OWNER,
-            repo: process.env.REPO,
-            artifact_id: matchArtifact.id,
-            archive_format: 'zip',
-          });
-          var fs = require('fs');
-          fs.writeFileSync("${{github.workspace}}/artifact.zip", Buffer.from(download.data));
-      env:
-        TEST_CASE: ${{ matrix.TEST_CASE_VCDDIFF }}
-        OWNER: antmicro
-        REPO: yosys
-        WORKFLOW: main.yml
-        BRANCH: uhdm-yosys
-        STATUS: success
+          #console.log("==> RunID:", runID)
+          #var artifacts = await github.actions.listWorkflowRunArtifacts({
+            #owner: process.env.OWNER,
+            #repo: process.env.REPO,
+            #run_id: runID,
+            #per_page: 100,
+          #});
+          #var matchArtifact = artifacts.data.artifacts.filter((artifact) => {
+            #return !artifact.name.localeCompare(TESTNAME)
+          #})[0];
+          #var download = await github.actions.downloadArtifact({
+            #owner: process.env.OWNER,
+            #repo: process.env.REPO,
+            #artifact_id: matchArtifact.id,
+            #archive_format: 'zip',
+          #});
+          #var fs = require('fs');
+          #fs.writeFileSync("${{github.workspace}}/artifact.zip", Buffer.from(download.data));
+      #env:
+        #TEST_CASE: ${{ matrix.TEST_CASE_VCDDIFF }}
+        #OWNER: antmicro
+        #REPO: yosys
+        #WORKFLOW: main.yml
+        #BRANCH: uhdm-yosys
+        #STATUS: success
 
-    - run: |
-        unzip artifact.zip -d uhdm-integration/build
+    #- run: |
+        #unzip artifact.zip -d uhdm-integration/build
 
-    - name: Generate vcd dump (Yosys)
-      run: |
-        ./uhdm-integration/.github/ci.sh
-      env:
-        TEST_CASE: ${{ matrix.TEST_CASE_VCDDIFF }}
-        TARGET: uhdm/yosys/verilate-ast
+    #- name: Generate vcd dump (Yosys)
+      #run: |
+        #./uhdm-integration/.github/ci.sh
+      #env:
+        #TEST_CASE: ${{ matrix.TEST_CASE_VCDDIFF }}
+        #TARGET: uhdm/yosys/verilate-ast
 
-    - name: Generate vcd dump (verilator)
-      run: ./uhdm-integration/.github/ci.sh
-      env:
-        TEST_CASE: ${{ matrix.TEST_CASE_VCDDIFF }}
-        TARGET: uhdm/verilator/test-ast
+    #- name: Generate vcd dump (verilator)
+      #run: ./uhdm-integration/.github/ci.sh
+      #env:
+        #TEST_CASE: ${{ matrix.TEST_CASE_VCDDIFF }}
+        #TARGET: uhdm/verilator/test-ast
 
-    - name: Compare vcd dumps (vcddiff)
-      run: ./uhdm-integration/.github/ci.sh
-      env:
-        TEST_CASE: ${{ matrix.TEST_CASE_VCDDIFF }}
-        TARGET: uhdm/vcddiff
+    #- name: Compare vcd dumps (vcddiff)
+      #run: ./uhdm-integration/.github/ci.sh
+      #env:
+        #TEST_CASE: ${{ matrix.TEST_CASE_VCDDIFF }}
+        #TARGET: uhdm/vcddiff
 
