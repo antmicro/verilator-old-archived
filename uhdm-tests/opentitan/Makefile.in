@@ -35,16 +35,16 @@ OPEN_TITAN_SOURCES_DELETE_OR = \
 		echo ${OPEN_TITAN_SOURCES_DELETE} | sed 's/\s/\\|/g')
 
 prepare-sources:
-	virtualenv ${root_dir}/venv-open-titan
+	virtualenv ${root_dir}/venv-opentitan
 	(export PATH=${root_dir}/../image/bin:${PATH} && \
-		. ${root_dir}/venv-open-titan/bin/activate && \
+		. ${root_dir}/venv-opentitan/bin/activate && \
 		pip install -r ${OPEN_TITAN}/python-requirements.txt && \
 		pip install git+https://github.com/antmicro/edalize@surelog && \
 		fusesoc --cores-root=${OPEN_TITAN} run --flag=fileset_top --target=sim --setup --build lowrisc:systems:top_earlgrey_verilator)
 
 uhdm/verilator/simple-system: clean-build | prepare-sources
 	(export PATH=${root_dir}/../image/bin:${PATH} && \
-		. ${root_dir}/venv-open-titan/bin/activate && \
+		. ${root_dir}/venv-opentitan/bin/activate && \
 		cd ${root_dir}/build && \
 		${root_dir}/../image/bin/surelog -parse -sverilog +define+VERILATOR \
 			${SURELOG_PARAMETERS} \
@@ -60,6 +60,6 @@ uhdm/verilator/simple-system: clean-build | prepare-sources
 
 verilator/simple-system: clean-build | prepare-sources
 	(export PATH=${root_dir}/../image/bin:${PATH} && \
-		. ${root_dir}/venv-ibex/bin/activate && \
+		. ${root_dir}/venv-opentitan/bin/activate && \
 		cd ${OPEN_TITAN_BUILD}/sim-verilator/ && \
 		$(MAKE))
