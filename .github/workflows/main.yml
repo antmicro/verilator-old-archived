@@ -62,7 +62,7 @@ jobs:
       - name: Generate matrix
         id: generate-matrix
         run: |
-          matrix="$(cd uhdm-integration && python list.py -d tests -s ibex synthesis OneClass hello-uvm OneThis array-copy assignment-pattern opentitan)"
+          matrix="$(cd uhdm-integration && python list.py -d tests -s ibex synthesis OneClass hello-uvm OneThis array-copy assignment-pattern StreamOp opentitan)"
           echo "::set-output name=matrix::$matrix"
           echo "Matrix: $matrix"
 
@@ -264,7 +264,7 @@ jobs:
       - name: Generate matrix (vcddiff)
         id: generate-matrix-vcddiff
         run: |
-          matrix="$(cd uhdm-integration && python list.py -d tests -s ibex synthesis OneClass hello-uvm OneThis array-copy assignment-pattern MultiplePrints OneNetInterf OneNetRange opentitan)"
+          matrix="$(cd uhdm-integration && python list.py -d tests -s ibex synthesis OneClass hello-uvm OneThis array-copy assignment-pattern MultiplePrints OneNetInterf OneNetRange StreamOp opentitan)"
           echo "::set-output name=matrix::$matrix"
           echo "matrix vcddiff: $matrix"
 
