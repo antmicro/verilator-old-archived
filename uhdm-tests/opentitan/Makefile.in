@@ -1,0 +1,66 @@
+curr_dir:=$(dir $(lastword $(MAKEFILE_LIST)))
+OPEN_TITAN = ${curr_dir}/opentitan
+
+################################
+#### verilator - simulation ####
+################################
+OPEN_TITAN_BUILD = ${root_dir}/build/lowrisc_systems_top_earlgrey_verilator_0
+
+OPEN_TITAN_INCLUDE = \
+	-I$(OPEN_TITAN_BUILD)/src/lowrisc_dv_verilator_ibex_pcounts_0/cpp \
+	-I$(OPEN_TITAN_BUILD)/src/lowrisc_dv_verilator_memutil_dpi_0/cpp \
+	-I$(OPEN_TITAN_BUILD)/src/lowrisc_dv_verilator_simutil_verilator_0/cpp \
+	-I$(OPEN_TITAN_BUILD)/src/lowrisc_prim_assert_0.1/rtl \
+	-I$(OPEN_TITAN_BUILD)/src/lowrisc_prim_util_memload_0/rtl \
+	-I$(OPEN_TITAN_BUILD)/src/lowrisc_dv_verilator_memutil_verilator_0/cpp
+
+#Sources that will be skipped by Surelog uhdm
+SKIP_SOURCES=ibex_tracer.sv\|prim_generic_ram_2p.sv\|prim_ram_2p.sv\|ram_2p.sv\|bus.sv\|simulator_ctrl.sv\|ibex_register_file_latch.sv\|ibex_core_tracing.sv\|ibex_simple_system.sv
+
+# Top-level parameters in skipped modules that need to be known to Surelog
+SURELOG_PARAMETERS = -PMHPMCounterNum=29 +define+RVFI #TODO: Remove when ibex_simple_system is removed from skip list
+
+OPEN_TITAN_SOURCES = \
+        $(shell \
+                cat ${OPEN_TITAN_BUILD}/sim-verilator/lowrisc_ibex_ibex_simple_system_0.vc | \
+                grep -F .sv | grep -v '${SKIP_SOURCES}' | \
+                sed 's@^..@${OPEN_TITAN_BUILD}@')
+
+OPEN_TITAN_SOURCES_DELETE = \
+        $(shell \
+                cat ${OPEN_TITAN_BUILD}/sim-verilator/lowrisc_ibex_ibex_simple_system_0.vc | \
+                grep -F .sv | grep -v '${SKIP_SOURCES}' | sed "s/.*\///")
+
+OPEN_TITAN_SOURCES_DELETE_OR = \
+	$(shell \
+		echo ${OPEN_TITAN_SOURCES_DELETE} | sed 's/\s/\\|/g')
+
+prepare-sources:
+	virtualenv ${root_dir}/venv-open-titan
+	(export PATH=${root_dir}/../image/bin:${PATH} && \
+		. ${root_dir}/venv-open-titan/bin/activate && \
+		pip install -r ${OPEN_TITAN}/python-requirements.txt && \
+		pip install git+https://github.com/antmicro/edalize@surelog && \
+		fusesoc --cores-root=${OPEN_TITAN} run --flag=fileset_top --target=sim --setup --build lowrisc:systems:top_earlgrey_verilator)
+
+uhdm/verilator/simple-system: clean-build | prepare-sources
+	(export PATH=${root_dir}/../image/bin:${PATH} && \
+		. ${root_dir}/venv-open-titan/bin/activate && \
+		cd ${root_dir}/build && \
+		${root_dir}/../image/bin/surelog -parse -sverilog +define+VERILATOR \
+			${SURELOG_PARAMETERS} \
+			$(OPEN_TITAN_INCLUDE) \
+			$(OPEN_TITAN_SOURCES) && \
+		cp ${root_dir}/build/slpp_all/surelog.uhdm ${root_dir}/build/simple_system.uhdm && \
+		cd ${OPEN_TITAN_BUILD}/sim-verilator/ && \
+		sed 's/-Wall --unroll-count 72/--unroll-count 72/g' -i config.mk && \
+		sed '/${OPEN_TITAN_SOURCES_DELETE_OR}/d' -i lowrisc_ibex_ibex_simple_system_0.vc && \
+		sed '/--cc/a --uhdm-ast-sv' -i lowrisc_ibex_ibex_simple_system_0.vc && \
+		sed '/--top-module.*/i ${curr_dir}/simple_system.vlt ${root_dir}/build/simple_system.uhdm' -i lowrisc_ibex_ibex_simple_system_0.vc && \
+		$(MAKE))
+
+verilator/simple-system: clean-build | prepare-sources
+	(export PATH=${root_dir}/../image/bin:${PATH} && \
+		. ${root_dir}/venv-ibex/bin/activate && \
+		cd ${OPEN_TITAN_BUILD}/sim-verilator/ && \
+		$(MAKE))
