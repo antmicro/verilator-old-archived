@@ -7,16 +7,18 @@ OPEN_TITAN = ${curr_dir}/opentitan
 OPEN_TITAN_BUILD = ${root_dir}/build/lowrisc_systems_top_earlgrey_verilator_0.1
 
 OPEN_TITAN_INCLUDE = \
+	-I$(OPEN_TITAN_BUILD)/src/lowrisc_dv_dv_macros_0 \
 	-I$(OPEN_TITAN_BUILD)/src/lowrisc_dv_verilator_memutil_dpi_0/cpp \
 	-I$(OPEN_TITAN_BUILD)/src/lowrisc_dv_verilator_simutil_verilator_0/cpp \
 	-I$(OPEN_TITAN_BUILD)/src/lowrisc_prim_assert_0.1/rtl \
 	-I$(OPEN_TITAN_BUILD)/src/lowrisc_prim_util_memload_0/rtl \
 	-I$(OPEN_TITAN_BUILD)/src/lowrisc_dv_verilator_memutil_verilator_0/cpp
 
-UART_SAVE= \
+# Take all source files
+TO_SURELOG= \
 	$(shell \
 		cat ${OPEN_TITAN_BUILD}/sim-verilator/lowrisc_systems_top_earlgrey_verilator_0.1.vc | \
-		grep uart | grep -F sv | \
+		grep -F sv | \
 		sed 's@^..@${OPEN_TITAN_BUILD}@')
 
 #Sources that will be skipped by Surelog uhdm
@@ -27,10 +29,10 @@ SKIP_SOURCES= \
                 sed 's@^..@${OPEN_TITAN_BUILD}@')
 
 # Top-level parameters in skipped modules that need to be known to Surelog
-SURELOG_PARAMETERS = -PMHPMCounterNum=29 +define+RVFI #TODO: Remove when ibex_simple_system is removed from skip list
+SURELOG_PARAMETERS = -PMHPMCounterNum=29 +define+RVFI +define+VERILATOR_TEST_STATUS_ADDR=805306368
 
 OPEN_TITAN_SOURCES = \
-	${UART_SAVE}
+	${TO_SURELOG}
         #$(shell \
                 #cat ${OPEN_TITAN_BUILD}/sim-verilator/lowrisc_systems_top_earlgrey_verilator_0.1.vc | \
                 #grep -F .sv | grep -v '${SKIP_SOURCES}' | \
@@ -39,7 +41,7 @@ OPEN_TITAN_SOURCES = \
 OPEN_TITAN_SOURCES_DELETE = \
         $(shell \
                 cat ${OPEN_TITAN_BUILD}/sim-verilator/lowrisc_systems_top_earlgrey_verilator_0.1.vc | \
-                grep uart | grep -F .sv | sed "s/.*\///")
+                grep -F .sv | sed "s/.*\///")
 
 OPEN_TITAN_SOURCES_DELETE_OR = \
 	$(shell \
@@ -57,8 +59,8 @@ prepare-sources:
 		--verilator_options '--threads ${CPU_COUNT}')
 
 uhdm/verilator/simple-system: clean-build | prepare-sources
-	echo "UART_SAVE\n\n\n"
-	echo ${UART_SAVE}
+	echo "TO_SURELOG\n\n\n"
+	echo ${TO_SURELOG}
 	echo "SKIP_SOURCES\n\n\n"
 	echo ${SKIP_SOURCES}
 	echo "OPEN_TITAN_SOURCES\n\n\n"
