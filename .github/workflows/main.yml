@@ -228,7 +228,7 @@ jobs:
       run: |
         pip install virtualenv
         ./uhdm-integration/.github/ci.sh
-        ./uhdm-integration/build/lowrisc_systems_top_earlgrey_verilator_0.1/sim-verilator/Vtop_earlgrey_verilator --meminit=rom,uhdm-tests/opentitan/boot_rom_sim_verilator.elf --meminit=flash,uhdm-tests/opentitan/hello_world_sim_verilator.elf
+        ./uhdm-integration/build/lowrisc_systems_top_earlgrey_verilator_0.1/sim-verilator/Vtop_earlgrey_verilator --meminit=rom,uhdm-tests/opentitan/boot_rom_sim_verilator.elf --meminit=flash,uhdm-tests/opentitan/hello_world_sim_verilator.elf | tee output_uhdm/vanilla_verilator_simulation.log
         cp uart0.log output_uhdm/vanilla_verilator_uart.log
         cp trace_core_00000000.log output_uhdm/vanilla_verilator_trace.log
       env:
@@ -239,7 +239,7 @@ jobs:
       run: |
         pip install virtualenv
         ./uhdm-integration/.github/ci.sh
-        ./uhdm-integration/build/lowrisc_systems_top_earlgrey_verilator_0.1/sim-verilator/Vtop_earlgrey_verilator --meminit=rom,uhdm-tests/opentitan/boot_rom_sim_verilator.elf --meminit=flash,uhdm-tests/opentitan/hello_world_sim_verilator.elf
+        ./uhdm-integration/build/lowrisc_systems_top_earlgrey_verilator_0.1/sim-verilator/Vtop_earlgrey_verilator --meminit=rom,uhdm-tests/opentitan/boot_rom_sim_verilator.elf --meminit=flash,uhdm-tests/opentitan/hello_world_sim_verilator.elf | tee output_uhdm/uhdm_verilator_simulation.log
         cp uart0.log output_uhdm/uhdm_verilator_uart.log
         cp trace_core_00000000.log output_uhdm/uhdm_verilator_trace.log
       env:
