@@ -1115,6 +1115,7 @@ namespace UhdmAst {
         AstVar* parameter = nullptr;
         AstNode* parameter_value = nullptr;
         vpiHandle parameter_h;
+        std::string is_imported;
 
         if (objectType == vpiParamAssign) {
           parameter_h = vpi_handle(vpiLhs, obj_h);
@@ -1125,6 +1126,13 @@ namespace UhdmAst {
           }
         } else if (objectType == vpiParameter) {
           parameter_h = obj_h;
+        }
+        if (auto s = vpi_get_str(vpiImported, parameter_h))
+          is_imported = s;
+        if (is_imported != "") {
+          // Skip imported parameters, they will still be visible in their packages
+          UINFO(3, "Skipping imported parameter " << objectName << std::endl);
+          return nullptr;
         }
 
         AstRange* rangeNode = nullptr;
