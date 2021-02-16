@@ -13,6 +13,12 @@ OPEN_TITAN_INCLUDE = \
 	-I$(OPEN_TITAN_BUILD)/src/lowrisc_prim_util_memload_0/rtl \
 	-I$(OPEN_TITAN_BUILD)/src/lowrisc_dv_verilator_memutil_verilator_0/cpp
 
+UART_SAVE= \
+	$(shell \
+		cat ${OPEN_TITAN_BUILD}/sim-verilator/lowrisc_systems_top_earlgrey_verilator_0.1.vc | \
+		grep uart | grep -F sv | \
+		sed 's@^..@${OPEN_TITAN_BUILD}@')
+
 #Sources that will be skipped by Surelog uhdm
 SKIP_SOURCES= \
         $(shell \
@@ -24,15 +30,16 @@ SKIP_SOURCES= \
 SURELOG_PARAMETERS = -PMHPMCounterNum=29 +define+RVFI #TODO: Remove when ibex_simple_system is removed from skip list
 
 OPEN_TITAN_SOURCES = \
-        $(shell \
-                cat ${OPEN_TITAN_BUILD}/sim-verilator/lowrisc_systems_top_earlgrey_verilator_0.1.vc | \
-                grep -F .sv | grep -v '${SKIP_SOURCES}' | \
-                sed 's@^..@${OPEN_TITAN_BUILD}@')
+	${UART_SAVE}
+        #$(shell \
+                #cat ${OPEN_TITAN_BUILD}/sim-verilator/lowrisc_systems_top_earlgrey_verilator_0.1.vc | \
+                #grep -F .sv | grep -v '${SKIP_SOURCES}' | \
+                #sed 's@^..@${OPEN_TITAN_BUILD}@')
 
 OPEN_TITAN_SOURCES_DELETE = \
         $(shell \
                 cat ${OPEN_TITAN_BUILD}/sim-verilator/lowrisc_systems_top_earlgrey_verilator_0.1.vc | \
-                grep -F .sv | grep -v '${SKIP_SOURCES}' | sed "s/.*\///")
+                grep uart | grep -F .sv | sed "s/.*\///")
 
 OPEN_TITAN_SOURCES_DELETE_OR = \
 	$(shell \
@@ -50,22 +57,32 @@ prepare-sources:
 		--verilator_options '--threads ${CPU_COUNT}')
 
 uhdm/verilator/simple-system: clean-build | prepare-sources
+	echo "UART_SAVE\n\n\n"
+	echo ${UART_SAVE}
+	echo "SKIP_SOURCES\n\n\n"
 	echo ${SKIP_SOURCES}
+	echo "OPEN_TITAN_SOURCES\n\n\n"
 	echo ${OPEN_TITAN_SOURCES}
+	echo "OPEN_TITAN_SOURCES_DELETE\n\n\n"
+	echo ${OPEN_TITAN_SOURCES_DELETE}
+	echo "OPEN_TITAN_SOURCES_DELETE_OR\n\n\n"
+	echo ${OPEN_TITAN_SOURCES_DELETE_OR}
+	echo "\n\n\n"
 	(export PATH=${root_dir}/../image/bin:${PATH} && \
 		. ${root_dir}/venv-opentitan/bin/activate && \
 		cd ${root_dir}/build && \
-		#${root_dir}/../image/bin/surelog -parse -sverilog +define+VERILATOR \
-			#${SURELOG_PARAMETERS} \
-			#$(OPEN_TITAN_INCLUDE) \
-			#$(OPEN_TITAN_SOURCES) && \
-		#cp ${root_dir}/build/slpp_all/surelog.uhdm ${root_dir}/build/simple_system.uhdm && \
-		#cd ${OPEN_TITAN_BUILD}/sim-verilator/ && \
-		#sed 's/-Wall --unroll-count 72/--unroll-count 72/g' -i config.mk && \
-		#sed '/${OPEN_TITAN_SOURCES_DELETE_OR}/d' -i lowrisc_ibex_ibex_simple_system_0.vc && \
-		#sed '/--cc/a --uhdm-ast-sv' -i lowrisc_ibex_ibex_simple_system_0.vc && \
-		#sed '/--top-module.*/i ${curr_dir}/simple_system.vlt ${root_dir}/build/simple_system.uhdm' -i lowrisc_ibex_ibex_simple_system_0.vc && \
+		${root_dir}/../image/bin/surelog -parse -sverilog +define+VERILATOR \
+			${SURELOG_PARAMETERS} \
+			$(OPEN_TITAN_INCLUDE) \
+			$(OPEN_TITAN_SOURCES) && \
+		cp ${root_dir}/build/slpp_all/surelog.uhdm ${root_dir}/build/simple_system.uhdm && \
+		cd ${OPEN_TITAN_BUILD}/sim-verilator/ && \
+		sed 's/-Wall --unroll-count 72/--unroll-count 72/g' -i config.mk && \
+		sed '/${OPEN_TITAN_SOURCES_DELETE_OR}/d' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
+		sed '/--cc/a --uhdm-ast-sv' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
+		sed '/--top-module.*/i ${root_dir}/build/simple_system.uhdm' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
 		$(MAKE))
+		#sed '/--top-module.*/i ${curr_dir}/simple_system.vlt ${root_dir}/build/simple_system.uhdm' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
 
 verilator/simple-system: clean-build | prepare-sources
 	(export PATH=${root_dir}/../image/bin:${PATH} && \
