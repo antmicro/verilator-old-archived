@@ -1009,6 +1009,15 @@ namespace UhdmAst {
         return new AstDot(new FileLine("uhdm"), false, lhsNode, rhsNode);
       }
       case vpiRefObj: {
+        // Recover the original package, if any
+        std::string is_imported;
+        if (auto s = vpi_get_str(vpiImported, obj_h)) {
+          is_imported = s;
+        }
+        if (is_imported != "") {
+          objectName = is_imported +"::"+ objectName;
+        }
+
         size_t dot_pos = objectName.rfind('.');
         if (dot_pos != std::string::npos) {
           //TODO: Handle >1 dot
