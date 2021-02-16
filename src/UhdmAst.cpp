@@ -3116,6 +3116,16 @@ namespace UhdmAst {
             });
         return definition;
       }
+      case vpiUnsupportedTypespec: {
+        v3info("\t! This typespec is unsupported in UHDM: "
+               << file_name << ":" << currentLine);
+        // Create a reference and try to resolve later
+        return new AstParseRef(new FileLine("uhdm"),
+                               VParseRefExp::en::PX_TEXT,
+                               objectName,
+                               nullptr,
+                               nullptr);
+      }
       case vpiUnsupportedStmt:
         v3info("\t! This statement is unsupported in UHDM: "
                << file_name << ":" << currentLine);
