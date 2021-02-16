@@ -62,6 +62,14 @@ namespace UhdmAst {
     }
   }
 
+  bool is_imported(vpiHandle obj_h) {
+    if (auto s = vpi_get_str(vpiImported, obj_h)) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
   string deQuote(FileLine* fileline, string text) {
     // Fix up the quoted strings the user put in, for example "\"" becomes "
     // Reverse is V3OutFormatter::quoteNameControls(...)
@@ -876,9 +884,6 @@ namespace UhdmAst {
             sanitize_str(param_name);
             UINFO(3, "Got parameter (pin) " << param_name << std::endl);
             auto is_local = vpi_get(vpiLocalParam, param_handle);
-            std::string is_imported;
-            if (auto s = vpi_get_str(vpiImported, param_handle))
-              is_imported = s;
             AstNode* value = nullptr;
             // Try to construct complex expression
             visit_one_to_one({vpiRhs}, vpi_child_obj, visited, top_nodes,
@@ -893,7 +898,7 @@ namespace UhdmAst {
               UINFO(3, "Skipping local parameter (pin) " << param_name << std::endl);
               continue;
             }
-            if (is_imported != "") {
+            if (is_imported(param_handle)) {
               // Skip imported parameters when creating cells
               UINFO(3, "Skipping imported parameter (pin) " << param_name << std::endl);
               continue;
@@ -1009,15 +1014,6 @@ namespace UhdmAst {
         return new AstDot(new FileLine("uhdm"), false, lhsNode, rhsNode);
       }
       case vpiRefObj: {
-        // Recover the original package, if any
-        std::string is_imported;
-        if (auto s = vpi_get_str(vpiImported, obj_h)) {
-          is_imported = s;
-        }
-        if (is_imported != "") {
-          objectName = is_imported +"::"+ objectName;
-        }
-
         size_t dot_pos = objectName.rfind('.');
         if (dot_pos != std::string::npos) {
           //TODO: Handle >1 dot
@@ -1115,7 +1111,6 @@ namespace UhdmAst {
         AstVar* parameter = nullptr;
         AstNode* parameter_value = nullptr;
         vpiHandle parameter_h;
-        std::string is_imported;
 
         if (objectType == vpiParamAssign) {
           parameter_h = vpi_handle(vpiLhs, obj_h);
@@ -1127,9 +1122,7 @@ namespace UhdmAst {
         } else if (objectType == vpiParameter) {
           parameter_h = obj_h;
         }
-        if (auto s = vpi_get_str(vpiImported, parameter_h))
-          is_imported = s;
-        if (is_imported != "") {
+        if (is_imported(parameter_h)) {
           // Skip imported parameters, they will still be visible in their packages
           UINFO(3, "Skipping imported parameter " << objectName << std::endl);
           return nullptr;
