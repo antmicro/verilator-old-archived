@@ -2537,7 +2537,7 @@ namespace UhdmAst {
                                   arguments[2],
                                   arguments[3]);
           }
-        } else if (objectName == "$error") {
+        } else if (objectName == "$error" || objectName == "$fatal") {
           //TODO: Revisit argument handling
           bool maybe = arguments.size() ? false : true;
           return new AstStop(new FileLine("uhdm"), maybe);
