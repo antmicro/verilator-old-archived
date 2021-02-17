@@ -2209,6 +2209,21 @@ namespace UhdmAst {
                   fromp,
                   ((AstSelExtract*)item)->msbp()->cloneTree(true),
                   ((AstSelExtract*)item)->lsbp()->cloneTree(true));
+            } else if(item->type() == AstType::en::atConst) {
+              select = new AstSelBit(new FileLine("uhdm"), fromp, bitp);
+            } else if (item->type() == AstType::atSelPlus) {
+              AstSelPlus* selplusp = VN_CAST(item, SelPlus);
+              select = new AstSelPlus(new FileLine("uhdm"),
+                  fromp,
+                  selplusp->bitp(),
+                  selplusp->widthp());
+            } else if (item->type() == AstType::atSelMinus) {
+              AstSelMinus* selminusp = VN_CAST(item, SelMinus);
+              select = new AstSelMinus(new FileLine("uhdm"),
+                  fromp,
+                  selminusp->bitp(),
+                  selminusp->widthp());
+
             } else {
               select = new AstSelBit(new FileLine("uhdm"), fromp, bitp);
             }
