@@ -183,6 +183,7 @@ jobs:
         pip install -r uhdm-tests/ibex/ibex/python-requirements.txt
         cd uhdm-tests/ibex/ibex
         fusesoc --cores-root=. run --target=synth --setup lowrisc:ibex:top_artya7 --part xc7a35ticsg324-1L
+        fusesoc --cores-root=. run --target=sim --setup lowrisc:ibex:ibex_simple_system --RV32E=0 --RV32M=ibex_pkg::RV32MFast
         cd ../../..
         ./uhdm-integration/.github/ci.sh
       env:
