@@ -2428,6 +2428,8 @@ namespace UhdmAst {
           return new AstFClose(new FileLine("uhdm"),
                               arguments[0]);
         } else if (objectName == "$fwrite") {
+          AstNode* filep = arguments[0];
+          arguments.erase(arguments.begin());
           AstNode* args = nullptr;
           for (auto a : arguments) {
             if (args == nullptr)
@@ -2437,7 +2439,7 @@ namespace UhdmAst {
           }
           return new AstDisplay(new FileLine("uhdm"),
                                 AstDisplayType(AstDisplayType::en::DT_WRITE),
-                                nullptr,
+                                filep,
                                 args);
         } else if (objectName == "$fflush") {
           return new AstFFlush(new FileLine("uhdm"),
