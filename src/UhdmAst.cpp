@@ -2537,7 +2537,25 @@ namespace UhdmAst {
                                   arguments[2],
                                   arguments[3]);
           }
-        } else if (objectName == "$error") {
+        } else if (objectName == "$info"
+                   || objectName == "$warning"
+                   || objectName == "$error"
+                   || objectName == "$fatal" ) {
+
+          AstDisplayType type;
+          if (objectName == "$info") {
+            type = AstDisplayType::DT_INFO;
+          } else if (objectName == "$warning") {
+            type = AstDisplayType::DT_WARNING;
+          } else if (objectName == "$error") {
+            type = AstDisplayType::DT_ERROR;
+          } else if (objectName == "$fatal") {
+            type = AstDisplayType::DT_FATAL;
+            // Verilator discards the finish number - first argument
+            if (arguments.size())
+              arguments.erase(arguments.begin());
+          }
+
           AstNode* args = nullptr;
           for (auto a : arguments) {
             if (args == nullptr)
@@ -2546,19 +2564,15 @@ namespace UhdmAst {
               args->addNextNull(a);
           }
           node = new AstDisplay(new FileLine("uhdm"),
-                                AstDisplayType::DT_ERROR,
+                                type,
                                 nullptr,
                                 args);
-          auto* stop = new AstStop(new FileLine("uhdm"), true);
-          node->addNext(stop);
-          return node;
-        } else if (objectName == "$fatal") {
-          node = new AstDisplay(new FileLine("uhdm"),
-                                AstDisplayType::DT_FATAL,
-                                nullptr,
-                                nullptr);
-          auto* stop = new AstStop(new FileLine("uhdm"), false);
-          node->addNext(stop);
+          if (type == AstDisplayType::DT_ERROR
+              || type == AstDisplayType::DT_FATAL) {
+            auto* stop = new AstStop(new FileLine("uhdm"),
+                                     (type == AstDisplayType::DT_ERROR));
+            node->addNext(stop);
+          }
           return node;
         } else if (objectName == "$__BAD_SYMBOL__") {
           v3info("\t! Bad symbol encountered @ "
