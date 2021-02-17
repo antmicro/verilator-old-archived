@@ -8,16 +8,20 @@ OPEN_TITAN_BUILD = ${root_dir}/build/lowrisc_systems_top_earlgrey_verilator_0.1
 
 OPEN_TITAN_INCLUDE = \
 	-I$(OPEN_TITAN_BUILD)/src/lowrisc_dv_dv_macros_0 \
+	-I$(OPEN_TITAN_BUILD)/src/lowrisc_systems_alert_handler_reg_0.1/rtl/ \
 	-I$(OPEN_TITAN_BUILD)/src/lowrisc_systems_flash_ctrl_pkg_0.1/rtl \
 	-I$(OPEN_TITAN_BUILD)/src/lowrisc_dv_verilator_memutil_dpi_0/cpp \
 	-I$(OPEN_TITAN_BUILD)/src/lowrisc_dv_verilator_simutil_verilator_0/cpp \
 	-I$(OPEN_TITAN_BUILD)/src/lowrisc_prim_assert_0.1/rtl \
+	-I$(OPEN_TITAN_BUILD)/src/lowrisc_tlul_common_0.1/rtl \
+	-I$(OPEN_TITAN_BUILD)/src/lowrisc_tlul_headers_0.1/rtl \
+	-I$(OPEN_TITAN_BUILD)/src/lowrisc_tlul_adapter_reg_0.1 \
 	-I$(OPEN_TITAN_BUILD)/src/lowrisc_prim_all_0.1/rtl \
 	-I$(OPEN_TITAN_BUILD)/src/lowrisc_prim_util_memload_0/rtl \
 	-I$(OPEN_TITAN_BUILD)/src/lowrisc_dv_verilator_memutil_verilator_0/cpp
 
 # Take all source files
-TO_SURELOG='ibex_pkg.sv\|prim_pkg.sv\|prim_secded_22_16_dec.sv\|prim_secded_22_16_enc.sv\|prim_secded_28_22_dec.sv\|prim_secded_28_22_enc.sv\|prim_secded_39_32_dec.sv\|prim_secded_39_32_enc.sv\|prim_secded_72_64_dec.sv\|prim_secded_72_64_enc.sv\|ibex_tracer_pkg.sv\|ibex_tracer.sv\|prim_generic_clock_gating.sv\|prim_generic_ram_1p.sv\|prim_generic_ram_2p.sv\|prim_lfsr.sv\|prim_xilinx_clock_gating.sv\|prim_clock_gating.sv\|prim_ram_2p.sv\|prim_badbit_ram_1p.sv\|prim_ram_1p.sv\|ibex_icache.sv\|ram_1p.sv\|ram_2p.sv\|bus.sv\|simulator_ctrl.sv\|timer.sv\|ibex_alu.sv\|ibex_branch_predict.sv\|ibex_compressed_decoder.sv\|ibex_controller.sv\|ibex_cs_registers.sv\|ibex_csr.sv\|ibex_counter.sv\|ibex_decoder.sv\|ibex_ex_block.sv\|ibex_fetch_fifo.sv\|ibex_id_stage.sv\|ibex_if_stage.sv\|ibex_load_store_unit.sv\|ibex_multdiv_fast.sv\|ibex_multdiv_slow.sv\|ibex_prefetch_buffer.sv\|ibex_pmp.sv\|ibex_wb_stage.sv\|ibex_dummy_instr.sv\|ibex_register_file_ff.sv\|ibex_register_file_fpga.sv\|ibex_register_file_latch.sv\|ibex_core.sv\|ibex_core_tracing.sv\|ibex_simple_system.sv'
+TO_SURELOG='ibex_pkg.sv\|prim_pkg.sv\|prim_secded_22_16_dec.sv\|prim_secded_22_16_enc.sv\|prim_secded_28_22_dec.sv\|prim_secded_28_22_enc.sv\|prim_secded_39_32_dec.sv\|prim_secded_39_32_enc.sv\|prim_secded_72_64_dec.sv\|prim_secded_72_64_enc.sv\|ibex_tracer_pkg.sv\|ibex_tracer.sv\|prim_generic_clock_gating.sv\|prim_generic_ram_1p.sv\|prim_generic_ram_2p.sv\|prim_lfsr.sv\|prim_xilinx_clock_gating.sv\|prim_clock_gating.sv\|prim_ram_2p.sv\|prim_badbit_ram_1p.sv\|prim_ram_1p.sv\|ibex_icache.sv\|ram_1p.sv\|ram_2p.sv\|bus.sv\|simulator_ctrl.sv\|timer.sv\|ibex_alu.sv\|ibex_branch_predict.sv\|ibex_compressed_decoder.sv\|ibex_controller.sv\|ibex_cs_registers.sv\|ibex_csr.sv\|ibex_counter.sv\|ibex_decoder.sv\|ibex_ex_block.sv\|ibex_fetch_fifo.sv\|ibex_id_stage.sv\|ibex_if_stage.sv\|ibex_load_store_unit.sv\|ibex_multdiv_fast.sv\|ibex_multdiv_slow.sv\|ibex_prefetch_buffer.sv\|ibex_pmp.sv\|ibex_wb_stage.sv\|ibex_dummy_instr.sv\|ibex_register_file_ff.sv\|ibex_register_file_fpga.sv\|ibex_register_file_latch.sv\|ibex_core.sv\|ibex_core_tracing.sv\|ibex_simple_system.sv\|alert_pkg.sv\|otp_ctrl_pkg.sv\|otp_ctrl_reg_pkg.sv\|rv_timer_reg_pkg.sv\|prim_util_pkg.sv\|alert_handler_reg_pkg.sv\|prim_flop.sv\|prim_generic_flop.sv\|prim_intr_hw.sv\|timer_core.sv\|rv_timer_reg_top.sv\|tlul_adapter_reg.sv\|prim_subreg.sv\|prim_subreg_ext.sv\|prim_subreg_arb.sv\|tlul_err.sv\|tlul_pkg.sv\|prim_assert.sv'
 
 	#$(shell \
 		#cat ${OPEN_TITAN_BUILD}/sim-verilator/lowrisc_systems_top_earlgrey_verilator_0.1.vc | \
@@ -27,7 +31,9 @@ TO_SURELOG='ibex_pkg.sv\|prim_pkg.sv\|prim_secded_22_16_dec.sv\|prim_secded_22_1
 #Sources that will be skipped by Surelog uhdm
 #SKIP_SOURCES=flash_ctrl_pkg.sv\|flash_phy_pkg.sv\|kmac_keymgr.sv\|otp_ctrl.sv\|otp_ctrl_lci.sv\|sram_ctrl.sv\|flash_ctrl.sv\|flash_ctrl_info_cfg.sv\|flash_mp.sv\|otbn.sv\|flash_ctrl_arb.sv\|flash_ctrl_erase.sv\|flash_ctrl_lcmgr.sv\|flash_ctrl_prog.sv\|flash_ctrl_rd.sv\|flash_mp_data_region_sel.sv\|flash_phy.sv\|flash_phy_core.sv\|flash_phy_erase.sv\|flash_phy_prog.sv\|flash_phy_rd.sv\|flash_phy_rd_buffers.sv\|flash_phy_scramble.sv
 
-SKIP_SOURCES='ibex_tracer.sv\|prim_generic_ram_2p.sv\|prim_ram_2p.sv\|ram_2p.sv\|bus.sv\|simulator_ctrl.sv\|ibex_register_file_latch.sv\|ibex_core_tracing.sv\|ibex_simple_system.sv\|rv_timer.sv\|otp_ctrl_lfsr_timer.sv\|alert_handler_esc_timer\|alert_handler_ping_timer\|prim_keccak.sv'
+#SKIP_SOURCES='ibex_tracer.sv\|prim_generic_ram_2p.sv\|prim_ram_2p.sv\|ram_2p.sv\|bus.sv\|simulator_ctrl.sv\|ibex_register_file_latch.sv\|ibex_core_tracing.sv\|ibex_simple_system.sv\|rv_timer.sv\|otp_ctrl_lfsr_timer.sv\|alert_handler_esc_timer\|alert_handler_ping_timer\|prim_keccak.sv'
+#SKIP_SOURCES='prim_lfsr.sv'
+SKIP_SOURCES='asdf'
 
 #SKIP_SOURCES= \
         #$(shell \
@@ -85,14 +91,14 @@ uhdm/verilator/simple-system: clean-build | prepare-sources
 	(export PATH=${root_dir}/../image/bin:${PATH} && \
 		. ${root_dir}/venv-opentitan/bin/activate && \
 		cd ${root_dir}/build && \
-		${root_dir}/../image/bin/surelog -parse -sverilog +define+VERILATOR -verbose \
+		${root_dir}/../image/bin/surelog -parse -sverilog +define+VERILATOR \
 			${SURELOG_PARAMETERS} \
 			$(OPEN_TITAN_INCLUDE) \
 			$(OPEN_TITAN_SOURCES) && \
 		cp ${root_dir}/build/slpp_all/surelog.uhdm ${root_dir}/build/simple_system.uhdm && \
 		cd ${OPEN_TITAN_BUILD}/sim-verilator/ && \
 		sed 's/-Wall --unroll-count 72/--unroll-count 72/g' -i config.mk && \
-		sed '/${OPEN_TITAN_SOURCES_DELETE_OR}/d' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
+		#sed '/${OPEN_TITAN_SOURCES_DELETE_OR}/d' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
 		sed '/--cc/a --uhdm-ast-sv ${root_dir}/build/simple_system.uhdm' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
 		$(MAKE))
 		#sed '/--top-module.*/i ${root_dir}/build/simple_system.uhdm' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
