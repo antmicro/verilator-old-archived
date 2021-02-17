@@ -968,19 +968,10 @@ namespace UhdmAst {
           } else {
             AstNode* assign;
             if (lvalue->type() == AstType::en::atVar) {
-              // If a variable was declared along with the assignment,
-              // return it as well. Create a reference for the assignment.
-              AstNode* var = lvalue;
-              auto* var_ref = new AstParseRef(new FileLine("uhdm"),
-                                                     VParseRefExp::en::PX_TEXT,
-                                                     lvalue->name(),
-                                                     nullptr,
-                                                     nullptr);
-              if (objectType == vpiContAssign)
-                assign = new AstAssignW(new FileLine("uhdm"), var_ref, rvalue);
-              else
-                assign = new AstAssign(new FileLine("uhdm"), var_ref, rvalue);
-              var->addNextNull(assign);
+              // This is not a true assignment
+              // Set initial value to a variable and return it
+              AstVar* var = static_cast<AstVar*>(lvalue);
+              var->valuep(rvalue);
               return var;
             } else {
               if (objectType == vpiContAssign)
