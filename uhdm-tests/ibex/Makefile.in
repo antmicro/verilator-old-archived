@@ -35,13 +35,28 @@ IBEX_SOURCES_DELETE_OR = \
 	$(shell \
 		echo ${IBEX_SOURCES_DELETE} | sed 's/\s/\\|/g')
 
+# Use up to 8 threads for simulated model (related to design parallelism factor)
+CPU_COUNT := $(shell nproc)
+CPUS_GT_8 := $(shell [ ${CPU_COUNT} -gt 8 ] && echo true )
+ifeq ($(CPUS_GT_8),true)
+	THREAD_COUNT = 8
+else
+	THREAD_COUNT = ${CPU_COUNT}
+endif
+
 prepare-sources:
 	virtualenv ${root_dir}/venv-ibex
 	(export PATH=${root_dir}/../image/bin:${PATH} && \
 		. ${root_dir}/venv-ibex/bin/activate && \
 		pip install -r ${IBEX}/python-requirements.txt && \
 		pip install git+https://github.com/antmicro/edalize@surelog && \
-		fusesoc --cores-root=${IBEX} run --target=sim --setup lowrisc:ibex:ibex_simple_system --RV32E=0 --RV32M=ibex_pkg::RV32MFast)
+		fusesoc --cores-root=${IBEX} run \
+			--target=sim \
+			--setup lowrisc:ibex:ibex_simple_system \
+			--RV32E=0 \
+			--RV32M=ibex_pkg::RV32MFast \
+			--verilator_options '--threads $(THREAD_COUNT)' \
+			)
 
 uhdm/verilator/simple-system: clean-build | prepare-sources
 	(export PATH=${root_dir}/../image/bin:${PATH} && \
