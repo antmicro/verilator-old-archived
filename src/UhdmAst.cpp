@@ -2537,10 +2537,29 @@ namespace UhdmAst {
                                   arguments[2],
                                   arguments[3]);
           }
-        } else if (objectName == "$error" || objectName == "$fatal") {
-          //TODO: Revisit argument handling
-          bool maybe = arguments.size() ? false : true;
-          return new AstStop(new FileLine("uhdm"), maybe);
+        } else if (objectName == "$error") {
+          AstNode* args = nullptr;
+          for (auto a : arguments) {
+            if (args == nullptr)
+              args = a;
+            else
+              args->addNextNull(a);
+          }
+          node = new AstDisplay(new FileLine("uhdm"),
+                                AstDisplayType::DT_ERROR,
+                                nullptr,
+                                args);
+          auto* stop = new AstStop(new FileLine("uhdm"), true);
+          node->addNext(stop);
+          return node;
+        } else if (objectName == "$fatal") {
+          node = new AstDisplay(new FileLine("uhdm"),
+                                AstDisplayType::DT_FATAL,
+                                nullptr,
+                                nullptr);
+          auto* stop = new AstStop(new FileLine("uhdm"), false);
+          node->addNext(stop);
+          return node;
         } else if (objectName == "$__BAD_SYMBOL__") {
           v3info("\t! Bad symbol encountered @ "
                  << file_name << ":" << currentLine);
