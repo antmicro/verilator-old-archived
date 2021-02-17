@@ -62,6 +62,14 @@ namespace UhdmAst {
     }
   }
 
+  bool is_imported(vpiHandle obj_h) {
+    if (auto s = vpi_get_str(vpiImported, obj_h)) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
   string deQuote(FileLine* fileline, string text) {
     // Fix up the quoted strings the user put in, for example "\"" becomes "
     // Reverse is V3OutFormatter::quoteNameControls(...)
@@ -325,6 +333,15 @@ namespace UhdmAst {
       case vpiLogicNet:
       case vpiIntegerNet:
       case vpiTimeNet:
+      case vpiLogicVar:
+      case vpiIntVar:
+      case vpiLongIntVar:
+      case vpiIntegerVar:
+      case vpiBitVar:
+      case vpiByteVar:
+      case vpiRealVar:
+      case vpiStringVar:
+      case vpiTimeVar:
       case vpiLogicTypespec:
       case vpiIntTypespec:
       case vpiLongIntTypespec:
@@ -860,6 +877,7 @@ namespace UhdmAst {
 
           // Get parameter assignments
           itr = vpi_iterate(vpiParamAssign, obj_h);
+          std::set<std::string> parameter_set;
           while (vpiHandle vpi_child_obj = vpi_scan(itr) ) {
             vpiHandle param_handle = vpi_handle(vpiLhs, vpi_child_obj);
             std::string param_name = vpi_get_str(vpiName, param_handle);
@@ -880,12 +898,25 @@ namespace UhdmAst {
               UINFO(3, "Skipping local parameter (pin) " << param_name << std::endl);
               continue;
             }
-            // Although those are parameters, they are stored as pins
-            AstPin *pin = new AstPin(new FileLine("uhdm"), ++np, param_name, value);
-            if (!modParams)
-                modParams = pin;
-            else
-                modParams->addNextNull(pin);
+            if (is_imported(param_handle)) {
+              // Skip imported parameters when creating cells
+              UINFO(3, "Skipping imported parameter (pin) " << param_name << std::endl);
+              continue;
+            }
+            if (parameter_set.find(param_name) == parameter_set.end()) {
+              // Although those are parameters, they are stored as pins
+              AstPin *pin = new AstPin(new FileLine("uhdm"), ++np, param_name, value);
+              if (!modParams)
+                  modParams = pin;
+              else
+                  modParams->addNextNull(pin);
+              parameter_set.insert(param_name);
+            } else {
+              // Duplicate
+              UINFO(3, "Duplicate parameter assignment: " << param_name 
+                      << " in " << objectName <<std::endl );
+              continue;
+            }
             vpi_free_object(vpi_child_obj);
           }
           vpi_free_object(itr);
@@ -1090,6 +1121,11 @@ namespace UhdmAst {
           }
         } else if (objectType == vpiParameter) {
           parameter_h = obj_h;
+        }
+        if (is_imported(parameter_h)) {
+          // Skip imported parameters, they will still be visible in their packages
+          UINFO(3, "Skipping imported parameter " << objectName << std::endl);
+          return nullptr;
         }
 
         AstRange* rangeNode = nullptr;
@@ -1940,10 +1976,10 @@ namespace UhdmAst {
             if (rhs != nullptr) {
               lhs = new AstConcat(new FileLine("uhdm"), lhs, rhs);
               rhs = new AstConst(new FileLine("uhdm"), 1);
-              return new AstReplicate(new FileLine("uhdm"), lhs, rhs);
             } else {
-              return lhs;
+              rhs = new AstConst(new FileLine("uhdm"), 1);
             }
+            return new AstReplicate(new FileLine("uhdm"), lhs, rhs);
           }
           case vpiMultiConcatOp: {
             visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
@@ -2224,17 +2260,9 @@ namespace UhdmAst {
         AstRange* returnRange = nullptr;
         auto return_h = vpi_handle(vpiReturn, obj_h);
         if (return_h) {
-          visit_one_to_many({vpiRange}, return_h, visited, top_nodes,
-            [&](AstNode* item){
-              if (item) {
-                  returnRange = reinterpret_cast<AstRange*>(item);
-              }
-            });
+          AstNode* dtype = getDType(return_h, visited, top_nodes);
+          function_vars = dtype;
         }
-        auto* dtype = new AstBasicDType(new FileLine("uhdm"),
-                                  AstBasicDTypeKwd::LOGIC);
-        dtype->rangep(returnRange);
-        function_vars = dtype;
 
         visit_one_to_many({vpiIODecl}, obj_h, visited, top_nodes,
           [&](AstNode* item){
@@ -2266,7 +2294,11 @@ namespace UhdmAst {
                 statements = item;
             }
           });
-        return new AstFunc(new FileLine("uhdm"), objectName, statements, function_vars);
+        if (return_h) {
+          return new AstFunc(new FileLine("uhdm"), objectName, statements, function_vars);
+        } else {
+          return new AstTask(new FileLine("uhdm"), objectName, statements);
+        }
       }
       case vpiReturn:
       case vpiReturnStmt: {
@@ -2305,9 +2337,13 @@ namespace UhdmAst {
                                               nullptr);
           return new AstMethodCall(new FileLine("uhdm"), from, rhs, arguments);
         }
-
-        AstFuncRef* func_call = new AstFuncRef(new FileLine("uhdm"), objectName, arguments);
-        return func_call;
+        // Check if this is a task or function by looking for return value
+        auto function_h = vpi_handle(vpiFunction, obj_h);
+        auto return_h = vpi_handle(vpiReturn, function_h);
+        if (return_h)
+          return new AstFuncRef(new FileLine("uhdm"), objectName, arguments);
+        else
+          return new AstTaskRef(new FileLine("uhdm"), objectName, arguments);
       }
       case vpiSysFuncCall: {
         std::vector<AstNode*> arguments;
@@ -2344,7 +2380,7 @@ namespace UhdmAst {
                                 nullptr,
                                 args);
         } else if (objectName == "$value$plusargs") {
-          return new AstValuePlusArgs(new FileLine("uhdm"),
+          node = new AstValuePlusArgs(new FileLine("uhdm"),
                                       arguments[0],
                                       arguments[1]);
         } else if (objectName == "$sformat"
@@ -2392,10 +2428,17 @@ namespace UhdmAst {
           return new AstFClose(new FileLine("uhdm"),
                               arguments[0]);
         } else if (objectName == "$fwrite") {
+          AstNode* args = nullptr;
+          for (auto a : arguments) {
+            if (args == nullptr)
+              args = a;
+            else
+              args->addNextNull(a);
+          }
           return new AstDisplay(new FileLine("uhdm"),
                                 AstDisplayType(AstDisplayType::en::DT_WRITE),
-                                arguments[0],
-                                arguments[1]);
+                                nullptr,
+                                args);
         } else if (objectName == "$fflush") {
           return new AstFFlush(new FileLine("uhdm"),
                                arguments[0]);
@@ -2507,8 +2550,18 @@ namespace UhdmAst {
         } else {
             v3error("\t! Encountered unhandled SysFuncCall: " << objectName);
         }
-        // Should not be reached
-        return nullptr;
+        auto parent_h = vpi_handle(vpiParent, obj_h);
+        int parent_type = 0;
+        if (parent_h) {
+          parent_type = vpi_get(vpiType, parent_h);
+        }
+        if (parent_type == vpiBegin) { // TODO: Are other contexts missing here?
+          // In task-like context return values are discarded
+          // This is indicated by wrapping the node
+          return new AstSysFuncAsTask(new FileLine("uhdm"), node);
+        } else {
+          return node;
+        }
       }
       case vpiRange: {
         AstNode* msbNode = nullptr;
@@ -2889,18 +2942,7 @@ namespace UhdmAst {
       case vpiEnumVar:
       case vpiBitVar:
       case vpiByteVar: {
-        AstRange* var_range = nullptr;
-        auto typespec_h = vpi_handle(vpiTypespec, obj_h);
-        AstNodeDType* dtype = nullptr;
-        if (typespec_h) {
-          dtype = getDType(obj_h, visited, top_nodes);
-        } else {
-          auto type_kwd = get_kwd_for_type(objectType);
-          auto basicdtype = new AstBasicDType(new FileLine("uhdm"),
-                                          type_kwd);
-          basicdtype->rangep(var_range);
-          dtype = basicdtype;
-        }
+        AstNodeDType* dtype = getDType(obj_h, visited, top_nodes);
         auto* var = new AstVar(new FileLine("uhdm"),
                          AstVarType::VAR,
                          objectName,
@@ -3083,6 +3125,16 @@ namespace UhdmAst {
               }
             });
         return definition;
+      }
+      case vpiUnsupportedTypespec: {
+        v3info("\t! This typespec is unsupported in UHDM: "
+               << file_name << ":" << currentLine);
+        // Create a reference and try to resolve later
+        return new AstParseRef(new FileLine("uhdm"),
+                               VParseRefExp::en::PX_TEXT,
+                               objectName,
+                               nullptr,
+                               nullptr);
       }
       case vpiUnsupportedStmt:
         v3info("\t! This statement is unsupported in UHDM: "
