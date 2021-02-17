@@ -968,19 +968,10 @@ namespace UhdmAst {
           } else {
             AstNode* assign;
             if (lvalue->type() == AstType::en::atVar) {
-              // If a variable was declared along with the assignment,
-              // return it as well. Create a reference for the assignment.
-              AstNode* var = lvalue;
-              auto* var_ref = new AstParseRef(new FileLine("uhdm"),
-                                                     VParseRefExp::en::PX_TEXT,
-                                                     lvalue->name(),
-                                                     nullptr,
-                                                     nullptr);
-              if (objectType == vpiContAssign)
-                assign = new AstAssignW(new FileLine("uhdm"), var_ref, rvalue);
-              else
-                assign = new AstAssign(new FileLine("uhdm"), var_ref, rvalue);
-              var->addNextNull(assign);
+              // This is not a true assignment
+              // Set initial value to a variable and return it
+              AstVar* var = static_cast<AstVar*>(lvalue);
+              var->valuep(rvalue);
               return var;
             } else {
               if (objectType == vpiContAssign)
@@ -2428,6 +2419,8 @@ namespace UhdmAst {
           return new AstFClose(new FileLine("uhdm"),
                               arguments[0]);
         } else if (objectName == "$fwrite") {
+          AstNode* filep = arguments[0];
+          arguments.erase(arguments.begin());
           AstNode* args = nullptr;
           for (auto a : arguments) {
             if (args == nullptr)
@@ -2437,7 +2430,7 @@ namespace UhdmAst {
           }
           return new AstDisplay(new FileLine("uhdm"),
                                 AstDisplayType(AstDisplayType::en::DT_WRITE),
-                                nullptr,
+                                filep,
                                 args);
         } else if (objectName == "$fflush") {
           return new AstFFlush(new FileLine("uhdm"),
@@ -2537,10 +2530,43 @@ namespace UhdmAst {
                                   arguments[2],
                                   arguments[3]);
           }
-        } else if (objectName == "$error") {
-          //TODO: Revisit argument handling
-          bool maybe = arguments.size() ? false : true;
-          return new AstStop(new FileLine("uhdm"), maybe);
+        } else if (objectName == "$info"
+                   || objectName == "$warning"
+                   || objectName == "$error"
+                   || objectName == "$fatal" ) {
+
+          AstDisplayType type;
+          if (objectName == "$info") {
+            type = AstDisplayType::DT_INFO;
+          } else if (objectName == "$warning") {
+            type = AstDisplayType::DT_WARNING;
+          } else if (objectName == "$error") {
+            type = AstDisplayType::DT_ERROR;
+          } else if (objectName == "$fatal") {
+            type = AstDisplayType::DT_FATAL;
+            // Verilator discards the finish number - first argument
+            if (arguments.size())
+              arguments.erase(arguments.begin());
+          }
+
+          AstNode* args = nullptr;
+          for (auto a : arguments) {
+            if (args == nullptr)
+              args = a;
+            else
+              args->addNextNull(a);
+          }
+          node = new AstDisplay(new FileLine("uhdm"),
+                                type,
+                                nullptr,
+                                args);
+          if (type == AstDisplayType::DT_ERROR
+              || type == AstDisplayType::DT_FATAL) {
+            auto* stop = new AstStop(new FileLine("uhdm"),
+                                     (type == AstDisplayType::DT_ERROR));
+            node->addNext(stop);
+          }
+          return node;
         } else if (objectName == "$__BAD_SYMBOL__") {
           v3info("\t! Bad symbol encountered @ "
                  << file_name << ":" << currentLine);
