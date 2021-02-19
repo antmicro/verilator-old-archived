@@ -189,7 +189,7 @@ jobs:
         #TEST_CASE: ${{ matrix.TEST_CASE }}
         #TARGET: ${{ matrix.TARGET }}
 
-  opentitan-simple-system-sim:
+  opentitan-earl-grey-sim:
     runs-on: ubuntu-latest
     needs: build-binaries
     env:
@@ -232,7 +232,7 @@ jobs:
         cp uart0.log output_uhdm/vanilla_verilator_uart.log
         cp trace_core_00000000.log output_uhdm/vanilla_verilator_trace.log
       env:
-        TARGET: verilator/simple-system
+        TARGET: verilator/earl-grey
         TEST_CASE: tests/opentitan
 
     - name: Build & Test (uhdm verilator)
@@ -243,7 +243,7 @@ jobs:
         cp uart0.log output_uhdm/uhdm_verilator_uart.log
         cp trace_core_00000000.log output_uhdm/uhdm_verilator_trace.log
       env:
-        TARGET: uhdm/verilator/simple-system
+        TARGET: uhdm/verilator/earl-grey
         TEST_CASE: tests/opentitan
 
     - name: Compare results
@@ -262,7 +262,7 @@ jobs:
 
     - uses: actions/upload-artifact@v2
       with:
-        name: opentitan-simple-system-simulation-output
+        name: opentitan-earl-grey-simulation-output
         path: output_uhdm
 
   #simple-system-sim:

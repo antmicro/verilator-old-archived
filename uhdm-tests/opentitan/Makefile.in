@@ -84,7 +84,7 @@ prepare-sources:
 		fusesoc --cores-root=${OPEN_TITAN} run --flag=fileset_top --target=sim --setup lowrisc:systems:top_earlgrey_verilator \
 		--verilator_options '--threads ${CPU_COUNT}')
 
-uhdm/verilator/simple-system: clean-build | prepare-sources
+uhdm/verilator/earl-grey: clean-build | prepare-sources
 	echo "TO_SURELOG"
 	echo ${TO_SURELOG}
 	echo
@@ -115,9 +115,8 @@ uhdm/verilator/simple-system: clean-build | prepare-sources
 		sed '/usbdev_pkg.sv/i ${READD}' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
 		sed '/--top-module.*/i ${root_dir}/build/ibex_core.uhdm' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
 		$(MAKE))
-		#sed '/--top-module.*/i ${curr_dir}/simple_system.vlt ${root_dir}/build/simple_system.uhdm' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
 
-verilator/simple-system: clean-build | prepare-sources
+verilator/earl-grey: clean-build | prepare-sources
 	(export PATH=${root_dir}/../image/bin:${PATH} && \
 		. ${root_dir}/venv-opentitan/bin/activate && \
 		cd ${OPEN_TITAN_BUILD}/sim-verilator/ && \
