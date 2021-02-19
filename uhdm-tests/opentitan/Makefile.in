@@ -19,19 +19,22 @@ OPEN_TITAN_INCLUDE = \
 TO_SURELOG='ibex_pkg.sv\|prim_generic_clock_gating.sv\|ibex_prefetch_buffer.sv\|ibex_compressed_decoder.sv\|ibex_fetch_fifo.sv\|ibex_id_stage.sv\|ibex_decoder.sv\|ibex_controller.sv\|ibex_ex_block.sv\|ibex_alu.sv\|ibex_multdiv_fast.sv\|ibex_load_store_unit.sv\|ibex_wb_stage.sv\|ibex_csr.sv\|ibex_register_file_ff.sv\|ibex_pmp.sv\|prim_secded_28_22_enc.sv\|prim_secded_72_64_enc.sv\|prim_secded_28_22_dec.sv\|prim_secded_72_64_dec.sv'
 
 # In order to parse full Ibex Core it is needed to add:
+# \|ibex_core.sv\|prim_clock_gating.sv\|ibex_cs_registers.sv\|ibex_counter.sv\|ibex_if_stage.sv\|ibex_icache.sv\|prim_ram_1p.sv\|prim_generic_ram_1p.sv
+
+# BUILD BRAKERS:
+# prim_generic_ram_1p.sv
+# ibex_counter.sv
+# prim_clock_gating.sv (silent error: %Error: Exiting due to 1 error(s))
+
 # prim_ram_1p.sv (prim_generic_ram_1p.sv fault)
 # ibex_icache.sv (requires prim_ram_1p.sv)
 # ibex_cs_registers.sv (ibex_counter.sv fault)
 # ibex_if_stage.sv (requires ibex_icache.sv)
 # ibex_core.sv (requires ibex_if_stage.sv ibex_cs_registers.sv prim_clock_gating.sv)
 
-# BUILD BRAKERS:
-# prim_generic_ram_1p.sv
-# ibex_counter.sv
-# prim_clock_gating.sv (silent error: %Error: Exiting due to 1 error(s) | passing when ibex_core.sv is added)
-
 SKIP_SOURCES='rv_core_ibex_pkg.sv'
 
+# Need to readd this to .vc file due to double matching 'ibex_pkg.sv'
 READD='../src/lowrisc_ip_rv_core_ibex_pkg_0.1/rtl/rv_core_ibex_pkg.sv'
 
 # Top-level parameters in skipped modules that need to be known to Surelog
