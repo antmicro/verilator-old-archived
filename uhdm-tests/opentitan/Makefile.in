@@ -1,0 +1,73 @@
+curr_dir:=$(dir $(lastword $(MAKEFILE_LIST)))
+OPEN_TITAN = ${curr_dir}/opentitan
+
+################################
+#### verilator - simulation ####
+################################
+OPEN_TITAN_BUILD = ${root_dir}/build/lowrisc_systems_top_earlgrey_verilator_0.1
+
+OPEN_TITAN_INCLUDE = \
+	-I$(OPEN_TITAN_BUILD)/src/lowrisc_prim_assert_0.1/rtl \
+	-I$(OPEN_TITAN_BUILD)/src/lowrisc_ibex_ibex_core_0.1/rtl \
+	-I$(OPEN_TITAN_BUILD)/src/lowrisc_dv_dv_macros_0 \
+	-I$(OPEN_TITAN_BUILD)/src/lowrisc_prim_util_memload_0/rtl
+
+# Working set of Ibex Core files
+TO_SURELOG='/ibex_pkg.sv\|prim_generic_clock_gating.sv\|ibex_prefetch_buffer.sv\|ibex_compressed_decoder.sv\|ibex_fetch_fifo.sv\|ibex_id_stage.sv\|ibex_decoder.sv\|ibex_controller.sv\|ibex_ex_block.sv\|ibex_alu.sv\|ibex_multdiv_fast.sv\|ibex_load_store_unit.sv\|ibex_wb_stage.sv\|ibex_csr.sv\|ibex_register_file_ff.sv\|ibex_pmp.sv\|prim_secded_28_22_enc.sv\|prim_secded_72_64_enc.sv\|prim_secded_28_22_dec.sv\|prim_secded_72_64_dec.sv'
+
+# Need to readd this to .vc file due to double matching 'ibex_pkg.sv'
+READD='../src/lowrisc_ip_rv_core_ibex_pkg_0.1/rtl/rv_core_ibex_pkg.sv'
+
+# Top-level parameters in skipped modules that need to be known to Surelog
+SURELOG_PARAMETERS = -PPMPNumRegions=16 \
+                       -PBranchTargetALU=1 \
+                       -PWritebackStage=1 \
+
+OPEN_TITAN_SOURCES = \
+	$(shell \
+		cat ${OPEN_TITAN_BUILD}/sim-verilator/lowrisc_systems_top_earlgrey_verilator_0.1.vc | \
+		grep -F .sv | grep ${TO_SURELOG} | \
+		sed 's@^..@${OPEN_TITAN_BUILD}@')
+
+OPEN_TITAN_SOURCES_DELETE = \
+        $(shell \
+		cat ${OPEN_TITAN_BUILD}/sim-verilator/lowrisc_systems_top_earlgrey_verilator_0.1.vc | \
+		grep -F .sv | grep ${TO_SURELOG}  | sed "s/.*\///")
+
+OPEN_TITAN_SOURCES_DELETE_OR = \
+	$(shell \
+		echo ${OPEN_TITAN_SOURCES_DELETE} | sed 's/\s/\\|/g')
+
+CPU_COUNT = $(shell nproc)
+
+prepare-sources:
+	virtualenv ${root_dir}/venv-opentitan
+	(export PATH=${root_dir}/../image/bin:${PATH} && \
+		. ${root_dir}/venv-opentitan/bin/activate && \
+		pip install -r ${OPEN_TITAN}/python-requirements.txt && \
+		pip install git+https://github.com/antmicro/edalize@surelog && \
+		fusesoc --cores-root=${OPEN_TITAN} run --flag=fileset_top --target=sim --setup lowrisc:systems:top_earlgrey_verilator \
+		--verilator_options '--threads ${CPU_COUNT}')
+
+uhdm/verilator/opentitan: clean-build | prepare-sources
+	(export PATH=${root_dir}/../image/bin:${PATH} && \
+		. ${root_dir}/venv-opentitan/bin/activate && \
+		cd ${root_dir}/build && \
+		${root_dir}/../image/bin/surelog -nobuiltin -parse -sverilog +define+VERILATOR \
+			${SURELOG_PARAMETERS} \
+			$(OPEN_TITAN_INCLUDE) \
+			$(OPEN_TITAN_SOURCES) && \
+		cp ${root_dir}/build/slpp_all/surelog.uhdm ${root_dir}/build/ibex_core.uhdm && \
+		cd ${OPEN_TITAN_BUILD}/sim-verilator/ && \
+		sed 's/-Wall -DVM_TRACE_FMT_FST/-DVM_TRACE_FMT_FST/g' -i config.mk && \
+		sed '/--cc/a --uhdm-ast-sv' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
+		sed '/${OPEN_TITAN_SOURCES_DELETE_OR}/d' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
+		sed '/usbdev_pkg.sv/i ${READD}' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
+		sed '/--top-module.*/i ${root_dir}/build/ibex_core.uhdm' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
+		$(MAKE))
+
+verilator/opentitan: clean-build | prepare-sources
+	(export PATH=${root_dir}/../image/bin:${PATH} && \
+		. ${root_dir}/venv-opentitan/bin/activate && \
+		cd ${OPEN_TITAN_BUILD}/sim-verilator/ && \
+		$(MAKE))
