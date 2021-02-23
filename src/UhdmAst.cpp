@@ -3167,6 +3167,23 @@ namespace UhdmAst {
             });
         return definition;
       }
+      case vpiImmediateAssert: {
+        AstAssert* assert = nullptr;
+        visit_one_to_one({vpiExpr},
+                          obj_h,
+                          visited,
+                          top_nodes,
+                          [&](AstNode* item) {
+                            if (item != nullptr) {
+                              assert = new AstAssert(new FileLine("uhdm"),
+                                                     item,
+                                                     nullptr,
+                                                     nullptr,
+                                                     true);
+                            }
+                        });
+        return assert;
+      }
       case vpiUnsupportedTypespec: {
         v3info("\t! This typespec is unsupported in UHDM: "
                << file_name << ":" << currentLine);
