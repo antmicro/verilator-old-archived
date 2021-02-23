@@ -580,6 +580,8 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         package->inLibrary(true);
         shared.package_prefix += objectName + "::";
         shared.m_symp->pushNew(package);
+        auto* old_param_map_p = current_param_map_p;
+        current_param_map_p = new NameNodeMap();
         visit_one_to_many(
             {
                 vpiTypedef,
@@ -594,9 +596,13 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             obj_h, shared, [&](AstNode* item) {
                 if (item != nullptr) { package->addStmtp(item); }
             });
+        for (auto& param_p : *current_param_map_p) {
+          if (param_p.second != nullptr)
+            package->addStmtp(param_p.second);
+        }
+        current_param_map_p = old_param_map_p;
         shared.m_symp->popScope(package);
         shared.package_prefix = shared.package_prefix.substr(0, shared.package_prefix.length()
-                                                                    - (objectName.length() + 2));
 
         shared.package_map[objectName] = package;
         return package;
@@ -693,6 +699,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
 
         // Check if we have encountered this object before
         auto it = shared.partial_modules.find(modType);
+        auto param_map = top_param_map.find(modType)->second;
         if (it != shared.partial_modules.end()) {
             // Was created before, fill missing
             module = reinterpret_cast<AstModule*>(it->second);
@@ -753,11 +760,18 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 obj_h, shared, [&](AstNode* node) {
                     if (node != nullptr) module->addStmtp(node);
                 });
+            // Add final values of parameters
+            for (auto& param_p : param_map) {
+              if (param_p.second != nullptr)
+                module->addStmtp(param_p.second->cloneTree(false));
+            }
             (shared.top_nodes)[name] = module;
             shared.m_symp->popScope(module);
         } else {
             // Encountered for the first time
             module = new AstModule(new FileLine(modType), modType);
+            auto* old_param_map_p = current_param_map_p;
+            current_param_map_p = new NameNodeMap();
             visit_one_to_many(
                 {
                     vpiTypedef,  // Keep this before parameters
@@ -782,6 +796,8 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                     // ignore, currently would create duplicate nodes
                     // TODO: Revisit this handling
                 });
+            top_param_map[module->name()] = *current_param_map_p;
+            current_param_map_p = old_param_map_p;
             (shared.partial_modules)[module->name()] = module;
         }
 
@@ -1025,6 +1041,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             parameter = new AstVar(new FileLine("uhdm"), parameter_type, objectName,
                                    VFlagChildDType(), dtype);
             parameter->valuep(parameter_value);
+            (*current_param_map_p)[objectName] = paramer;
             return parameter;
         }
     }
@@ -1244,6 +1261,8 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     case vpiNamedBegin:
     case vpiBegin: {
         AstNode* body = nullptr;
+        auto* old_param_map_p = current_param_map_p;
+        current_param_map_p = new NameNodeMap();
         visit_one_to_many(
             {
                 vpiTypedef,
@@ -1272,6 +1291,10 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                     body->addNextNull(node);
                 }
             });
+          for (auto& param_p : *current_param_map_p) {
+            body->addNextNull(param_p.second);
+          }
+          current_param_map_p = old_param_map_p;
         if (objectType == vpiBegin) {
             objectName = "";  // avoid storing parent name
         }
@@ -2562,6 +2585,8 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     }
     case vpiGenScope: {
         AstNode* statements = nullptr;
+        auto* old_param_map_p = current_param_map_p;
+        current_param_map_p = new NameNodeMap();
         visit_one_to_many(
             {
                 vpiTypedef,
@@ -2599,6 +2624,10 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                     statements->addNextNull(item);
                 }
             });
+        for (auto& param_p : *current_param_map_p) {
+          statements->addNextNull(param_p.second);
+        }
+        current_param_map_p = old_param_map_p;
         return statements;
     }
     case vpiDelayControl: {
