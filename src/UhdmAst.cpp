@@ -699,7 +699,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
 
         // Check if we have encountered this object before
         auto it = shared.partial_modules.find(modType);
-        auto param_map = top_param_map.find(modType)->second;
+        auto pit = top_param_map.find(modType);
         if (it != shared.partial_modules.end()) {
             // Was created before, fill missing
             module = reinterpret_cast<AstModule*>(it->second);
@@ -761,9 +761,12 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                     if (node != nullptr) module->addStmtp(node);
                 });
             // Add final values of parameters
-            for (auto& param_p : param_map) {
-              if (param_p.second != nullptr)
-                module->addStmtp(param_p.second->cloneTree(false));
+            if (pit != top_param_map.end()) {
+              auto param_map = pit->second;
+              for (auto& param_p : param_map) {
+                if (param_p.second != nullptr)
+                  module->addStmtp(param_p.second->cloneTree(false));
+              }
             }
             (shared.top_nodes)[name] = module;
             shared.m_symp->popScope(module);
@@ -1041,14 +1044,20 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             parameter = new AstVar(new FileLine("uhdm"), parameter_type, objectName,
                                    VFlagChildDType(), dtype);
             parameter->valuep(parameter_value);
-            (*current_param_map_p)[objectName] = paramer;
-            return parameter;
+            if (current_param_map_p)
+              (*current_param_map_p)[objectName] = parameter;
+            else {
+              v3error("Expected valid parameter map");
+            }
+            return nullptr;
         }
     }
     case vpiInterface: {
         // Interface definition is represented by a module node
         AstIface* elaboratedInterface = new AstIface(new FileLine("uhdm"), objectName);
         bool hasModports = false;
+        auto* old_param_map_p = current_param_map_p;
+        current_param_map_p = new NameNodeMap();
         visit_one_to_many(
             {
                 vpiPort,
@@ -1085,6 +1094,11 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 if (port) { elaboratedInterface->addStmtp(port); }
             });
         }
+        for (auto& param_p : *current_param_map_p) {
+          elaboratedInterface->addNextNull(param_p.second->cloneTree(false));
+        }
+        delete current_param_map_p;
+        current_param_map_p = old_param_map_p;
 
         elaboratedInterface->name(objectName);
         std::string modType = vpi_get_str(vpiDefName, obj_h);
@@ -1294,6 +1308,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
           for (auto& param_p : *current_param_map_p) {
             body->addNextNull(param_p.second);
           }
+          delete current_param_map_p;
           current_param_map_p = old_param_map_p;
         if (objectType == vpiBegin) {
             objectName = "";  // avoid storing parent name
@@ -2627,6 +2642,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         for (auto& param_p : *current_param_map_p) {
           statements->addNextNull(param_p.second);
         }
+        delete current_param_map_p;
         current_param_map_p = old_param_map_p;
         return statements;
     }
