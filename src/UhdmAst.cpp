@@ -2157,7 +2157,14 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             return new AstAttrOf(new FileLine("uhdm"), AstAttrType::DIM_UNPK_DIMENSIONS,
                                  arguments[0]);
         } else if (objectName == "$bits") {
-            return new AstAttrOf(new FileLine("uhdm"), AstAttrType::DIM_BITS, arguments[0]);
+          // If this is not an expression, explicitly mark it as data type ref.
+          // See exprOrDataType in verilog.y
+          AstNode* expr_datatype_p = arguments[0];
+          if (VN_IS(expr_datatype_p, ParseRef)) {
+            expr_datatype_p = new AstRefDType(new FileLine("uhdm"),
+                                              expr_datatype_p->name());
+          }
+          return new AstAttrOf(new FileLine("uhdm"), AstAttrType::DIM_BITS, expr_datatype_p);
         } else if (objectName == "$realtobits") {
             return new AstRealToBits(new FileLine("uhdm"), arguments[0]);
         } else if (objectName == "$bitstoreal") {
