@@ -691,8 +691,9 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         AstModule* module;
 
         // Check if we have encountered this object before
+<<<<<<< HEAD
         auto it = shared.partial_modules.find(modType);
-        auto pit = top_param_map.find(modType);
+        auto param_it = top_param_map.find(modType);
         if (it != shared.partial_modules.end()) {
             // Was created before, fill missing
             module = reinterpret_cast<AstModule*>(it->second);
@@ -754,8 +755,8 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                     if (node != nullptr) module->addStmtp(node);
                 });
             // Update parameter values using TopModules tree
-            if (pit != top_param_map.end()) {
-              auto param_map = pit->second;
+            if (param_it != top_param_map.end()) {
+              auto param_map = param_it->second;
               visit_one_to_many({
                   vpiParameter,
                   vpiParamAssign,
