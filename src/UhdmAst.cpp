@@ -1626,11 +1626,9 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (lhs == nullptr) {
                     lhs = node;
-                } else {
-                    rhs = node;
                 }
-            });
-            return new AstAdd(new FileLine("uhdm"), lhs, rhs);
+              });
+            return lhs;
         }
         case vpiSubOp: {
             visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
