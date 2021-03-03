@@ -57,7 +57,7 @@ void V3Global::readFiles() {
     VInFilter filter(v3Global.opt.pipeFilter());
     V3ParseSym parseSyms(v3Global.rootp());  // Symbol table must be common across all parsing
 
-    if(v3Global.opt.uhdmAst()) {
+    if (v3Global.opt.uhdmAst()) {
         // Use UHDM frontend
         const V3StringList& vFiles = v3Global.opt.vFiles();
         UHDM::Serializer serializer;
@@ -69,7 +69,7 @@ void V3Global::readFiles() {
         for (auto file : vFiles) {
             std::vector<vpiHandle> restoredDesigns = serializer.Restore(file);
 
-            if(v3Global.opt.dumpUhdm()) {
+            if (v3Global.opt.dumpUhdm()) {
                 std::cout << UHDM::visit_designs(restoredDesigns) << std::endl;
             }
             uhdm_lines_dump << UHDM::dump_visited(restoredDesigns);
@@ -89,7 +89,7 @@ void V3Global::readFiles() {
             }
 
             /* Add to design */
-            AstNetlist *designRoot = v3Global.rootp();
+            AstNetlist* designRoot = v3Global.rootp();
             for (auto itr = modules.begin(); itr != modules.end(); ++itr) {
                 designRoot->addModulep(*itr);
             }
@@ -97,36 +97,36 @@ void V3Global::readFiles() {
     } else if (v3Global.opt.uhdmAstSv()) {
         // Use UHDM-SV frontend
         const V3StringList& vFiles = v3Global.opt.vFiles();
-	V3StringList svFiles;
-	V3StringList uhdmFiles;
+        V3StringList svFiles;
+        V3StringList uhdmFiles;
 
         for (auto file : vFiles) {
-	    std::string::size_type ext_idx;
-	    std::string ext;
-	    ext_idx = file.rfind('.');
+            std::string::size_type ext_idx;
+            std::string ext;
+            ext_idx = file.rfind('.');
 
-	    if(ext_idx != std::string::npos) {
-	        ext = file.substr(ext_idx+1);
-	    } else {
-	       return;
-	    }
+            if (ext_idx != std::string::npos) {
+                ext = file.substr(ext_idx + 1);
+            } else {
+                return;
+            }
 
-	    if (ext == "sv" || ext == "vlt") {
-		    svFiles.push_back(file);
-	    } else if (ext == "uhdm") {
-		    uhdmFiles.push_back(file);
-	    } else {
-		    //return;
-	    }
-	}
+            if (ext == "sv" || ext == "vlt") {
+                svFiles.push_back(file);
+            } else if (ext == "uhdm") {
+                uhdmFiles.push_back(file);
+            } else {
+                // return;
+            }
+        }
 
-	for (auto uhdmFile : uhdmFiles) {
+        for (auto uhdmFile : uhdmFiles) {
             UHDM::Serializer serializer;
             std::vector<AstNodeModule*> modules;
             std::vector<vpiHandle> restoredDesigns = serializer.Restore(uhdmFile);
             std::ostringstream uhdm_lines_dump;
 
-	    if(v3Global.opt.dumpUhdm()) {
+            if (v3Global.opt.dumpUhdm()) {
                 std::cout << UHDM::visit_designs(restoredDesigns) << std::endl;
             }
 
@@ -135,24 +135,23 @@ void V3Global::readFiles() {
             std::ostringstream dummy;
             modules = UhdmAst::visit_designs(restoredDesigns, dummy, &parseSyms);
 
-            AstNetlist *designRoot = v3Global.rootp();
+            AstNetlist* designRoot = v3Global.rootp();
             for (auto itr = modules.begin(); itr != modules.end(); ++itr) {
                 designRoot->addModulep(*itr);
             }
-	}
-	V3Parse parser(v3Global.rootp(), &filter, &parseSyms);
+        }
+        V3Parse parser(v3Global.rootp(), &filter, &parseSyms);
 
-	for (auto svFile : svFiles) {
-		    parser.parseFile(new FileLine(FileLine::commandLineFilename()), svFile, false,
+        for (auto svFile : svFiles) {
+            parser.parseFile(new FileLine(FileLine::commandLineFilename()), svFile, false,
                              "Cannot find file containing module: ");
-	}
+        }
 
         const V3StringSet& libraryFiles = v3Global.opt.libraryFiles();
         for (const string& filename : libraryFiles) {
             parser.parseFile(new FileLine(FileLine::commandLineFilename()), filename, true,
                              "Cannot find file containing library module: ");
         }
-
 
     } else {
         // Use standard Verilator frontend
@@ -171,6 +170,7 @@ void V3Global::readFiles() {
         for (const string& filename : libraryFiles) {
             parser.parseFile(new FileLine(FileLine::commandLineFilename()), filename, true,
                             "Cannot find file containing library module: ");
+        }
     }
     // v3Global.rootp()->dumpTreeFile(v3Global.debugFilename("parse.tree"));
     V3Error::abortIfErrors();
