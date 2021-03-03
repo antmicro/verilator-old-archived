@@ -486,6 +486,50 @@ AstNodeDType* getDType(vpiHandle obj_h, UhdmShared& shared) {
     return dtype;
 }
 
+AstNode* process_assignment(vpiHandle obj_h, UhdmShared& shared) {
+    AstNode* lvaluep = nullptr;
+    AstNode* rvaluep = nullptr;
+    const unsigned int objectType = vpi_get(vpiType, obj_h);
+
+    // Right
+    visit_one_to_one({vpiRhs}, obj_h, shared, [&](AstNode* childp) { rvaluep = childp; });
+
+    // Left
+    visit_one_to_one({vpiLhs}, obj_h, shared, [&](AstNode* childp) { lvaluep = childp; });
+
+    if (rvaluep != nullptr && rvaluep->type() == AstType::en::atFOpen) {
+        // Not really an assignpment, AstFOpen node takes care of the lhs
+        return rvaluep;
+    }
+    if (lvaluep && rvaluep) {
+        if (objectType == vpiAssignment) {
+            auto blocking = vpi_get(vpiBlocking, obj_h);
+            if (blocking) {
+                return new AstAssign(new FileLine("uhdm"), lvaluep, rvaluep);
+            } else {
+                return new AstAssignDly(new FileLine("uhdm"), lvaluep, rvaluep);
+            }
+        } else {
+            AstNode* assignp;
+            if (lvaluep->type() == AstType::en::atVar) {
+                // This is not a true assignpment
+                // Set initial value to a variable and return it
+                AstVar* varp = static_cast<AstVar*>(lvaluep);
+                varp->valuep(rvaluep);
+                return varp;
+            } else {
+                if (objectType == vpiContAssign)
+                    assignp = new AstAssignW(new FileLine("uhdm"), lvaluep, rvaluep);
+                else
+                    assignp = new AstAssign(new FileLine("uhdm"), lvaluep, rvaluep);
+                return assignp;
+            }
+        }
+    }
+    v3error("Failed to handle assignment");
+    return nullptr;
+}
+
 AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     // Will keep current node
     AstNode* node = nullptr;
@@ -821,47 +865,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     case vpiAssignment:
     case vpiAssignStmt:
     case vpiContAssign: {
-        AstNode* lvalue = nullptr;
-        AstNode* rvalue = nullptr;
-
-        // Right
-        visit_one_to_one({vpiRhs}, obj_h, shared,
-                         [&](AstNode* child) { rvalue = child; });
-
-        // Left
-        visit_one_to_one({vpiLhs}, obj_h, shared,
-                         [&](AstNode* child) { lvalue = child; });
-
-        if (rvalue != nullptr && rvalue->type() == AstType::en::atFOpen) {
-            // Not really an assignment, AstFOpen node takes care of the lhs
-            return rvalue;
-        }
-        if (lvalue && rvalue) {
-            if (objectType == vpiAssignment) {
-                auto blocking = vpi_get(vpiBlocking, obj_h);
-                if (blocking) {
-                    return new AstAssign(new FileLine("uhdm"), lvalue, rvalue);
-                } else {
-                    return new AstAssignDly(new FileLine("uhdm"), lvalue, rvalue);
-                }
-            } else {
-                AstNode* assign;
-                if (lvalue->type() == AstType::en::atVar) {
-                    // This is not a true assignment
-                    // Set initial value to a variable and return it
-                    AstVar* var = static_cast<AstVar*>(lvalue);
-                    var->valuep(rvalue);
-                    return var;
-                } else {
-                    if (objectType == vpiContAssign)
-                        assign = new AstAssignW(new FileLine("uhdm"), lvalue, rvalue);
-                    else
-                        assign = new AstAssign(new FileLine("uhdm"), lvalue, rvalue);
-                    return assign;
-                }
-            }
-        }
-        break;
+        return process_assignment(obj_h, shared);
     }
     case vpiHierPath: {
         AstNode* lhsNode = nullptr;
