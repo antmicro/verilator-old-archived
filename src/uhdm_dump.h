@@ -27,18 +27,17 @@
 #include <vector>
 #include "sv_vpi_user.h"
 
-
 #ifndef UHDM_DUMP_H
 #define UHDM_DUMP_H
 
 namespace UHDM {
 
 // Visit designs, dump visited lines to given stream.
-void dump_visited (const std::vector<vpiHandle>& designs, std::ostream &out, std::ostream &fout);
+void dump_visited(const std::vector<vpiHandle>& designs, std::ostream& out, std::ostream& fout);
 
 // Visit designs, return string representation.
-std::string dump_visited (const std::vector<vpiHandle>& designs);
+std::string dump_visited(const std::vector<vpiHandle>& designs);
 
-};
+};  // namespace UHDM
 
 #endif
