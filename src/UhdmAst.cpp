@@ -11,24 +11,15 @@
 
 namespace UhdmAst {
 
-std::map<std::string, AstPackage*> package_map;
-std::string package_prefix;
-std::map<std::string, AstNode*> partialModules;
-std::unordered_map<const UHDM::BaseClass*, std::string> visited_types;
-std::set<std::tuple<std::string, int, std::string>> coverage_set;
-V3ParseSym* m_symp;
-
 // Walks through one-to-many relationships from given parent
 // node through the VPI interface, visiting child nodes belonging to
 // ChildrenNodeTypes that are present in the given object.
 void visit_one_to_many(const std::vector<int> childrenNodeTypes, vpiHandle parentHandle,
-                       std::set<const UHDM::BaseClass*> visited,
-                       std::map<std::string, AstNodeModule*>* top_nodes,
-                       const std::function<void(AstNode*)>& f) {
+                       UhdmShared& shared, const std::function<void(AstNode*)>& f) {
     for (auto child : childrenNodeTypes) {
         vpiHandle itr = vpi_iterate(child, parentHandle);
         while (vpiHandle vpi_child_obj = vpi_scan(itr)) {
-            auto* childNode = visit_object(vpi_child_obj, visited, top_nodes);
+            auto* childNode = visit_object(vpi_child_obj, shared);
             f(childNode);
             vpi_free_object(vpi_child_obj);
         }
@@ -40,13 +31,11 @@ void visit_one_to_many(const std::vector<int> childrenNodeTypes, vpiHandle paren
 // node through the VPI interface, visiting child nodes belonging to
 // ChildrenNodeTypes that are present in the given object.
 void visit_one_to_one(const std::vector<int> childrenNodeTypes, vpiHandle parentHandle,
-                      std::set<const UHDM::BaseClass*> visited,
-                      std::map<std::string, AstNodeModule*>* top_nodes,
-                      const std::function<void(AstNode*)>& f) {
+                      UhdmShared& shared, const std::function<void(AstNode*)>& f) {
     for (auto child : childrenNodeTypes) {
         vpiHandle itr = vpi_handle(child, parentHandle);
         if (itr) {
-            auto* childNode = visit_object(itr, visited, top_nodes);
+            auto* childNode = visit_object(itr, shared);
             f(childNode);
         }
         vpi_free_object(itr);
@@ -261,8 +250,7 @@ AstBasicDTypeKwd get_kwd_for_type(int vpi_var_type) {
     return AstBasicDTypeKwd::UNKNOWN;
 }
 
-AstNodeDType* getDType(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
-                       std::map<std::string, AstNodeModule*>* top_nodes) {
+AstNodeDType* getDType(vpiHandle obj_h, UhdmShared& shared) {
     AstNodeDType* dtype = nullptr;
     auto type = vpi_get(vpiType, obj_h);
     if (type == vpiPort) {
@@ -342,7 +330,7 @@ AstNodeDType* getDType(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited
         auto basic = new AstBasicDType(new FileLine("uhdm"), keyword);
         AstRange* rangeNode = nullptr;
         std::stack<AstRange*> range_stack;
-        visit_one_to_many({vpiRange}, obj_h, visited, top_nodes, [&](AstNode* node) {
+        visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* node) {
             rangeNode = reinterpret_cast<AstRange*>(node);
             range_stack.push(rangeNode);
         });
@@ -377,8 +365,8 @@ AstNodeDType* getDType(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited
         std::string type_name = "";
         if (auto s = vpi_get_str(vpiName, obj_h)) { type_name = s; }
         sanitize_str(type_name);
-        if (visited_types.find(object) != visited_types.end()) {
-            type_string = visited_types[object];
+        if (shared.visited_types.find(object) != shared.visited_types.end()) {
+            type_string = shared.visited_types[object];
             size_t delimiter_pos = type_string.find("::");
             if (delimiter_pos == string::npos) {
                 UINFO(7, "No package prefix found, creating ref" << std::endl);
@@ -389,17 +377,18 @@ AstNodeDType* getDType(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited
                 UINFO(7, "Found package prefix: " << classpackageName << std::endl);
                 // If we are in the same package - do not create reference,
                 // as it will confuse Verilator
-                if (classpackageName == package_prefix.substr(0, package_prefix.length() - 2)) {
+                if (classpackageName
+                    == shared.package_prefix.substr(0, shared.package_prefix.length() - 2)) {
                     UINFO(7, "In the same package, creating simple ref" << std::endl);
                     dtype = new AstRefDType(new FileLine("uhdm"), type_name);
                 } else {
                     UINFO(7, "Creating ClassOrPackageRef" << std::endl);
                     AstPackage* classpackagep = nullptr;
-                    auto it = package_map.find(classpackageName);
-                    if (it != package_map.end()) { classpackagep = it->second; }
+                    auto it = shared.package_map.find(classpackageName);
+                    if (it != shared.package_map.end()) { classpackagep = it->second; }
                     AstNode* classpackageref = new AstClassOrPackageRef(
                         new FileLine("uhdm"), classpackageName, classpackagep, nullptr);
-                    m_symp->nextId(classpackagep);
+                    shared.m_symp->nextId(classpackagep);
                     dtype = new AstRefDType(new FileLine("uhdm"), type_name, classpackageref,
                                             nullptr);
                 }
@@ -414,7 +403,7 @@ AstNodeDType* getDType(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited
             // Typedefed types were visited earlier, probably anonymous struct
             // Get the typespec here
             UINFO(7, "Encountered anonymous struct");
-            AstNode* typespec_p = visit_object(obj_h, visited, top_nodes);
+            AstNode* typespec_p = visit_object(obj_h, shared);
             dtype = typespec_p->getChildDTypep()->cloneTree(false);
         }
         break;
@@ -430,13 +419,13 @@ AstNodeDType* getDType(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited
         }
         auto typespec_h = vpi_handle(vpiTypespec, element_h);
         if (typespec_h) {
-            dtype = getDType(element_h, visited, top_nodes);
+            dtype = getDType(element_h, shared);
         } else {
             v3error("Missing typespec for unpacked/packed_array_var");
         }
         AstRange* rangep = nullptr;
 
-        visit_one_to_many({vpiRange}, obj_h, visited, top_nodes,
+        visit_one_to_many({vpiRange}, obj_h, shared,
                           [&](AstNode* node) { rangep = reinterpret_cast<AstRange*>(node); });
 
         dtype = new AstPackArrayDType(new FileLine("uhdm"), VFlagChildDType(), dtype, rangep);
@@ -453,13 +442,13 @@ AstNodeDType* getDType(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited
         while (vpiHandle member_h = vpi_scan(itr)) {
             std::string type_name;
             auto type_h = vpi_handle(vpiTypespec, member_h);
-            if (type_h) { element_dtype = getDType(type_h, visited, top_nodes); }
+            if (type_h) { element_dtype = getDType(type_h, shared); }
             vpi_free_object(member_h);
         }
         vpi_free_object(itr);
 
         AstRange* range = nullptr;
-        visit_one_to_many({vpiRange}, obj_h, visited, top_nodes, [&](AstNode* item) {
+        visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* item) {
             if (item != nullptr) { range = reinterpret_cast<AstRange*>(item); }
         });
         dtype = new AstUnpackArrayDType(new FileLine("uhdm"), VFlagChildDType(), element_dtype,
@@ -472,12 +461,12 @@ AstNodeDType* getDType(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited
 
         vpiHandle itr = vpi_iterate(vpiNet, obj_h);
         while (vpiHandle vpi_child_obj = vpi_scan(itr)) {
-            subDTypep = getDType(vpi_child_obj, visited, top_nodes);
+            subDTypep = getDType(vpi_child_obj, shared);
             vpi_free_object(vpi_child_obj);
         }
         vpi_free_object(itr);
 
-        visit_one_to_many({vpiRange}, obj_h, visited, top_nodes, [&](AstNode* node) {
+        visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* node) {
             if ((node != nullptr) && (unpacked_range == nullptr)) {
                 unpacked_range = reinterpret_cast<AstRange*>(node);
             }
@@ -497,8 +486,7 @@ AstNodeDType* getDType(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited
     return dtype;
 }
 
-AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
-                      std::map<std::string, AstNodeModule*>* top_nodes) {
+AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     // Will keep current node
     AstNode* node = nullptr;
 
@@ -530,23 +518,15 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
                         << UHDM::VpiTypeName(obj_h) << ")"
                         << " @ " << currentLine << " : " << (file_name != 0 ? file_name : "?")
                         << std::endl);
-    if (file_name) { coverage_set.insert({file_name, currentLine, UHDM::VpiTypeName(obj_h)}); }
-
-    bool alreadyVisited = false;
-    const uhdm_handle* const handle = (const uhdm_handle*)obj_h;
-    const UHDM::BaseClass* const object = (const UHDM::BaseClass*)handle->object;
-    if (visited.find(object) != visited.end()) { alreadyVisited = true; }
-    visited.insert(object);
-    if (alreadyVisited) {
-        UINFO(6, "Object " << objectName << " was already visited" << std::endl);
-        return node;
+    if (file_name) {
+        shared.coverage_set.insert({file_name, currentLine, UHDM::VpiTypeName(obj_h)});
     }
 
     switch (objectType) {
     case vpiDesign: {
 
-        visit_one_to_many({UHDM::uhdmallInterfaces, UHDM::uhdmtopModules}, obj_h, visited,
-                          top_nodes, [&](AstNode* module) {
+        visit_one_to_many({UHDM::uhdmallInterfaces, UHDM::uhdmtopModules}, obj_h, shared,
+                          [&](AstNode* module) {
                               if (module != nullptr) { node = module; }
                           });
         return node;
@@ -554,8 +534,8 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
     case vpiPackage: {
         auto* package = new AstPackage(new FileLine(objectName), objectName);
         package->inLibrary(true);
-        package_prefix += objectName + "::";
-        m_symp->pushNew(package);
+        shared.package_prefix += objectName + "::";
+        shared.m_symp->pushNew(package);
         visit_one_to_many(
             {
                 vpiTypedef,
@@ -567,14 +547,14 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
                 vpiSpecParam,
                 vpiAssertion,
             },
-            obj_h, visited, top_nodes, [&](AstNode* item) {
+            obj_h, shared, [&](AstNode* item) {
                 if (item != nullptr) { package->addStmtp(item); }
             });
-        m_symp->popScope(package);
-        package_prefix
-            = package_prefix.substr(0, package_prefix.length() - (objectName.length() + 2));
+        shared.m_symp->popScope(package);
+        shared.package_prefix = shared.package_prefix.substr(0, shared.package_prefix.length()
+                                                                    - (objectName.length() + 2));
 
-        package_map[objectName] = package;
+        shared.package_map[objectName] = package;
         return package;
     }
     case vpiPort: {
@@ -595,7 +575,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
                 }
                 if (netName == objectName) {
                     UINFO(7, "Found matching net for " << objectName << std::endl);
-                    dtype = getDType(vpi_child_obj, visited, top_nodes);
+                    dtype = getDType(vpi_child_obj, shared);
                     break;
                 }
                 vpi_free_object(vpi_child_obj);
@@ -605,7 +585,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
         if (dtype == nullptr) {
             // If no matching net was found, get info from port node connections
             // This is the case for interface ports
-            dtype = getDType(obj_h, visited, top_nodes);
+            dtype = getDType(obj_h, shared);
         }
         if (VN_IS(dtype, IfaceRefDType)) {
             var = new AstVar(new FileLine("uhdm"), AstVarType::IFACEREF, objectName,
@@ -643,8 +623,8 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
     }
     case UHDM::uhdmimport: {
         AstPackage* packagep = nullptr;
-        auto it = package_map.find(objectName);
-        if (it != package_map.end()) { packagep = it->second; }
+        auto it = shared.package_map.find(objectName);
+        if (it != shared.package_map.end()) { packagep = it->second; }
         if (packagep != nullptr) {
             std::string symbol_name;
             vpiHandle imported_name = vpi_handle(vpiImport, obj_h);
@@ -655,7 +635,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             }
             auto* package_import
                 = new AstPackageImport(new FileLine("uhdm"), packagep, symbol_name);
-            m_symp->importItem(packagep, symbol_name);
+            shared.m_symp->importItem(packagep, symbol_name);
             return package_import;
         }
     }
@@ -668,8 +648,8 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
         AstModule* module;
 
         // Check if we have encountered this object before
-        auto it = partialModules.find(modType);
-        if (it != partialModules.end()) {
+        auto it = shared.partial_modules.find(modType);
+        if (it != shared.partial_modules.end()) {
             // Was created before, fill missing
             module = reinterpret_cast<AstModule*>(it->second);
             AstModule* full_module = nullptr;
@@ -681,7 +661,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
                 name = modType + "_" + objectName + std::to_string(module_counter++);
             }
             module->name(name);
-            m_symp->pushNew(module);
+            shared.m_symp->pushNew(module);
             visit_one_to_many(
                 {
                     vpiPort,
@@ -726,11 +706,11 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
                     vpiImport,
                     vpiAttribute,
                 },
-                obj_h, visited, top_nodes, [&](AstNode* node) {
+                obj_h, shared, [&](AstNode* node) {
                     if (node != nullptr) module->addStmtp(node);
                 });
-            (*top_nodes)[name] = module;
-            m_symp->popScope(module);
+            (shared.top_nodes)[name] = module;
+            shared.m_symp->popScope(module);
         } else {
             // Encountered for the first time
             module = new AstModule(new FileLine(modType), modType);
@@ -744,7 +724,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
                     vpiProcess,
                     vpiTaskFunc,
                 },
-                obj_h, visited, top_nodes, [&](AstNode* node) {
+                obj_h, shared, [&](AstNode* node) {
                     if (node != nullptr) module->addStmtp(node);
                 });
             visit_one_to_many(
@@ -754,11 +734,11 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
                     vpiParameter,
                     vpiParamAssign,
                 },
-                obj_h, visited, top_nodes, [&](AstNode* node) {
+                obj_h, shared, [&](AstNode* node) {
                     // ignore, currently would create duplicate nodes
                     // TODO: Revisit this handling
                 });
-            (partialModules)[module->name()] = module;
+            (shared.partial_modules)[module->name()] = module;
         }
 
         if (objectName != modType) {
@@ -774,7 +754,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
                 std::string portName = vpi_get_str(vpiName, vpi_child_obj);
                 sanitize_str(portName);
                 AstNode* ref = nullptr;
-                if (highConn) { ref = visit_object(highConn, visited, top_nodes); }
+                if (highConn) { ref = visit_object(highConn, shared); }
                 AstPin* pin = new AstPin(new FileLine("uhdm"), ++np, portName, ref);
                 if (!modPins)
                     modPins = pin;
@@ -796,7 +776,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
                 auto is_local = vpi_get(vpiLocalParam, param_handle);
                 AstNode* value = nullptr;
                 // Try to construct complex expression
-                visit_one_to_one({vpiRhs}, vpi_child_obj, visited, top_nodes, [&](AstNode* node) {
+                visit_one_to_one({vpiRhs}, vpi_child_obj, shared, [&](AstNode* node) {
                     if (node != nullptr)
                         value = node;
                     else
@@ -845,11 +825,11 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
         AstNode* rvalue = nullptr;
 
         // Right
-        visit_one_to_one({vpiRhs}, obj_h, visited, top_nodes,
+        visit_one_to_one({vpiRhs}, obj_h, shared,
                          [&](AstNode* child) { rvalue = child; });
 
         // Left
-        visit_one_to_one({vpiLhs}, obj_h, visited, top_nodes,
+        visit_one_to_one({vpiLhs}, obj_h, shared,
                          [&](AstNode* child) { lvalue = child; });
 
         if (rvalue != nullptr && rvalue->type() == AstType::en::atFOpen) {
@@ -887,7 +867,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
         AstNode* lhsNode = nullptr;
         AstNode* rhsNode = nullptr;
 
-        visit_one_to_many({vpiActual}, obj_h, visited, top_nodes, [&](AstNode* child) {
+        visit_one_to_many({vpiActual}, obj_h, shared, [&](AstNode* child) {
             if (lhsNode == nullptr) {
                 lhsNode = child;
             } else if (rhsNode == nullptr) {
@@ -937,13 +917,13 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
     case vpiNetArray: {  // also defined as vpiArrayNet
         // vpiNetArray is used for unpacked arrays
         AstVar* vpi_net = nullptr;
-        visit_one_to_many({vpiNet}, obj_h, visited, top_nodes, [&](AstNode* node) {
+        visit_one_to_many({vpiNet}, obj_h, shared, [&](AstNode* node) {
             if ((node != nullptr) && (vpi_net == nullptr)) {
                 vpi_net = reinterpret_cast<AstVar*>(node);
             }
         });
 
-        auto dtypep = getDType(obj_h, visited, top_nodes);
+        auto dtypep = getDType(obj_h, shared);
         AstVar* v = new AstVar(new FileLine("uhdm"), vpi_net->varType(), objectName,
                                VFlagChildDType(), dtypep);
         return v;
@@ -959,7 +939,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
         AstVarType net_type = AstVarType::VAR;
         AstBasicDTypeKwd dtypeKwd = AstBasicDTypeKwd::LOGIC_IMPLICIT;
         vpiHandle obj_net;
-        dtype = getDType(obj_h, visited, top_nodes);
+        dtype = getDType(obj_h, shared);
 
         if (net_type == AstVarType::UNKNOWN && dtype == nullptr) {
             // Not set in case above, most likely a "false" port net
@@ -969,7 +949,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
         return new AstVar(new FileLine("uhdm"), net_type, objectName, VFlagChildDType(), dtype);
     }
     case vpiStructVar: {
-        AstNodeDType* dtype = getDType(obj_h, visited, top_nodes);
+        AstNodeDType* dtype = getDType(obj_h, shared);
 
         auto* v = new AstVar(new FileLine("uhdm"), AstVarType::VAR, objectName, VFlagChildDType(),
                              dtype);
@@ -998,13 +978,13 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
         }
 
         AstRange* rangeNode = nullptr;
-        visit_one_to_many({vpiRange}, parameter_h, visited, top_nodes, [&](AstNode* node) {
+        visit_one_to_many({vpiRange}, parameter_h, shared, [&](AstNode* node) {
             if (node) rangeNode = reinterpret_cast<AstRange*>(node);
         });
 
         AstNodeDType* dtype = nullptr;
         auto typespec_h = vpi_handle(vpiTypespec, parameter_h);
-        if (typespec_h) { dtype = getDType(typespec_h, visited, top_nodes); }
+        if (typespec_h) { dtype = getDType(typespec_h, shared); }
 
         // If no typespec provided assume default
         if (dtype == nullptr) {
@@ -1021,7 +1001,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
 
         // Get value
         if (objectType == vpiParamAssign) {
-            visit_one_to_one({vpiRhs}, obj_h, visited, top_nodes,
+            visit_one_to_one({vpiRhs}, obj_h, shared,
                              [&](AstNode* node) { parameter_value = node; });
             is_local = vpi_get(vpiLocalParam, vpi_handle(vpiLhs, obj_h));
         } else if (objectType == vpiParameter) {
@@ -1069,10 +1049,10 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
                 vpiAssertion,
                 vpiNet,
             },
-            obj_h, visited, top_nodes, [&](AstNode* port) {
+            obj_h, shared, [&](AstNode* port) {
                 if (port) { elaboratedInterface->addStmtp(port); }
             });
-        visit_one_to_many({vpiModport}, obj_h, visited, top_nodes, [&](AstNode* port) {
+        visit_one_to_many({vpiModport}, obj_h, shared, [&](AstNode* port) {
             if (port) {
                 hasModports = true;
                 elaboratedInterface->addStmtp(port);
@@ -1080,7 +1060,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
         });
         if (hasModports) {
             // Only then create the nets, as they won't be connected otherwise
-            visit_one_to_many({vpiNet}, obj_h, visited, top_nodes, [&](AstNode* port) {
+            visit_one_to_many({vpiNet}, obj_h, shared, [&](AstNode* port) {
                 if (port) { elaboratedInterface->addStmtp(port); }
             });
         }
@@ -1097,8 +1077,8 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
                 if (highConn) {
                     std::string portName = vpi_get_str(vpiName, vpi_child_obj);
                     sanitize_str(portName);
-                    AstParseRef* ref = reinterpret_cast<AstParseRef*>(
-                        visit_object(highConn, visited, top_nodes));
+                    AstParseRef* ref
+                        = reinterpret_cast<AstParseRef*>(visit_object(highConn, shared));
                     AstPin* pin = new AstPin(new FileLine("uhdm"), ++np, portName, ref);
                     if (!modPins)
                         modPins = pin;
@@ -1156,7 +1136,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
         // For function arguments, the actual type
         // is inside vpiExpr
         AstNode* expr = nullptr;
-        visit_one_to_one({vpiExpr}, obj_h, visited, top_nodes, [&](AstNode* item) {
+        visit_one_to_one({vpiExpr}, obj_h, shared, [&](AstNode* item) {
             if (item) { expr = item; }
         });
         if (expr != nullptr) {
@@ -1177,7 +1157,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
         }
 
         AstRange* var_range = nullptr;
-        visit_one_to_many({vpiRange}, obj_h, visited, top_nodes, [&](AstNode* item) {
+        visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* item) {
             if (item) { var_range = reinterpret_cast<AstRange*>(item); }
         });
         auto* dtype = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::LOGIC);
@@ -1221,13 +1201,11 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             // Handled in vpiEventControl
             AstNode* always;
 
-            visit_one_to_one({vpiStmt}, obj_h, visited, top_nodes,
-                             [&](AstNode* node) { always = node; });
+            visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* node) { always = node; });
             return always;
         } else {
             // Body of statements
-            visit_one_to_one({vpiStmt}, obj_h, visited, top_nodes,
-                             [&](AstNode* node) { body = node; });
+            visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* node) { body = node; });
         }
 
         return new AstAlways(new FileLine("uhdm"), alwaysType, senTree, body);
@@ -1236,7 +1214,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
         AstSenItem* senItemRoot;
         AstNode* body = nullptr;
         AstSenTree* senTree = nullptr;
-        visit_one_to_one({vpiCondition}, obj_h, visited, top_nodes, [&](AstNode* node) {
+        visit_one_to_one({vpiCondition}, obj_h, shared, [&](AstNode* node) {
             if (node->type() == AstType::en::atSenItem) {
                 senItemRoot = reinterpret_cast<AstSenItem*>(node);
             } else {  // wrap this in a AstSenItem
@@ -1245,21 +1223,18 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
         });
         senTree = new AstSenTree(new FileLine("uhdm"), senItemRoot);
         // Body of statements
-        visit_one_to_one({vpiStmt}, obj_h, visited, top_nodes,
-                         [&](AstNode* node) { body = node; });
+        visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* node) { body = node; });
         auto* tctrl = new AstTimingControl(new FileLine("uhdm"), senTree, body);
         return new AstAlways(new FileLine("uhdm"), VAlwaysKwd::ALWAYS_FF, nullptr, tctrl);
     }
     case vpiInitial: {
         AstNode* body = nullptr;
-        visit_one_to_one({vpiStmt}, obj_h, visited, top_nodes,
-                         [&](AstNode* node) { body = node; });
+        visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* node) { body = node; });
         return new AstInitial(new FileLine("uhdm"), body);
     }
     case vpiFinal: {
         AstNode* body = nullptr;
-        visit_one_to_one({vpiStmt}, obj_h, visited, top_nodes,
-                         [&](AstNode* node) { body = node; });
+        visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* node) { body = node; });
         return new AstFinal(new FileLine("uhdm"), body);
     }
     case vpiNamedBegin:
@@ -1286,7 +1261,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
                 vpiAttribute,
                 vpiNet,
             },
-            obj_h, visited, top_nodes, [&](AstNode* node) {
+            obj_h, shared, [&](AstNode* node) {
                 if (body == nullptr) {
                     body = node;
                 } else {
@@ -1304,12 +1279,10 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
         AstNode* statement = nullptr;
         AstNode* elseStatement = nullptr;
 
-        visit_one_to_one({vpiCondition}, obj_h, visited, top_nodes,
-                         [&](AstNode* node) { condition = node; });
-        visit_one_to_one({vpiStmt}, obj_h, visited, top_nodes,
-                         [&](AstNode* node) { statement = node; });
+        visit_one_to_one({vpiCondition}, obj_h, shared, [&](AstNode* node) { condition = node; });
+        visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* node) { statement = node; });
         if (objectType == vpiIfElse) {
-            visit_one_to_one({vpiElseStmt}, obj_h, visited, top_nodes,
+            visit_one_to_one({vpiElseStmt}, obj_h, shared,
                              [&](AstNode* node) { elseStatement = node; });
         }
         return new AstIf(new FileLine("uhdm"), condition, statement, elseStatement);
@@ -1335,10 +1308,10 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
         }
         }
         AstNode* conditionNode = nullptr;
-        visit_one_to_one({vpiCondition}, obj_h, visited, top_nodes,
+        visit_one_to_one({vpiCondition}, obj_h, shared,
                          [&](AstNode* node) { conditionNode = node; });
         AstNode* itemNodes = nullptr;
-        visit_one_to_many({vpiCaseItem}, obj_h, visited, top_nodes, [&](AstNode* item) {
+        visit_one_to_many({vpiCaseItem}, obj_h, shared, [&](AstNode* item) {
             if (item) {
                 if (itemNodes == nullptr) {
                     itemNodes = item;
@@ -1351,7 +1324,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
     }
     case vpiCaseItem: {
         AstNode* expressionNode = nullptr;
-        visit_one_to_many({vpiExpr}, obj_h, visited, top_nodes, [&](AstNode* item) {
+        visit_one_to_many({vpiExpr}, obj_h, shared, [&](AstNode* item) {
             if (item) {
                 if (expressionNode == nullptr) {
                     expressionNode = item;
@@ -1361,8 +1334,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             }
         });
         AstNode* bodyNode = nullptr;
-        visit_one_to_one({vpiStmt}, obj_h, visited, top_nodes,
-                         [&](AstNode* node) { bodyNode = node; });
+        visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* node) { bodyNode = node; });
         return new AstCaseItem(new FileLine("uhdm"), expressionNode, bodyNode);
     }
     case vpiOperation: {
@@ -1371,17 +1343,15 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
         auto operation = vpi_get(vpiOpType, obj_h);
         switch (operation) {
         case vpiBitNegOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
-                              [&](AstNode* node) { rhs = node; });
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) { rhs = node; });
             return new AstNot(new FileLine("uhdm"), rhs);
         }
         case vpiNotOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
-                              [&](AstNode* node) { lhs = node; });
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) { lhs = node; });
             return new AstLogNot(new FileLine("uhdm"), lhs);
         }
         case vpiBitAndOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (lhs == nullptr) {
                     lhs = node;
                 } else {
@@ -1391,7 +1361,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             return new AstAnd(new FileLine("uhdm"), lhs, rhs);
         }
         case vpiListOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (rhs == nullptr) {
                     rhs = node;
                 } else {
@@ -1401,7 +1371,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             return rhs;
         }
         case vpiBitOrOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (lhs == nullptr) {
                     lhs = node;
                 } else {
@@ -1411,7 +1381,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             return new AstOr(new FileLine("uhdm"), lhs, rhs);
         }
         case vpiBitXorOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (rhs == nullptr) {
                     rhs = node;
                 } else {
@@ -1421,7 +1391,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             return new AstXor(new FileLine("uhdm"), lhs, rhs);
         }
         case vpiBitXnorOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (rhs == nullptr) {
                     rhs = node;
                 } else {
@@ -1432,7 +1402,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
         }
         case vpiPostIncOp:
         case vpiPostDecOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (rhs == nullptr) { rhs = node; }
             });
             auto* one = new AstConst(new FileLine("uhdm"), 1);
@@ -1447,7 +1417,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             return new AstAssign(new FileLine("uhdm"), var, op);
         }
         case vpiAssignmentOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (lhs == nullptr) {
                     lhs = node;
                 } else {
@@ -1457,39 +1427,39 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             return new AstAssign(new FileLine("uhdm"), lhs, rhs);
         }
         case vpiUnaryAndOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (rhs == nullptr) { rhs = node; }
             });
             return new AstRedAnd(new FileLine("uhdm"), rhs);
         }
         case vpiUnaryNandOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (rhs == nullptr) { rhs = node; }
             });
             auto* op = new AstRedAnd(new FileLine("uhdm"), rhs);
             return new AstNot(new FileLine("uhdm"), op);
         }
         case vpiUnaryNorOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (rhs == nullptr) { rhs = node; }
             });
             auto* op = new AstRedOr(new FileLine("uhdm"), rhs);
             return new AstNot(new FileLine("uhdm"), op);
         }
         case vpiUnaryOrOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (rhs == nullptr) { rhs = node; }
             });
             return new AstRedOr(new FileLine("uhdm"), rhs);
         }
         case vpiUnaryXorOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (rhs == nullptr) { rhs = node; }
             });
             return new AstRedXor(new FileLine("uhdm"), rhs);
         }
         case vpiUnaryXNorOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (rhs == nullptr) { rhs = node; }
             });
             return new AstRedXnor(new FileLine("uhdm"), rhs);
@@ -1497,7 +1467,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
         case vpiEventOrOp: {
             // Do not create a separate node
             // Chain operand nodes instead
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (node) {
                     if (node->type() == AstType::en::atSenItem) {
                         // This is a Posedge/Negedge operation, keep this node
@@ -1521,7 +1491,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             return rhs;
         }
         case vpiLogAndOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (lhs == nullptr) {
                     lhs = node;
                 } else {
@@ -1531,7 +1501,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             return new AstLogAnd(new FileLine("uhdm"), lhs, rhs);
         }
         case vpiLogOrOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (lhs == nullptr) {
                     lhs = node;
                 } else {
@@ -1541,17 +1511,15 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             return new AstLogOr(new FileLine("uhdm"), lhs, rhs);
         }
         case vpiPosedgeOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
-                              [&](AstNode* node) { rhs = node; });
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) { rhs = node; });
             return new AstSenItem(new FileLine("uhdm"), VEdgeType::ET_POSEDGE, rhs);
         }
         case vpiNegedgeOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes,
-                              [&](AstNode* node) { rhs = node; });
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) { rhs = node; });
             return new AstSenItem(new FileLine("uhdm"), VEdgeType::ET_NEGEDGE, rhs);
         }
         case vpiEqOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (lhs == nullptr) {
                     lhs = node;
                 } else {
@@ -1561,7 +1529,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             return new AstEq(new FileLine("uhdm"), lhs, rhs);
         }
         case vpiCaseEqOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (lhs == nullptr) {
                     lhs = node;
                 } else {
@@ -1571,7 +1539,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             return new AstEqCase(new FileLine("uhdm"), lhs, rhs);
         }
         case vpiNeqOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (lhs == nullptr) {
                     lhs = node;
                 } else {
@@ -1581,7 +1549,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             return new AstNeq(new FileLine("uhdm"), lhs, rhs);
         }
         case vpiCaseNeqOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (lhs == nullptr) {
                     lhs = node;
                 } else {
@@ -1591,7 +1559,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             return new AstNeqCase(new FileLine("uhdm"), lhs, rhs);
         }
         case vpiGtOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (lhs == nullptr) {
                     lhs = node;
                 } else {
@@ -1601,7 +1569,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             return new AstGt(new FileLine("uhdm"), lhs, rhs);
         }
         case vpiGeOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (lhs == nullptr) {
                     lhs = node;
                 } else {
@@ -1611,7 +1579,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             return new AstGte(new FileLine("uhdm"), lhs, rhs);
         }
         case vpiLtOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (lhs == nullptr) {
                     lhs = node;
                 } else {
@@ -1621,7 +1589,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             return new AstLt(new FileLine("uhdm"), lhs, rhs);
         }
         case vpiLeOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (lhs == nullptr) {
                     lhs = node;
                 } else {
@@ -1631,7 +1599,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             return new AstLte(new FileLine("uhdm"), lhs, rhs);
         }
         case vpiPlusOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (lhs == nullptr) {
                     lhs = node;
                 } else {
@@ -1641,7 +1609,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             return new AstAdd(new FileLine("uhdm"), lhs, rhs);
         }
         case vpiSubOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (lhs == nullptr) {
                     lhs = node;
                 } else {
@@ -1651,13 +1619,13 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             return new AstSub(new FileLine("uhdm"), lhs, rhs);
         }
         case vpiMinusOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (lhs == nullptr) { lhs = node; }
             });
             return new AstNegate(new FileLine("uhdm"), lhs);
         }
         case vpiAddOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (lhs == nullptr) {
                     lhs = node;
                 } else {
@@ -1667,7 +1635,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             return new AstAdd(new FileLine("uhdm"), lhs, rhs);
         }
         case vpiMultOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (lhs == nullptr) {
                     lhs = node;
                 } else {
@@ -1677,7 +1645,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             return new AstMul(new FileLine("uhdm"), lhs, rhs);
         }
         case vpiDivOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (lhs == nullptr) {
                     lhs = node;
                 } else {
@@ -1687,7 +1655,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             return new AstDiv(new FileLine("uhdm"), lhs, rhs);
         }
         case vpiModOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (lhs == nullptr) {
                     lhs = node;
                 } else {
@@ -1698,7 +1666,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
         }
         case vpiConditionOp: {
             AstNode* condition = nullptr;
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (condition == nullptr) {
                     condition = node;
                 } else if (lhs == nullptr) {
@@ -1710,7 +1678,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             return new AstCond(new FileLine("uhdm"), condition, lhs, rhs);
         }
         case vpiConcatOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (node != nullptr) {
                     if (lhs == nullptr) {
                         lhs = node;
@@ -1733,7 +1701,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             return new AstReplicate(new FileLine("uhdm"), lhs, rhs);
         }
         case vpiMultiConcatOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (lhs == nullptr) {
                     lhs = node;
                 } else if (rhs == nullptr) {
@@ -1745,7 +1713,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
         }
         case vpiArithLShiftOp:  // This behaves the same as normal shift
         case vpiLShiftOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (lhs == nullptr) {
                     lhs = node;
                 } else {
@@ -1755,7 +1723,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             return new AstShiftL(new FileLine("uhdm"), lhs, rhs);
         }
         case vpiRShiftOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (lhs == nullptr) {
                     lhs = node;
                 } else {
@@ -1765,7 +1733,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             return new AstShiftR(new FileLine("uhdm"), lhs, rhs);
         }
         case vpiArithRShiftOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (lhs == nullptr) {
                     lhs = node;
                 } else {
@@ -1775,7 +1743,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             return new AstShiftRS(new FileLine("uhdm"), lhs, rhs);
         }
         case vpiInsideOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (node != nullptr) {
                     if (lhs == nullptr) {
                         lhs = node;
@@ -1789,7 +1757,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             return new AstInside(new FileLine("uhdm"), lhs, rhs);
         }
         case vpiCastOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (lhs == nullptr) { lhs = node; }
             });
             auto typespec_h = vpi_handle(vpiTypespec, obj_h);
@@ -1809,14 +1777,14 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
                 return new AstCast(new FileLine("uhdm"), lhs,
                                    new AstRefDType(new FileLine("uhdm"), name));
             } else {
-                visit_one_to_one({vpiTypespec}, obj_h, visited, top_nodes, [&](AstNode* node) {
+                visit_one_to_one({vpiTypespec}, obj_h, shared, [&](AstNode* node) {
                     if (rhs == nullptr) { rhs = node; }
                 });
             }
             return new AstCastParse(new FileLine("uhdm"), lhs, rhs);
         }
         case vpiStreamRLOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (lhs == nullptr) {
                     lhs = node;
                 } else if (rhs == nullptr) {
@@ -1834,7 +1802,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             }
         }
         case vpiStreamLROp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (lhs == nullptr) {
                     lhs = node;
                 } else if (rhs == nullptr) {
@@ -1850,7 +1818,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             }
         }
         case vpiPowerOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 if (lhs == nullptr) {
                     lhs = node;
                 } else {
@@ -1860,7 +1828,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             return new AstPow(new FileLine("uhdm"), lhs, rhs);
         }
         case vpiAssignmentPatternOp: {
-            visit_one_to_many({vpiOperand}, obj_h, visited, top_nodes, [&](AstNode* node) {
+            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
                 // Wrap only if this is a positional pattern
                 // Tagged patterns will return member nodes
                 if (node && !VN_IS(node, PatMember)) {
@@ -1890,8 +1858,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
         sanitize_str(pattern_name);
         typespec = new AstText(new FileLine("uhdm"), pattern_name);
 
-        visit_one_to_one({vpiPattern}, obj_h, visited, top_nodes,
-                         [&](AstNode* node) { pattern = node; });
+        visit_one_to_one({vpiPattern}, obj_h, shared, [&](AstNode* node) { pattern = node; });
         if (pattern_name == "default") {
             auto* patm = new AstPatMember(new FileLine("uhdm"), pattern, nullptr, nullptr);
             patm->isDefault(true);
@@ -1908,7 +1875,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
         auto* fromp = new AstParseRef(new FileLine("uhdm"), VParseRefExp::en::PX_TEXT, objectName,
                                       nullptr, nullptr);
         AstNode* bitp = nullptr;
-        visit_one_to_one({vpiIndex}, obj_h, visited, top_nodes, [&](AstNode* item) {
+        visit_one_to_one({vpiIndex}, obj_h, shared, [&](AstNode* item) {
             if (item) { bitp = item; }
         });
         return new AstSelBit(new FileLine("uhdm"), fromp, bitp);
@@ -1918,7 +1885,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
                                          objectName, nullptr, nullptr);
         AstNode* bitp = nullptr;
         AstNode* select = nullptr;
-        visit_one_to_many({vpiIndex}, obj_h, visited, top_nodes, [&](AstNode* item) {
+        visit_one_to_many({vpiIndex}, obj_h, shared, [&](AstNode* item) {
             bitp = item;
             if (item->type() == AstType::en::atSelExtract) {
                 select = new AstSelExtract(new FileLine("uhdm"), fromp,
@@ -1944,7 +1911,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
     }
     case vpiTask: {
         AstNode* statements = nullptr;
-        visit_one_to_many({vpiIODecl}, obj_h, visited, top_nodes, [&](AstNode* item) {
+        visit_one_to_many({vpiIODecl}, obj_h, shared, [&](AstNode* item) {
             if (item) {
                 // Overwrite direction for arguments
                 auto* io = reinterpret_cast<AstVar*>(item);
@@ -1955,7 +1922,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
                     statements = item;
             }
         });
-        visit_one_to_one({vpiStmt}, obj_h, visited, top_nodes, [&](AstNode* item) {
+        visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* item) {
             if (item) {
                 if (statements)
                     statements->addNextNull(item);
@@ -1975,11 +1942,11 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
         AstRange* returnRange = nullptr;
         auto return_h = vpi_handle(vpiReturn, obj_h);
         if (return_h) {
-            AstNode* dtype = getDType(return_h, visited, top_nodes);
+            AstNode* dtype = getDType(return_h, shared);
             function_vars = dtype;
         }
 
-        visit_one_to_many({vpiIODecl}, obj_h, visited, top_nodes, [&](AstNode* item) {
+        visit_one_to_many({vpiIODecl}, obj_h, shared, [&](AstNode* item) {
             if (item) {
                 // Overwrite direction for arguments
                 auto* io = reinterpret_cast<AstVar*>(item);
@@ -1990,7 +1957,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
                     statements = item;
             }
         });
-        visit_one_to_many({vpiVariables}, obj_h, visited, top_nodes, [&](AstNode* item) {
+        visit_one_to_many({vpiVariables}, obj_h, shared, [&](AstNode* item) {
             if (item) {
                 if (statements)
                     statements->addNextNull(item);
@@ -1998,7 +1965,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
                     statements = item;
             }
         });
-        visit_one_to_one({vpiStmt}, obj_h, visited, top_nodes, [&](AstNode* item) {
+        visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* item) {
             if (item) {
                 if (statements)
                     statements->addNextNull(item);
@@ -2015,14 +1982,14 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
     case vpiReturn:
     case vpiReturnStmt: {
         AstNode* condition = nullptr;
-        visit_one_to_one({vpiCondition}, obj_h, visited, top_nodes, [&](AstNode* item) {
+        visit_one_to_one({vpiCondition}, obj_h, shared, [&](AstNode* item) {
             if (item) { condition = item; }
         });
         return new AstReturn(new FileLine("uhdm"), condition);
     }
     case vpiFuncCall: {
         AstNode* arguments = nullptr;
-        visit_one_to_many({vpiArgument}, obj_h, visited, top_nodes, [&](AstNode* item) {
+        visit_one_to_many({vpiArgument}, obj_h, shared, [&](AstNode* item) {
             if (item) {
                 if (arguments == nullptr) {
                     arguments = new AstArg(new FileLine("uhdm"), "", item);
@@ -2052,7 +2019,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
     }
     case vpiSysFuncCall: {
         std::vector<AstNode*> arguments;
-        visit_one_to_many({vpiArgument}, obj_h, visited, top_nodes, [&](AstNode* item) {
+        visit_one_to_many({vpiArgument}, obj_h, shared, [&](AstNode* item) {
             if (item) { arguments.push_back(item); }
         });
 
@@ -2106,7 +2073,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             auto parent_h = vpi_handle({vpiParent}, obj_h);
             auto lhs_h = vpi_handle({vpiLhs}, parent_h);
             AstNode* fd = nullptr;
-            if (lhs_h) { fd = visit_object(lhs_h, visited, top_nodes); }
+            if (lhs_h) { fd = visit_object(lhs_h, shared); }
             return new AstFOpen(new FileLine("uhdm"), fd, arguments[0], arguments[1]);
         } else if (objectName == "$fclose") {
             return new AstFClose(new FileLine("uhdm"), arguments[0]);
@@ -2240,9 +2207,9 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
         AstNode* lsbNode = nullptr;
         AstRange* rangeNode = nullptr;
         auto leftRange_h = vpi_handle(vpiLeftRange, obj_h);
-        if (leftRange_h) { msbNode = visit_object(leftRange_h, visited, top_nodes); }
+        if (leftRange_h) { msbNode = visit_object(leftRange_h, shared); }
         auto rightRange_h = vpi_handle(vpiRightRange, obj_h);
-        if (rightRange_h) { lsbNode = visit_object(rightRange_h, visited, top_nodes); }
+        if (rightRange_h) { lsbNode = visit_object(rightRange_h, shared); }
         if (msbNode && lsbNode) {
             rangeNode = new AstRange(new FileLine("uhdm"), msbNode, lsbNode);
         }
@@ -2258,7 +2225,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
                 vpiLeftRange,
                 vpiRightRange,
             },
-            obj_h, visited, top_nodes, [&](AstNode* item) {
+            obj_h, shared, [&](AstNode* item) {
                 if (item) {
                     if (msbNode == nullptr) {
                         msbNode = item;
@@ -2286,9 +2253,8 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             {
                 vpiBaseExpr,
                 vpiWidthExpr,
-                vpiParent,
             },
-            obj_h, visited, top_nodes, [&](AstNode* item) {
+            obj_h, shared, [&](AstNode* item) {
                 if (item) {
                     if (bit == nullptr) {
                         bit = item;
@@ -2321,12 +2287,12 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             {
                 vpiForInitStmt,
             },
-            obj_h, visited, top_nodes, [&](AstNode* item) { initsp = item; });
+            obj_h, shared, [&](AstNode* item) { initsp = item; });
         visit_one_to_many(
             {
                 vpiForInitStmt,
             },
-            obj_h, visited, top_nodes, [&](AstNode* item) {
+            obj_h, shared, [&](AstNode* item) {
                 if (initsp == nullptr) {
                     initsp = item;
                 } else {
@@ -2337,7 +2303,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             {
                 vpiCondition,
             },
-            obj_h, visited, top_nodes, [&](AstNode* item) {
+            obj_h, shared, [&](AstNode* item) {
                 if (condp == nullptr) {
                     condp = item;
                 } else {
@@ -2348,12 +2314,12 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             {
                 vpiForIncStmt,
             },
-            obj_h, visited, top_nodes, [&](AstNode* item) { incsp = item; });
+            obj_h, shared, [&](AstNode* item) { incsp = item; });
         visit_one_to_many(
             {
                 vpiForIncStmt,
             },
-            obj_h, visited, top_nodes, [&](AstNode* item) {
+            obj_h, shared, [&](AstNode* item) {
                 if (incsp == nullptr) {
                     incsp = item;
                 } else {
@@ -2364,7 +2330,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             {
                 vpiStmt,
             },
-            obj_h, visited, top_nodes, [&](AstNode* item) {
+            obj_h, shared, [&](AstNode* item) {
                 if (bodysp == nullptr) {
                     bodysp = item;
                 } else {
@@ -2384,7 +2350,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             {
                 vpiCondition,
             },
-            obj_h, visited, top_nodes, [&](AstNode* item) {
+            obj_h, shared, [&](AstNode* item) {
                 if (condp == nullptr) {
                     condp = item;
                 } else {
@@ -2395,7 +2361,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             {
                 vpiStmt,
             },
-            obj_h, visited, top_nodes, [&](AstNode* item) {
+            obj_h, shared, [&](AstNode* item) {
                 if (bodysp == nullptr) {
                     bodysp = item;
                 } else {
@@ -2415,7 +2381,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
 
     case vpiBitTypespec: {
         AstRange* rangeNode = nullptr;
-        visit_one_to_many({vpiRange}, obj_h, visited, top_nodes,
+        visit_one_to_many({vpiRange}, obj_h, shared,
                           [&](AstNode* node) { rangeNode = reinterpret_cast<AstRange*>(node); });
         auto* dtype = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::BIT);
         dtype->rangep(rangeNode);
@@ -2423,7 +2389,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
     }
     case vpiLogicTypespec: {
         AstRange* rangeNode = nullptr;
-        visit_one_to_many({vpiRange}, obj_h, visited, top_nodes,
+        visit_one_to_many({vpiRange}, obj_h, shared,
                           [&](AstNode* node) { rangeNode = reinterpret_cast<AstRange*>(node); });
         auto* dtype = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::LOGIC);
         dtype->rangep(rangeNode);
@@ -2457,13 +2423,13 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
     case vpiEnumTypespec: {
         const uhdm_handle* const handle = (const uhdm_handle*)obj_h;
         const UHDM::BaseClass* const object = (const UHDM::BaseClass*)handle->object;
-        if (visited_types.find(object) != visited_types.end()) {
+        if (shared.visited_types.find(object) != shared.visited_types.end()) {
             // Already seen this, do not create a duplicate
             // References are handled using getDType, not in visit_object
             return nullptr;
         }
 
-        visited_types[object] = package_prefix + objectName;
+        shared.visited_types[object] = shared.package_prefix + objectName;
 
         AstNode* enum_members = nullptr;
         AstNodeDType* enum_member_dtype = nullptr;
@@ -2485,7 +2451,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
         }
         vpi_free_object(itr);
 
-        visit_one_to_one({vpiBaseTypespec}, obj_h, visited, top_nodes, [&](AstNode* item) {
+        visit_one_to_one({vpiBaseTypespec}, obj_h, shared, [&](AstNode* item) {
             if (item != nullptr) { enum_member_dtype = reinterpret_cast<AstNodeDType*>(item); }
         });
         if (enum_member_dtype == nullptr) {
@@ -2498,17 +2464,17 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
                                               VFlagChildDType(), enum_dtype);
         auto* enum_type
             = new AstTypedef(new FileLine("uhdm"), objectName, nullptr, VFlagChildDType(), dtype);
-        m_symp->reinsert(enum_type);
+        shared.m_symp->reinsert(enum_type);
         return enum_type;
     }
     case vpiStructTypespec: {
         const uhdm_handle* const handle = (const uhdm_handle*)obj_h;
         const UHDM::BaseClass* const object = (const UHDM::BaseClass*)handle->object;
-        if (visited_types.find(object) != visited_types.end()) {
+        if (shared.visited_types.find(object) != shared.visited_types.end()) {
             UINFO(6, "Object " << objectName << " was already visited" << std::endl);
             return node;
         }
-        visited_types[object] = package_prefix + objectName;
+        shared.visited_types[object] = shared.package_prefix + objectName;
         // VSigning below is used in AstStructDtype to indicate
         // if packed or not
         VSigning packed;
@@ -2518,20 +2484,20 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
             packed = VSigning::UNSIGNED;
         }
         auto* struct_dtype = new AstStructDType(new FileLine("uhdm"), packed);
-        visit_one_to_many({vpiTypespecMember}, obj_h, visited, top_nodes, [&](AstNode* item) {
+        visit_one_to_many({vpiTypespecMember}, obj_h, shared, [&](AstNode* item) {
             if (item != nullptr) { struct_dtype->addMembersp(item); }
         });
         auto* dtype = new AstDefImplicitDType(new FileLine("uhdm"), objectName, nullptr,
                                               VFlagChildDType(), struct_dtype);
         auto* struct_type
             = new AstTypedef(new FileLine("uhdm"), objectName, nullptr, VFlagChildDType(), dtype);
-        m_symp->reinsert(struct_type);
+        shared.m_symp->reinsert(struct_type);
         return struct_type;
     }
     case vpiTypespecMember: {
         AstNodeDType* typespec = nullptr;
         auto typespec_h = vpi_handle(vpiTypespec, obj_h);
-        typespec = getDType(typespec_h, visited, top_nodes);
+        typespec = getDType(typespec_h, shared);
         if (typespec != nullptr) {
             auto* member = new AstMemberDType(new FileLine("uhdm"), objectName, VFlagChildDType(),
                                               reinterpret_cast<AstNodeDType*>(typespec));
@@ -2541,12 +2507,12 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
     }
     case vpiTypeParameter: {
         AstNodeDType* dtype = nullptr;
-        visit_one_to_one({vpiTypespec}, obj_h, visited, top_nodes, [&](AstNode* item) {
+        visit_one_to_one({vpiTypespec}, obj_h, shared, [&](AstNode* item) {
             if (item != nullptr) { dtype = reinterpret_cast<AstNodeDType*>(item); }
         });
         auto* ast_typedef
             = new AstTypedef(new FileLine("uhdm"), objectName, nullptr, VFlagChildDType(), dtype);
-        m_symp->reinsert(ast_typedef);
+        shared.m_symp->reinsert(ast_typedef);
         return ast_typedef;
     }
     case vpiLogicVar:
@@ -2559,16 +2525,15 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
     case vpiEnumVar:
     case vpiBitVar:
     case vpiByteVar: {
-        AstNodeDType* dtype = getDType(obj_h, visited, top_nodes);
+        AstNodeDType* dtype = getDType(obj_h, shared);
         auto* var = new AstVar(new FileLine("uhdm"), AstVarType::VAR, objectName,
                                VFlagChildDType(), dtype);
-        visit_one_to_one({vpiExpr}, obj_h, visited, top_nodes,
-                         [&](AstNode* item) { var->valuep(item); });
+        visit_one_to_one({vpiExpr}, obj_h, shared, [&](AstNode* item) { var->valuep(item); });
         return var;
     }
     case vpiPackedArrayVar:
     case vpiArrayVar: {
-        auto dtype = getDType(obj_h, visited, top_nodes);
+        auto dtype = getDType(obj_h, shared);
 
         auto* var = new AstVar(new FileLine("uhdm"), AstVarType::VAR, objectName,
                                VFlagChildDType(), dtype);
@@ -2582,7 +2547,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
     }
     case vpiGenScopeArray: {
         AstNode* statements = nullptr;
-        visit_one_to_many({vpiGenScope}, obj_h, visited, top_nodes, [&](AstNode* item) {
+        visit_one_to_many({vpiGenScope}, obj_h, shared, [&](AstNode* item) {
             if (statements == nullptr) {
                 statements = item;
             } else {
@@ -2623,7 +2588,7 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
                 vpiAliasStmt,
                 vpiClockingBlock,
             },
-            obj_h, visited, top_nodes, [&](AstNode* item) {
+            obj_h, shared, [&](AstNode* item) {
                 if (statements == nullptr) {
                     statements = item;
                 } else {
@@ -2648,21 +2613,21 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
     case vpiForeachStmt: {
         AstNode* arrayp = nullptr;  // Array, then index variables
         AstNode* bodyp = nullptr;
-        visit_one_to_one({vpiVariables}, obj_h, visited, top_nodes, [&](AstNode* item) {
+        visit_one_to_one({vpiVariables}, obj_h, shared, [&](AstNode* item) {
             if (arrayp == nullptr) {
                 arrayp = item;
             } else {
                 arrayp->addNextNull(item);
             }
         });
-        visit_one_to_many({vpiLoopVars}, obj_h, visited, top_nodes, [&](AstNode* item) {
+        visit_one_to_many({vpiLoopVars}, obj_h, shared, [&](AstNode* item) {
             if (arrayp == nullptr) {
                 arrayp = item;
             } else {
                 arrayp->addNextNull(item);
             }
         });
-        visit_one_to_many({vpiStmt}, obj_h, visited, top_nodes, [&](AstNode* item) {
+        visit_one_to_many({vpiStmt}, obj_h, shared, [&](AstNode* item) {
             if (bodyp == nullptr) {
                 bodyp = item;
             } else {
@@ -2674,13 +2639,12 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
     case vpiMethodFuncCall: {
         AstNode* from = nullptr;
         AstNode* args = nullptr;
-        visit_one_to_one({vpiPrefix}, obj_h, visited, top_nodes,
-                         [&](AstNode* item) { from = item; });
+        visit_one_to_one({vpiPrefix}, obj_h, shared, [&](AstNode* item) { from = item; });
         if (from == nullptr) {
             from = new AstParseRef(new FileLine("uhdm"), VParseRefExp::en::PX_TEXT, "this",
                                    nullptr, nullptr);
         }
-        visit_one_to_many({vpiArgument}, obj_h, visited, top_nodes, [&](AstNode* item) {
+        visit_one_to_many({vpiArgument}, obj_h, shared, [&](AstNode* item) {
             if (args == nullptr) {
                 args = item;
             } else {
@@ -2704,14 +2668,14 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
                 vpiNamedEventArray,
                 vpiInternalScope,
             },
-            obj_h, visited, top_nodes, [&](AstNode* item) {
+            obj_h, shared, [&](AstNode* item) {
                 if (item != nullptr) { definition->addMembersp(item); }
             });
         return definition;
     }
     case vpiImmediateAssert: {
         AstAssert* assert = nullptr;
-        visit_one_to_one({vpiExpr}, obj_h, visited, top_nodes, [&](AstNode* item) {
+        visit_one_to_one({vpiExpr}, obj_h, shared, [&](AstNode* item) {
             if (item != nullptr) {
                 assert = new AstAssert(new FileLine("uhdm"), item, nullptr, nullptr, true);
             }
@@ -2747,9 +2711,9 @@ AstNode* visit_object(vpiHandle obj_h, std::set<const UHDM::BaseClass*> visited,
 
 std::vector<AstNodeModule*> visit_designs(const std::vector<vpiHandle>& designs,
                                           std::ostream& coverage_report_stream, V3ParseSym* symp) {
-    m_symp = symp;
-    std::set<const UHDM::BaseClass*> visited;
-    std::map<std::string, AstNodeModule*> top_nodes;
+
+    UhdmShared shared;
+    shared.m_symp = symp;
     // Package for top-level class definitions
     // Created and added only if there are classes in the design
     AstPackage* class_package = nullptr;
@@ -2758,27 +2722,27 @@ std::vector<AstNodeModule*> visit_designs(const std::vector<vpiHandle>& designs,
                                                    // before any imports
                            // UHDM::uhdmallClasses,
                            UHDM::uhdmallInterfaces, UHDM::uhdmallModules, UHDM::uhdmtopModules},
-                          design, visited, &top_nodes, [&](AstNode* module) {
+                          design, shared, [&](AstNode* module) {
                               if (module != nullptr) {
                                   // Top level nodes need to be NodeModules (created from design)
                                   // This is true as we visit only top modules and interfaces (with
                                   // the same AST node) above
-                                  top_nodes[module->name()]
+                                  shared.top_nodes[module->name()]
                                       = (reinterpret_cast<AstNodeModule*>(module));
                               }
-                              for (auto entry : coverage_set) {
+                              for (auto entry : shared.coverage_set) {
                                   coverage_report_stream << std::get<0>(entry) << ":"
                                                          << std::get<1>(entry) << ":"
                                                          << std::get<2>(entry) << std::endl;
                               }
-                              coverage_set.clear();
+                              shared.coverage_set.clear();
                           });
         // Top level class definitions
         visit_one_to_many(
             {
                 UHDM::uhdmallClasses,
             },
-            design, visited, &top_nodes, [&](AstNode* class_def) {
+            design, shared, [&](AstNode* class_def) {
                 if (class_def != nullptr) {
                     if (class_package == nullptr) {
                         class_package = new AstPackage(new FileLine("uhdm"), "AllClasses");
@@ -2786,15 +2750,15 @@ std::vector<AstNodeModule*> visit_designs(const std::vector<vpiHandle>& designs,
                     UINFO(6, "Adding class " << class_def->name() << std::endl);
                     class_package->addStmtp(class_def);
                 }
-                for (auto entry : coverage_set) {
+                for (auto entry : shared.coverage_set) {
                     coverage_report_stream << std::get<0>(entry) << ":" << std::get<1>(entry)
                                            << ":" << std::get<2>(entry) << std::endl;
                 }
-                coverage_set.clear();
+                shared.coverage_set.clear();
             });
     }
     std::vector<AstNodeModule*> nodes;
-    for (auto node : top_nodes) nodes.push_back(node.second);
+    for (auto node : shared.top_nodes) nodes.push_back(node.second);
     if (class_package != nullptr) { nodes.push_back(class_package); }
     return nodes;
 }
