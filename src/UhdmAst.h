@@ -10,14 +10,28 @@
 
 namespace UhdmAst {
 
-  // Visits single VPI object and creates proper AST node
-  AstNode* visit_object (vpiHandle obj_h,
-        std::set<const UHDM::BaseClass*> visited,
-        std::map<std::string, AstNodeModule*>* top_nodes);
+typedef std::map<std::string, AstNode*> NameNodeMap;
 
-  // Visits all VPI design objects and returns created ASTs
-  std::vector<AstNodeModule*> visit_designs (const std::vector<vpiHandle>& designs,
-                                             std::ostream& coverage_report_stream,
-                                             V3ParseSym* symp);
-}
+// Variables that need to be accessed by multiple nodes in the design
+struct UhdmShared {
+    std::map<std::string, AstPackage*> package_map;
+    std::string package_prefix;
+    NameNodeMap partial_modules;
+    std::unordered_map<const UHDM::BaseClass*, std::string> visited_types;
+    // Store parameters here (values can be updated for each instance)
+    // Final values will be added in respective module/package
+    std::map<std::string, NameNodeMap> top_param_map;
+    std::set<std::tuple<std::string, int, std::string>> coverage_set;
+    V3ParseSym* m_symp;
+
+    std::map<std::string, AstNodeModule*> top_nodes;
+};
+
+// Visits single VPI object and creates proper AST node
+AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared);
+
+// Visits all VPI design objects and returns created ASTs
+std::vector<AstNodeModule*> visit_designs(const std::vector<vpiHandle>& designs,
+                                          std::ostream& coverage_report_stream, V3ParseSym* symp);
+}  // namespace UhdmAst
 #endif  // Guard

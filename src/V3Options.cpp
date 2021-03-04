@@ -1046,7 +1046,7 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
                 m_ignc = flag;
             } else if (onoff(sw, "-inhibit-sim", flag /*ref*/)) {
                 m_inhibitSim = flag;
-            } else if ( onoff (sw, "-json-ast", flag/*ref*/)) {
+            } else if (onoff(sw, "-json-ast", flag /*ref*/)) {
                 m_json_ast = flag;
             } else if (onoff(sw, "-lint-only", flag /*ref*/)) {
                 m_lintOnly = flag;
@@ -1133,13 +1133,13 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
                 m_xInitialEdge = flag;
             } else if (onoff(sw, "-xml-only", flag /*ref*/)) {
                 m_xmlOnly = flag;
-            } else if ( onoff (sw, "-json-ast", flag/*ref*/)) {
+            } else if (onoff(sw, "-json-ast", flag /*ref*/)) {
                 m_json_ast = flag;
-            } else if ( onoff (sw, "-uhdm-ast", flag/*ref*/)) {
+            } else if (onoff(sw, "-uhdm-ast", flag /*ref*/)) {
                 m_uhdm_ast = flag;
-            } else if ( onoff (sw, "-uhdm-ast-sv", flag/*ref*/)) {
+            } else if (onoff(sw, "-uhdm-ast-sv", flag /*ref*/)) {
                 m_uhdm_ast_sv = flag;
-            } else if ( onoff (sw, "-dump-uhdm", flag/*ref*/)) {
+            } else if (onoff(sw, "-dump-uhdm", flag /*ref*/)) {
                 m_dump_uhdm = flag;
             } else {
                 hadSwitchPart1 = false;
@@ -1500,8 +1500,9 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
                 VTimescale::parseSlashed(fl, argv[i], unit /*ref*/, prec /*ref*/);
                 if (!unit.isNone() && timeOverrideUnit().isNone()) m_timeDefaultUnit = unit;
                 if (!prec.isNone() && timeOverridePrec().isNone()) m_timeDefaultPrec = prec;
-            } else if (!strcmp(sw, "-uhdm-cov") && (i+1)<argc) {
-                shift; m_uhdmCovFile = argv[i];
+            } else if (!strcmp(sw, "-uhdm-cov") && (i + 1) < argc) {
+                shift;
+                m_uhdmCovFile = argv[i];
             } else if (!strcmp(sw, "-timescale-override") && (i + 1) < argc) {
                 shift;
                 VTimescale unit;
