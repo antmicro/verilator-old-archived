@@ -7,6 +7,7 @@
 
 #include "V3Ast.h"
 #include "V3ParseSym.h"
+#include "V3Global.h"
 #include "UhdmAst.h"
 
 namespace UhdmAst {
@@ -2003,9 +2004,19 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             }
         });
         if (return_h) {
-            return new AstFunc(new FileLine("uhdm"), objectName, statements, function_vars);
+            node = new AstFunc(new FileLine("uhdm"), objectName, statements, function_vars);
         } else {
-            return new AstTask(new FileLine("uhdm"), objectName, statements);
+            node = new AstTask(new FileLine("uhdm"), objectName, statements);
+        }
+        AstDpiExport* exportp = nullptr;
+        auto accessType = vpi_get(vpiAccessType, obj_h);
+        if (accessType == vpiDPIExportAcc) {
+            exportp = new AstDpiExport(new FileLine("uhdm"), objectName, objectName);
+            exportp->addNext(node);
+            v3Global.dpi(true);
+            return exportp;
+        } else {
+            return node;
         }
     }
     case vpiReturn:
