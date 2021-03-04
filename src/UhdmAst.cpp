@@ -530,6 +530,24 @@ AstNode* process_assignment(vpiHandle obj_h, UhdmShared& shared) {
     return nullptr;
 }
 
+AstNode* process_hierPath(vpiHandle obj_h, UhdmShared& shared) {
+        AstNode* lhsp = nullptr;
+        AstNode* rhsp = nullptr;
+
+        visit_one_to_many({vpiActual}, obj_h, shared, [&](AstNode* childp) {
+            if (lhsp == nullptr) {
+                lhsp = childp;
+            } else if (rhsp == nullptr) {
+                rhsp = childp;
+            } else {
+                lhsp = new AstDot(new FileLine("uhdm"), false, lhsp, rhsp);
+                rhsp = childp;
+            }
+        });
+
+        return new AstDot(new FileLine("uhdm"), false, lhsp, rhsp);
+}
+
 AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     // Will keep current node
     AstNode* node = nullptr;
@@ -888,20 +906,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return process_assignment(obj_h, shared);
     }
     case vpiHierPath: {
-        AstNode* lhsNode = nullptr;
-        AstNode* rhsNode = nullptr;
-
-        visit_one_to_many({vpiActual}, obj_h, shared, [&](AstNode* child) {
-            if (lhsNode == nullptr) {
-                lhsNode = child;
-            } else if (rhsNode == nullptr) {
-                rhsNode = child;
-            } else {
-                v3error("Unexpected node in hier_path");
-            }
-        });
-
-        return new AstDot(new FileLine("uhdm"), false, lhsNode, rhsNode);
+        return process_hierPath(obj_h, shared);
     }
     case vpiRefObj: {
         size_t dot_pos = objectName.rfind('.');
