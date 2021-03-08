@@ -693,6 +693,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
 
         // Check if we have encountered this object before
         auto it = shared.partial_modules.find(modType);
+        auto param_it = shared.top_param_map.find(modType);
         if (it != shared.partial_modules.end()) {
             // Was created before, fill missing
             module = reinterpret_cast<AstModule*>(it->second);
@@ -753,18 +754,39 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 obj_h, shared, [&](AstNode* node) {
                     if (node != nullptr) module->addStmtp(node);
                 });
+            // Update parameter values using TopModules tree
+            if (param_it != shared.top_param_map.end()) {
+                auto param_map = param_it->second;
+                visit_one_to_many(
+                    {
+                        vpiParameter,
+                        vpiParamAssign,
+                    },
+                    obj_h, shared, [&](AstNode* node) {
+                        if (VN_IS(node, Var)) {
+                            AstVar* param_node = VN_CAST(node, Var);
+                            // Global parameters are added as pins, skip them here
+                            if (param_node->varType() == AstVarType::LPARAM)
+                                param_map[node->name()] = node;
+                        }
+                    });
+                // Add final values of parameters
+                for (auto& param_p : param_map) {
+                    if (param_p.second != nullptr)
+                        module->addStmtp(param_p.second->cloneTree(false));
+                }
+            }
             (shared.top_nodes)[name] = module;
             shared.m_symp->popScope(module);
         } else {
             // Encountered for the first time
             module = new AstModule(new FileLine(modType), modType);
+            NameNodeMap param_map;
             visit_one_to_many(
                 {
                     vpiTypedef,  // Keep this before parameters
                     vpiModule,
                     vpiContAssign,
-                    vpiParamAssign,
-                    vpiParameter,
                     vpiProcess,
                     vpiTaskFunc,
                 },
@@ -773,16 +795,14 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 });
             visit_one_to_many(
                 {
-                    vpiPort,
-                    vpiNet,
-                    vpiParameter,
                     vpiParamAssign,
+                    vpiParameter,
                 },
                 obj_h, shared, [&](AstNode* node) {
-                    // ignore, currently would create duplicate nodes
-                    // TODO: Revisit this handling
+                    if (node != nullptr) param_map[node->name()] = node;
                 });
             (shared.partial_modules)[module->name()] = module;
+            shared.top_param_map[module->name()] = param_map;
         }
 
         if (objectName != modType) {
@@ -2133,7 +2153,13 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             return new AstAttrOf(new FileLine("uhdm"), AstAttrType::DIM_UNPK_DIMENSIONS,
                                  arguments[0]);
         } else if (objectName == "$bits") {
-            return new AstAttrOf(new FileLine("uhdm"), AstAttrType::DIM_BITS, arguments[0]);
+            // If this is not an expression, explicitly mark it as data type ref.
+            // See exprOrDataType in verilog.y
+            AstNode* expr_datatype_p = arguments[0];
+            if (VN_IS(expr_datatype_p, ParseRef)) {
+                expr_datatype_p = new AstRefDType(new FileLine("uhdm"), expr_datatype_p->name());
+            }
+            return new AstAttrOf(new FileLine("uhdm"), AstAttrType::DIM_BITS, expr_datatype_p);
         } else if (objectName == "$realtobits") {
             return new AstRealToBits(new FileLine("uhdm"), arguments[0]);
         } else if (objectName == "$bitstoreal") {
