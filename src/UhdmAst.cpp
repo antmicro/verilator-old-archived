@@ -2,6 +2,7 @@
 #include <stack>
 #include <functional>
 #include <algorithm>
+#include <regex>
 
 #include "headers/uhdm.h"
 
@@ -47,6 +48,9 @@ void sanitize_str(std::string& s) {
     if (!s.empty()) {
         auto pos = s.find_last_of("@");
         s = s.substr(pos + 1);
+        // Replace [ and ], seen in GenScope names
+        s = std::regex_replace(s, std::regex("\\["), "__BRA__");
+        s = std::regex_replace(s, std::regex("\\]"), "__KET__");
     }
 }
 
@@ -2600,7 +2604,18 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 statements->addNextNull(item);
             }
         });
-        return new AstBegin(new FileLine("uhdm"), "", statements);
+        // Cheat here a little:
+        // UHDM already provides us with a correct, elaborated branch only, but then we lose
+        // hierarchy for named scopes. Create here an always-true scope that will be expanded
+        // by Verilator later, preserving naming hierarchy.
+        if (objectName != "") {
+            auto* do_expand = new AstConst(new FileLine("uhdm"), AstConst::Unsized32(), 1);
+            AstNode* block = new AstBegin(new FileLine("uhdm"), objectName, statements, true, false);
+            auto* scope = new AstGenIf(new FileLine("uhdm"), do_expand, block, nullptr);
+            return scope;
+        } else {
+            return new AstBegin(new FileLine("uhdm"), "", statements);
+        }
     }
     case vpiGenScope: {
         AstNode* statements = nullptr;
