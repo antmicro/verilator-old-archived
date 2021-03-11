@@ -535,6 +535,34 @@ AstNode* process_assignment(vpiHandle obj_h, UhdmShared& shared) {
     return nullptr;
 }
 
+AstNode* process_genScopeArray(vpiHandle obj_h, UhdmShared& shared) {
+    AstNode* statementsp = nullptr;
+    std::string objectName;
+    if (auto s = vpi_get_str(vpiName, obj_h)) {
+        objectName = s;
+        sanitize_str(objectName);
+    }
+    visit_one_to_many({vpiGenScope}, obj_h, shared, [&](AstNode* itemp) {
+        if (statementsp == nullptr) {
+            statementsp = itemp;
+        } else {
+            statementsp->addNextNull(itemp);
+        }
+    });
+    // Cheat here a little:
+    // UHDM already provides us with a correct, elaborated branch only, but then we lose
+    // hierarchy for named scopes. Create here an always-true scope that will be expanded
+    // by Verilator later, preserving naming hierarchy.
+    if (objectName != "") {
+        auto* truep = new AstConst(new FileLine("uhdm"), AstConst::Unsized32(), 1);
+        auto* blockp = new AstBegin(new FileLine("uhdm"), objectName, statementsp, true, false);
+        auto* scopep = new AstGenIf(new FileLine("uhdm"), truep, blockp, nullptr);
+        return scopep;
+    } else {
+        return new AstBegin(new FileLine("uhdm"), "", statementsp);
+    }
+}
+
 AstNode* process_hierPath(vpiHandle obj_h, UhdmShared& shared) {
         AstNode* lhsp = nullptr;
         AstNode* rhsp = nullptr;
@@ -2596,26 +2624,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return var;
     }
     case vpiGenScopeArray: {
-        AstNode* statements = nullptr;
-        visit_one_to_many({vpiGenScope}, obj_h, shared, [&](AstNode* item) {
-            if (statements == nullptr) {
-                statements = item;
-            } else {
-                statements->addNextNull(item);
-            }
-        });
-        // Cheat here a little:
-        // UHDM already provides us with a correct, elaborated branch only, but then we lose
-        // hierarchy for named scopes. Create here an always-true scope that will be expanded
-        // by Verilator later, preserving naming hierarchy.
-        if (objectName != "") {
-            auto* do_expand = new AstConst(new FileLine("uhdm"), AstConst::Unsized32(), 1);
-            AstNode* block = new AstBegin(new FileLine("uhdm"), objectName, statements, true, false);
-            auto* scope = new AstGenIf(new FileLine("uhdm"), do_expand, block, nullptr);
-            return scope;
-        } else {
-            return new AstBegin(new FileLine("uhdm"), "", statements);
-        }
+        return process_genScopeArray(obj_h, shared);
     }
     case vpiGenScope: {
         AstNode* statements = nullptr;
