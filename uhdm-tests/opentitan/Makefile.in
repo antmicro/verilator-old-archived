@@ -48,7 +48,9 @@ prim_secded_hamming_22_16_dec.sv \
 prim_secded_hamming_39_32_enc.sv \
 prim_secded_hamming_39_32_dec.sv \
 prim_secded_hamming_72_64_enc.sv \
-prim_secded_hamming_72_64_dec.sv'
+prim_secded_hamming_72_64_dec.sv \
+prim_pkg.sv \
+prim_util_pkg.sv'
 
 TO_SURELOG = \
 	$(shell \
