@@ -158,8 +158,14 @@ AstNode* get_value_as_node(vpiHandle obj_h) {
     }
     case vpiRealVal: {
         std::string valStr = std::to_string(val.value.real);
-        V3Number value(value_node, valStr.c_str());
-        value_node = new AstConst(new FileLine("uhdm"), value);
+	
+        bool parseSuccess;
+        double value = VString::parseDouble(valStr, &parseSuccess);
+        UASSERT(parseSuccess, "Unable to parse real value: " + valStr);
+	
+        value_node = new AstConst(new FileLine("uhdm"),
+                                  AstConst::RealDouble(),
+                                  value);
         break;
     }
     case vpiBinStrVal:
