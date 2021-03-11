@@ -535,6 +535,68 @@ AstNode* process_assignment(vpiHandle obj_h, UhdmShared& shared) {
     return nullptr;
 }
 
+AstNode* process_function(vpiHandle obj_h, UhdmShared& shared) {
+    AstNode* statementsp = nullptr;
+    AstNode* functionVarsp = nullptr;
+    AstNode* taskFuncp = nullptr;
+
+    std::string objectName;
+    if (auto s = vpi_get_str(vpiName, obj_h)) {
+        objectName = s;
+        sanitize_str(objectName);
+    }
+
+    auto return_h = vpi_handle(vpiReturn, obj_h);
+    if (return_h) {
+        AstNode* dtypep = getDType(return_h, shared);
+        functionVarsp = dtypep;
+    }
+
+    visit_one_to_many({vpiIODecl}, obj_h, shared, [&](AstNode* itemp) {
+        if (itemp) {
+            // Overwrite direction for arguments
+            auto* iop = VN_CAST(itemp, Var);
+            iop->direction(VDirection::INPUT);
+            if (statementsp)
+                statementsp->addNextNull(iop);
+            else
+                statementsp = iop;
+        }
+    });
+    visit_one_to_many({vpiVariables}, obj_h, shared, [&](AstNode* itemp) {
+        if (itemp) {
+            if (statementsp)
+                statementsp->addNextNull(itemp);
+            else
+                statementsp = itemp;
+        }
+    });
+    visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* itemp) {
+        if (itemp) {
+            if (statementsp)
+                statementsp->addNextNull(itemp);
+            else
+                statementsp = itemp;
+        }
+    });
+
+    if (return_h) {
+        taskFuncp = new AstFunc(new FileLine("uhdm"), objectName, statementsp, functionVarsp);
+    } else {
+        taskFuncp = new AstTask(new FileLine("uhdm"), objectName, statementsp);
+    }
+    AstDpiExport* exportp = nullptr;
+    auto accessType = vpi_get(vpiAccessType, obj_h);
+    if (accessType == vpiDPIExportAcc) {
+        exportp = new AstDpiExport(new FileLine("uhdm"), objectName, objectName);
+        exportp->addNext(taskFuncp);
+        v3Global.dpi(true);
+        return exportp;
+    } else {
+        return taskFuncp;
+    }
+}
+
 AstNode* process_genScopeArray(vpiHandle obj_h, UhdmShared& shared) {
     AstNode* statementsp = nullptr;
     std::string objectName;
@@ -1998,58 +2060,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return new AstTaskRef(new FileLine("uhdm"), objectName, nullptr);
     }
     case vpiFunction: {
-        AstNode* statements = nullptr;
-        AstNode* function_vars = nullptr;
-
-        AstRange* returnRange = nullptr;
-        auto return_h = vpi_handle(vpiReturn, obj_h);
-        if (return_h) {
-            AstNode* dtype = getDType(return_h, shared);
-            function_vars = dtype;
-        }
-
-        visit_one_to_many({vpiIODecl}, obj_h, shared, [&](AstNode* item) {
-            if (item) {
-                // Overwrite direction for arguments
-                auto* io = reinterpret_cast<AstVar*>(item);
-                io->direction(VDirection::INPUT);
-                if (statements)
-                    statements->addNextNull(item);
-                else
-                    statements = item;
-            }
-        });
-        visit_one_to_many({vpiVariables}, obj_h, shared, [&](AstNode* item) {
-            if (item) {
-                if (statements)
-                    statements->addNextNull(item);
-                else
-                    statements = item;
-            }
-        });
-        visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* item) {
-            if (item) {
-                if (statements)
-                    statements->addNextNull(item);
-                else
-                    statements = item;
-            }
-        });
-        if (return_h) {
-            node = new AstFunc(new FileLine("uhdm"), objectName, statements, function_vars);
-        } else {
-            node = new AstTask(new FileLine("uhdm"), objectName, statements);
-        }
-        AstDpiExport* exportp = nullptr;
-        auto accessType = vpi_get(vpiAccessType, obj_h);
-        if (accessType == vpiDPIExportAcc) {
-            exportp = new AstDpiExport(new FileLine("uhdm"), objectName, objectName);
-            exportp->addNext(node);
-            v3Global.dpi(true);
-            return exportp;
-        } else {
-            return node;
-        }
+        return process_function(obj_h, shared);
     }
     case vpiReturn:
     case vpiReturnStmt: {
