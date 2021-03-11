@@ -248,6 +248,9 @@ AstBasicDTypeKwd get_kwd_for_type(int vpi_var_type) {
     case vpiTimeVar: {
         return AstBasicDTypeKwd::TIME;
     }
+    case vpiChandleVar: {
+        return AstBasicDTypeKwd::CHANDLE;
+    }
     case vpiEnumTypespec:
     case vpiEnumVar:
     case vpiEnumNet:
@@ -330,6 +333,7 @@ AstNodeDType* getDType(vpiHandle obj_h, UhdmShared& shared) {
     case vpiRealVar:
     case vpiStringVar:
     case vpiTimeVar:
+    case vpiChandleVar:
     case vpiLogicTypespec:
     case vpiIntTypespec:
     case vpiLongIntTypespec:
