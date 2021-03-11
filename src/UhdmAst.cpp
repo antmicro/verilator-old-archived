@@ -564,21 +564,21 @@ AstNode* process_genScopeArray(vpiHandle obj_h, UhdmShared& shared) {
 }
 
 AstNode* process_hierPath(vpiHandle obj_h, UhdmShared& shared) {
-        AstNode* lhsp = nullptr;
-        AstNode* rhsp = nullptr;
+    AstNode* lhsp = nullptr;
+    AstNode* rhsp = nullptr;
 
-        visit_one_to_many({vpiActual}, obj_h, shared, [&](AstNode* childp) {
-            if (lhsp == nullptr) {
-                lhsp = childp;
-            } else if (rhsp == nullptr) {
-                rhsp = childp;
-            } else {
-                lhsp = new AstDot(new FileLine("uhdm"), false, lhsp, rhsp);
-                rhsp = childp;
-            }
-        });
+    visit_one_to_many({vpiActual}, obj_h, shared, [&](AstNode* childp) {
+        if (lhsp == nullptr) {
+            lhsp = childp;
+        } else if (rhsp == nullptr) {
+            rhsp = childp;
+        } else {
+            lhsp = new AstDot(new FileLine("uhdm"), false, lhsp, rhsp);
+            rhsp = childp;
+        }
+    });
 
-        return new AstDot(new FileLine("uhdm"), false, lhsp, rhsp);
+    return new AstDot(new FileLine("uhdm"), false, lhsp, rhsp);
 }
 
 AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
