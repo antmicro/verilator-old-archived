@@ -2,11 +2,13 @@
 #include <stack>
 #include <functional>
 #include <algorithm>
+#include <regex>
 
 #include "headers/uhdm.h"
 
 #include "V3Ast.h"
 #include "V3ParseSym.h"
+#include "V3Global.h"
 #include "UhdmAst.h"
 
 namespace UhdmAst {
@@ -46,6 +48,9 @@ void sanitize_str(std::string& s) {
     if (!s.empty()) {
         auto pos = s.find_last_of("@");
         s = s.substr(pos + 1);
+        // Replace [ and ], seen in GenScope names
+        s = std::regex_replace(s, std::regex("\\["), "__BRA__");
+        s = std::regex_replace(s, std::regex("\\]"), "__KET__");
     }
 }
 
@@ -530,6 +535,114 @@ AstNode* process_assignment(vpiHandle obj_h, UhdmShared& shared) {
     return nullptr;
 }
 
+AstNode* process_function(vpiHandle obj_h, UhdmShared& shared) {
+    AstNode* statementsp = nullptr;
+    AstNode* functionVarsp = nullptr;
+    AstNode* taskFuncp = nullptr;
+
+    std::string objectName;
+    if (auto s = vpi_get_str(vpiName, obj_h)) {
+        objectName = s;
+        sanitize_str(objectName);
+    }
+
+    auto return_h = vpi_handle(vpiReturn, obj_h);
+    if (return_h) {
+        AstNode* dtypep = getDType(return_h, shared);
+        functionVarsp = dtypep;
+    }
+
+    visit_one_to_many({vpiIODecl}, obj_h, shared, [&](AstNode* itemp) {
+        if (itemp) {
+            // Overwrite direction for arguments
+            auto* iop = VN_CAST(itemp, Var);
+            iop->direction(VDirection::INPUT);
+            if (statementsp)
+                statementsp->addNextNull(iop);
+            else
+                statementsp = iop;
+        }
+    });
+    visit_one_to_many({vpiVariables}, obj_h, shared, [&](AstNode* itemp) {
+        if (itemp) {
+            if (statementsp)
+                statementsp->addNextNull(itemp);
+            else
+                statementsp = itemp;
+        }
+    });
+    visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* itemp) {
+        if (itemp) {
+            if (statementsp)
+                statementsp->addNextNull(itemp);
+            else
+                statementsp = itemp;
+        }
+    });
+
+    if (return_h) {
+        taskFuncp = new AstFunc(new FileLine("uhdm"), objectName, statementsp, functionVarsp);
+    } else {
+        taskFuncp = new AstTask(new FileLine("uhdm"), objectName, statementsp);
+    }
+    AstDpiExport* exportp = nullptr;
+    auto accessType = vpi_get(vpiAccessType, obj_h);
+    if (accessType == vpiDPIExportAcc) {
+        exportp = new AstDpiExport(new FileLine("uhdm"), objectName, objectName);
+        exportp->addNext(taskFuncp);
+        v3Global.dpi(true);
+        return exportp;
+    } else {
+        return taskFuncp;
+    }
+}
+
+AstNode* process_genScopeArray(vpiHandle obj_h, UhdmShared& shared) {
+    AstNode* statementsp = nullptr;
+    std::string objectName;
+    if (auto s = vpi_get_str(vpiName, obj_h)) {
+        objectName = s;
+        sanitize_str(objectName);
+    }
+    visit_one_to_many({vpiGenScope}, obj_h, shared, [&](AstNode* itemp) {
+        if (statementsp == nullptr) {
+            statementsp = itemp;
+        } else {
+            statementsp->addNextNull(itemp);
+        }
+    });
+    // Cheat here a little:
+    // UHDM already provides us with a correct, elaborated branch only, but then we lose
+    // hierarchy for named scopes. Create here an always-true scope that will be expanded
+    // by Verilator later, preserving naming hierarchy.
+    if (objectName != "") {
+        auto* truep = new AstConst(new FileLine("uhdm"), AstConst::Unsized32(), 1);
+        auto* blockp = new AstBegin(new FileLine("uhdm"), objectName, statementsp, true, false);
+        auto* scopep = new AstGenIf(new FileLine("uhdm"), truep, blockp, nullptr);
+        return scopep;
+    } else {
+        return new AstBegin(new FileLine("uhdm"), "", statementsp);
+    }
+}
+
+AstNode* process_hierPath(vpiHandle obj_h, UhdmShared& shared) {
+    AstNode* lhsp = nullptr;
+    AstNode* rhsp = nullptr;
+
+    visit_one_to_many({vpiActual}, obj_h, shared, [&](AstNode* childp) {
+        if (lhsp == nullptr) {
+            lhsp = childp;
+        } else if (rhsp == nullptr) {
+            rhsp = childp;
+        } else {
+            lhsp = new AstDot(new FileLine("uhdm"), false, lhsp, rhsp);
+            rhsp = childp;
+        }
+    });
+
+    return new AstDot(new FileLine("uhdm"), false, lhsp, rhsp);
+}
+
 AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     // Will keep current node
     AstNode* node = nullptr;
@@ -888,20 +1001,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return process_assignment(obj_h, shared);
     }
     case vpiHierPath: {
-        AstNode* lhsNode = nullptr;
-        AstNode* rhsNode = nullptr;
-
-        visit_one_to_many({vpiActual}, obj_h, shared, [&](AstNode* child) {
-            if (lhsNode == nullptr) {
-                lhsNode = child;
-            } else if (rhsNode == nullptr) {
-                rhsNode = child;
-            } else {
-                v3error("Unexpected node in hier_path");
-            }
-        });
-
-        return new AstDot(new FileLine("uhdm"), false, lhsNode, rhsNode);
+        return process_hierPath(obj_h, shared);
     }
     case vpiRefObj: {
         size_t dot_pos = objectName.rfind('.');
@@ -1960,48 +2060,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return new AstTaskRef(new FileLine("uhdm"), objectName, nullptr);
     }
     case vpiFunction: {
-        AstNode* statements = nullptr;
-        AstNode* function_vars = nullptr;
-
-        AstRange* returnRange = nullptr;
-        auto return_h = vpi_handle(vpiReturn, obj_h);
-        if (return_h) {
-            AstNode* dtype = getDType(return_h, shared);
-            function_vars = dtype;
-        }
-
-        visit_one_to_many({vpiIODecl}, obj_h, shared, [&](AstNode* item) {
-            if (item) {
-                // Overwrite direction for arguments
-                auto* io = reinterpret_cast<AstVar*>(item);
-                io->direction(VDirection::INPUT);
-                if (statements)
-                    statements->addNextNull(item);
-                else
-                    statements = item;
-            }
-        });
-        visit_one_to_many({vpiVariables}, obj_h, shared, [&](AstNode* item) {
-            if (item) {
-                if (statements)
-                    statements->addNextNull(item);
-                else
-                    statements = item;
-            }
-        });
-        visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* item) {
-            if (item) {
-                if (statements)
-                    statements->addNextNull(item);
-                else
-                    statements = item;
-            }
-        });
-        if (return_h) {
-            return new AstFunc(new FileLine("uhdm"), objectName, statements, function_vars);
-        } else {
-            return new AstTask(new FileLine("uhdm"), objectName, statements);
-        }
+        return process_function(obj_h, shared);
     }
     case vpiReturn:
     case vpiReturnStmt: {
@@ -2576,15 +2635,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return var;
     }
     case vpiGenScopeArray: {
-        AstNode* statements = nullptr;
-        visit_one_to_many({vpiGenScope}, obj_h, shared, [&](AstNode* item) {
-            if (statements == nullptr) {
-                statements = item;
-            } else {
-                statements->addNextNull(item);
-            }
-        });
-        return new AstBegin(new FileLine("uhdm"), "", statements);
+        return process_genScopeArray(obj_h, shared);
     }
     case vpiGenScope: {
         AstNode* statements = nullptr;
