@@ -50,7 +50,27 @@ prim_secded_hamming_39_32_dec.sv \
 prim_secded_hamming_72_64_enc.sv \
 prim_secded_hamming_72_64_dec.sv \
 prim_pkg.sv \
-prim_util_pkg.sv'
+prim_util_pkg.sv \
+prim_gf_mult.sv \
+prim_generic_pad_wrapper.sv \
+prim_generic_buf.sv \
+prim_otp_pkg.sv \
+prim_dom_and_2share.sv \
+prim_xilinx_buf.sv \
+prim_xilinx_clock_buf.sv \
+prim_xilinx_clock_gating.sv \
+prim_xilinx_clock_mux2.sv \
+prim_xilinx_flop.sv \
+prim_xilinx_pad_wrapper.sv \
+prim_pad_wrapper.sv \
+prim_generic_clock_buf.sv \
+prim_clock_buf.sv \
+prim_generic_clock_mux2.sv \
+prim_buf.sv \
+prim_alert_pkg.sv \
+prim_arbiter_fixed.sv \
+prim_esc_pkg.sv \
+prim_diff_decode.sv'
 
 TO_SURELOG = \
 	$(shell \
