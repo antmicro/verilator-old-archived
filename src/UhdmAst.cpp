@@ -2017,12 +2017,14 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 select = new AstSelBit(new FileLine("uhdm"), fromp, bitp);
             } else if (item->type() == AstType::atSelPlus) {
                 AstSelPlus* selplusp = VN_CAST(item, SelPlus);
-                select = new AstSelPlus(new FileLine("uhdm"), fromp, selplusp->bitp(),
-                                        selplusp->widthp());
+                select = new AstSelPlus(new FileLine("uhdm"), fromp,
+                                        selplusp->bitp()->cloneTree(true),
+                                        selplusp->widthp()->cloneTree(true));
             } else if (item->type() == AstType::atSelMinus) {
                 AstSelMinus* selminusp = VN_CAST(item, SelMinus);
-                select = new AstSelMinus(new FileLine("uhdm"), fromp, selminusp->bitp(),
-                                         selminusp->widthp());
+                select = new AstSelMinus(new FileLine("uhdm"), fromp,
+                                         selminusp->bitp()->cloneTree(true),
+                                         selminusp->widthp()->cloneTree(true));
 
             } else {
                 select = new AstSelBit(new FileLine("uhdm"), fromp, bitp);
