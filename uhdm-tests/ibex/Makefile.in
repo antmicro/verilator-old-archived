@@ -10,6 +10,7 @@ IBEX_INCLUDE = \
 	-I$(IBEX_BUILD)/src/lowrisc_dv_verilator_ibex_pcounts_0/cpp \
 	-I$(IBEX_BUILD)/src/lowrisc_dv_verilator_memutil_dpi_0/cpp \
 	-I$(IBEX_BUILD)/src/lowrisc_dv_verilator_simutil_verilator_0/cpp \
+	-I$(IBEX_BUILD)/src/lowrisc_dv_dv_fcov_macros_0 \
 	-I$(IBEX_BUILD)/src/lowrisc_prim_assert_0.1/rtl \
 	-I$(IBEX_BUILD)/src/lowrisc_prim_util_memload_0/rtl \
 	-I$(IBEX_BUILD)/src/lowrisc_dv_verilator_memutil_verilator_0/cpp
