@@ -133,7 +133,14 @@ AstNode* get_value_as_node(vpiHandle obj_h) {
             auto* inner = new AstConst(new FileLine("uhdm"), value);
             value_node = new AstNegate(new FileLine("uhdm"), inner);
             break;
+        } else if (valStr[0] == '+') {
+            valStr = valStr.substr(1);
+            V3Number value(value_node, valStr.c_str());
+            auto* inner = new AstConst(new FileLine("uhdm"), value);
+            value_node = new AstPlus(new FileLine("uhdm"), inner);
+            break;
         }
+
         V3Number value(value_node, valStr.c_str());
         value_node = new AstConst(new FileLine("uhdm"), value);
         break;
@@ -150,7 +157,14 @@ AstNode* get_value_as_node(vpiHandle obj_h) {
                 auto* inner = new AstConst(new FileLine("uhdm"), value);
                 value_node = new AstNegate(new FileLine("uhdm"), inner);
                 break;
+            } else if (valStr[0] == '+') {
+                valStr = valStr.substr(1);
+                V3Number value(value_node, valStr.c_str());
+                auto* inner = new AstConst(new FileLine("uhdm"), value);
+                value_node = new AstPlus(new FileLine("uhdm"), inner);
+                break;
             }
+
         }
         V3Number value(value_node, valStr.c_str());
         value_node = new AstConst(new FileLine("uhdm"), value);
@@ -1724,13 +1738,9 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         }
         case vpiPlusOp: {
             visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
-                if (lhs == nullptr) {
-                    lhs = node;
-                } else {
-                    rhs = node;
-                }
+                if (lhs == nullptr) { lhs = node; }
             });
-            return new AstAdd(new FileLine("uhdm"), lhs, rhs);
+            return new AstPlus(new FileLine("uhdm"), lhs);
         }
         case vpiSubOp: {
             visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {

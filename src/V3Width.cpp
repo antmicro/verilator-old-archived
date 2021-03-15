@@ -310,6 +310,7 @@ private:
     // Signed: Output signed iff LHS signed; unary operator
     // Unary promote to real
     virtual void visit(AstNegate* nodep) override { visit_negate_not(nodep, true); }
+    virtual void visit(AstPlus* nodep) override { visit_negate_not(nodep, true); }
     // Unary never real
     virtual void visit(AstNot* nodep) override { visit_negate_not(nodep, false); }
 

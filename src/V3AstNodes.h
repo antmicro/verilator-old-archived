@@ -5375,6 +5375,21 @@ public:
     virtual int instrCount() const override { return instrCountDouble(); }
     virtual bool doubleFlavor() const override { return true; }
 };
+class AstPlus : public AstNodeUniop {
+public:
+    AstPlus(FileLine* fl, AstNode* lhsp)
+        : ASTGEN_SUPER(fl, lhsp) {
+        dtypeFrom(lhsp);
+    }
+    ASTNODE_NODE_FUNCS(Plus)
+    virtual void numberOperate(V3Number& out, const V3Number& lhs) override { out.opAbsS(lhs); }
+    virtual string emitVerilog() override { return "%f(- %l)"; }
+    virtual string emitC() override { return "VL_PLUS_%lq(%lW, %P, %li)"; }
+    virtual string emitSimpleOperator() override { return "-"; }
+    virtual bool cleanOut() const override { return false; }
+    virtual bool cleanLhs() const override { return false; }
+    virtual bool sizeMattersLhs() const override { return true; }
+};
 class AstRedAnd : public AstNodeUniop {
 public:
     AstRedAnd(FileLine* fl, AstNode* lhsp)
