@@ -17,3 +17,5 @@ lint_off -rule UNUSED -file "uhdm" -match "*clk_i*"
 lint_off -rule UNUSED -file "uhdm" -match "*rst_ni*"
 
 lint_off -rule UNOPTFLAT -file "uhdm" -match "*ibex_core.cs_registers_i.u_mie_csr.rdata_q*"
+lint_off -rule IMPERFECTSCH
+lint_off -rule DECLFILENAME
