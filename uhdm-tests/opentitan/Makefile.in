@@ -13,7 +13,7 @@ OPEN_TITAN_INCLUDE = \
 	-I$(OPEN_TITAN_BUILD)/src/lowrisc_prim_util_memload_0/rtl
 
 # Working set of Ibex Core files
-TO_SURELOG='/ibex_pkg.sv\|prim_generic_clock_gating.sv\|ibex_prefetch_buffer.sv\|ibex_branch_predict.sv\|ibex_compressed_decoder.sv\|ibex_fetch_fifo.sv\|ibex_id_stage.sv\|ibex_decoder.sv\|ibex_dummy_instr.sv\|ibex_controller.sv\|ibex_if_stage.sv\|ibex_ex_block.sv\|ibex_alu.sv\|ibex_multdiv_fast.sv\|ibex_multdiv_slow.sv\|ibex_load_store_unit.sv\|ibex_wb_stage.sv\|ibex_csr.sv\|ibex_register_file_ff.sv\|ibex_register_file_fpga.sv\|ibex_register_file_latch.sv\|ibex_pmp.sv\|prim_secded_28_22_enc.sv\|prim_secded_72_64_enc.sv\|prim_secded_28_22_dec.sv\|prim_secded_72_64_dec.sv\|prim_generic_ram_1p.sv\|prim_ram_1p.sv\|prim_generic_ram_2p.sv\|prim_ram_2p.sv\|prim_generic_rom.sv\|prim_rom.sv'
+TO_SURELOG='/ibex_pkg.sv\|prim_generic_clock_gating.sv\|ibex_prefetch_buffer.sv\|ibex_branch_predict.sv\|ibex_compressed_decoder.sv\|ibex_fetch_fifo.sv\|ibex_id_stage.sv\|ibex_decoder.sv\|ibex_dummy_instr.sv\|ibex_controller.sv\|ibex_counter.sv\|ibex_cs_registers.sv\|ibex_if_stage.sv\|ibex_ex_block.sv\|ibex_alu.sv\|ibex_multdiv_fast.sv\|ibex_multdiv_slow.sv\|ibex_load_store_unit.sv\|ibex_wb_stage.sv\|ibex_csr.sv\|ibex_register_file_ff.sv\|ibex_register_file_fpga.sv\|ibex_register_file_latch.sv\|ibex_pmp.sv\|prim_secded_28_22_enc.sv\|prim_secded_72_64_enc.sv\|prim_secded_28_22_dec.sv\|prim_secded_72_64_dec.sv\|prim_generic_ram_1p.sv\|prim_ram_1p.sv\|prim_generic_ram_2p.sv\|prim_ram_2p.sv\|prim_generic_rom.sv\|prim_rom.sv'
 
 # Need to readd this to .vc file due to double matching 'ibex_pkg.sv'
 READD='../src/lowrisc_ip_rv_core_ibex_pkg_0.1/rtl/rv_core_ibex_pkg.sv'
@@ -22,6 +22,7 @@ READD='../src/lowrisc_ip_rv_core_ibex_pkg_0.1/rtl/rv_core_ibex_pkg.sv'
 SURELOG_PARAMETERS = -PPMPNumRegions=16 \
                        -PBranchTargetALU=1 \
                        -PWritebackStage=1 \
+                      --disable-feature=parametersubstitution
 
 OPEN_TITAN_SOURCES = \
 	$(shell \
