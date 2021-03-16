@@ -2726,10 +2726,11 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                                    nullptr, nullptr);
         }
         visit_one_to_many({vpiArgument}, obj_h, shared, [&](AstNode* item) {
+            AstNode* argp = new AstArg(new FileLine("Uhdm"), "", item);
             if (args == nullptr) {
-                args = item;
+                args = argp;
             } else {
-                args->addNextNull(item);
+                args->addNextNull(argp);
             }
         });
         return new AstMethodCall(new FileLine("uhdm"), from, objectName, args);
