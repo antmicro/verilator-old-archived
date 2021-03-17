@@ -12,7 +12,7 @@ OPEN_TITAN_INCLUDE = \
 	-I$(OPEN_TITAN_BUILD)/src/lowrisc_dv_dv_macros_0 \
 	-I$(OPEN_TITAN_BUILD)/src/lowrisc_prim_util_memload_0/rtl
 
-# Working set of Ibex Core files
+# Working set of Opentitan files
 SURELOG_FILE_LIST='/ibex_pkg.sv \
 prim_generic_clock_gating.sv \
 ibex_prefetch_buffer.sv \
