@@ -1,0 +1,3 @@
+curr_dir:=$(dir $(lastword $(MAKEFILE_LIST)))
+OPEN_TITAN = ${curr_dir}/../opentitan
+OPEN_TITAN_BUILD = ${OPEN_TITAN}/build/lowrisc_systems_top_earlgrey_verilator_0.1
