@@ -31,6 +31,8 @@ ibex_multdiv_slow.sv \
 ibex_load_store_unit.sv \
 ibex_wb_stage.sv \
 ibex_csr.sv \
+ibex_cs_registers.sv \
+ibex_counter.sv \
 ibex_register_file_ff.sv \
 ibex_register_file_fpga.sv \
 ibex_register_file_latch.sv \
