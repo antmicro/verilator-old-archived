@@ -2641,6 +2641,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
 
         auto* var = new AstVar(new FileLine("uhdm"), AstVarType::VAR, objectName,
                                VFlagChildDType(), dtype);
+        visit_one_to_one({vpiExpr}, obj_h, shared, [&](AstNode* item) { var->valuep(item); });
         return var;
     }
     case vpiChandleVar: {
