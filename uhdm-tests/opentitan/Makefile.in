@@ -76,7 +76,13 @@ prim_diff_decode.sv \
 gpiodpi.sv \
 spidpi.sv \
 uartdpi.sv\
-usbdpi.sv'
+usbdpi.sv \
+prim_generic_ram_1p.sv \
+prim_ram_1p.sv \
+prim_generic_ram_2p.sv \
+prim_ram_2p.sv \
+prim_generic_rom.sv \
+prim_rom.sv'
 
 TO_SURELOG = \
 	$(shell \
