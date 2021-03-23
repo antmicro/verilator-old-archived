@@ -251,6 +251,7 @@ AstBasicDTypeKwd get_kwd_for_type(int vpi_var_type) {
     case vpiChandleVar: {
         return AstBasicDTypeKwd::CHANDLE;
     }
+    case vpiPackedArrayTypespec:
     case vpiEnumTypespec:
     case vpiEnumVar:
     case vpiEnumNet:
@@ -371,6 +372,20 @@ AstNodeDType* getDType(vpiHandle obj_h, UhdmShared& shared) {
     case vpiTimeTypespec: {
         AstBasicDTypeKwd keyword = get_kwd_for_type(type);
         dtype = new AstBasicDType(new FileLine("uhdm"), keyword);
+        break;
+    }
+    case vpiPackedArrayTypespec: {
+        // Get the ElementTypespec
+        auto element_h = vpi_handle(vpiElemTypespec, obj_h);
+        dtype = getDType(element_h, shared);
+
+        AstRange* range = nullptr;
+        visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* item) {
+            if (item != nullptr) { range = reinterpret_cast<AstRange*>(item); }
+        });
+
+        dtype = new AstPackArrayDType(new FileLine("uhdm"), VFlagChildDType(),
+                                      dtype, range);
         break;
     }
     case vpiEnumNet:
