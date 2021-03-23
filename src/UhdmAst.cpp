@@ -1351,10 +1351,20 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 senItemRoot = new AstSenItem(new FileLine("uhdm"), VEdgeType::ET_ANYEDGE, node);
             }
         });
+	std::cout<< "PRE senTree1" << std::endl;
+	if(senItemRoot == nullptr) {
+		std::cout<< "senItemRoot == nullptr" << std::endl;
+	}
+	std::cout<< "PRE senTree2 " << std::endl;
+	std::cout<< "senItemRoot: " << senItemRoot << std::endl;
+	std::cout<< "PRE senTree3 " << std::endl;
         senTree = new AstSenTree(new FileLine("uhdm"), senItemRoot);
+	std::cout<< "POST senTree " << std::endl;
         // Body of statements
         visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* node) { body = node; });
+	std::cout<< "POST visit_one_to_one " << std::endl;
         auto* tctrl = new AstTimingControl(new FileLine("uhdm"), senTree, body);
+	std::cout<< "POST new AstTimingControl " << std::endl;
         return new AstAlways(new FileLine("uhdm"), VAlwaysKwd::ALWAYS_FF, nullptr, tctrl);
     }
     case vpiInitial: {
