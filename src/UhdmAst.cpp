@@ -322,27 +322,10 @@ AstNodeDType* getDType(vpiHandle obj_h, UhdmShared& shared) {
     AstBasicDTypeKwd keyword = AstBasicDTypeKwd::UNKNOWN;
     switch (type) {
     case vpiLogicNet:
-    case vpiIntegerNet:
-    case vpiTimeNet:
-    case vpiLogicVar:
-    case vpiIntVar:
-    case vpiLongIntVar:
-    case vpiIntegerVar:
-    case vpiBitVar:
-    case vpiByteVar:
-    case vpiRealVar:
-    case vpiStringVar:
-    case vpiTimeVar:
-    case vpiChandleVar:
     case vpiLogicTypespec:
-    case vpiIntTypespec:
-    case vpiLongIntTypespec:
-    case vpiIntegerTypespec:
-    case vpiBitTypespec:
-    case vpiByteTypespec:
-    case vpiRealTypespec:
-    case vpiStringTypespec:
-    case vpiTimeTypespec: {
+    case vpiLogicVar:
+    case vpiBitVar:
+    case vpiBitTypespec: {
         AstBasicDTypeKwd keyword = get_kwd_for_type(type);
         auto basic = new AstBasicDType(new FileLine("uhdm"), keyword);
         AstRange* rangeNode = nullptr;
@@ -367,6 +350,27 @@ AstNodeDType* getDType(vpiHandle obj_h, UhdmShared& shared) {
             range_stack.pop();
         }
         if (dtype == nullptr) { dtype = basic; }
+        break;
+    }
+    case vpiIntegerNet:
+    case vpiTimeNet:
+    case vpiIntVar:
+    case vpiLongIntVar:
+    case vpiIntegerVar:
+    case vpiByteVar:
+    case vpiRealVar:
+    case vpiStringVar:
+    case vpiTimeVar:
+    case vpiChandleVar:
+    case vpiIntTypespec:
+    case vpiLongIntTypespec:
+    case vpiIntegerTypespec:
+    case vpiByteTypespec:
+    case vpiRealTypespec:
+    case vpiStringTypespec:
+    case vpiTimeTypespec: {
+        AstBasicDTypeKwd keyword = get_kwd_for_type(type);
+        dtype = new AstBasicDType(new FileLine("uhdm"), keyword);
         break;
     }
     case vpiEnumNet:
