@@ -449,23 +449,38 @@ AstNodeDType* getDType(vpiHandle obj_h, UhdmShared& shared) {
         // todo: static/dynamic/assoc/queue
         auto rand_type = vpi_get(vpiRandType, obj_h);
         // todo: rand/randc/notrand
-        AstNodeDType* element_dtype = nullptr;
+        AstNodeDType* elementDtypep = nullptr;
 
         vpiHandle itr = vpi_iterate(vpiReg, obj_h);
         while (vpiHandle member_h = vpi_scan(itr)) {
-            std::string type_name;
             auto type_h = vpi_handle(vpiTypespec, member_h);
-            if (type_h) { element_dtype = getDType(type_h, shared); }
+            if (type_h) {
+                elementDtypep = getDType(type_h, shared);
+            }
+            else {
+                auto element_type = vpi_get(vpiType, member_h);
+                if (element_type) {
+                    AstBasicDTypeKwd keyword = get_kwd_for_type(element_type);
+                    elementDtypep = new AstBasicDType(new FileLine("uhdm"), keyword);
+                }
+            }
             vpi_free_object(member_h);
         }
         vpi_free_object(itr);
 
-        AstRange* range = nullptr;
-        visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* item) {
-            if (item != nullptr) { range = reinterpret_cast<AstRange*>(item); }
+        std::vector<AstRange*> ranges;
+        visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* itemp) {
+            if (itemp != nullptr) {
+                ranges.push_back(reinterpret_cast<AstRange*>(itemp));
+            }
         });
-        dtype = new AstUnpackArrayDType(new FileLine("uhdm"), VFlagChildDType(), element_dtype,
-                                        range);
+
+        for (auto rangep_it = ranges.rbegin(); rangep_it != ranges.rend(); rangep_it++) {
+            elementDtypep = new AstUnpackArrayDType(new FileLine("uhdm"),
+                                                     VFlagChildDType(),
+                                                     elementDtypep, *rangep_it);
+        }
+        dtype = elementDtypep;
         break;
     }
     case vpiArrayNet: {
@@ -2634,6 +2649,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
 
         auto* var = new AstVar(new FileLine("uhdm"), AstVarType::VAR, objectName,
                                VFlagChildDType(), dtype);
+        visit_one_to_one({vpiExpr}, obj_h, shared, [&](AstNode* item) { var->valuep(item); });
         return var;
     }
     case vpiChandleVar: {
