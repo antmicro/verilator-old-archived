@@ -72,7 +72,11 @@ prim_buf.sv \
 prim_alert_pkg.sv \
 prim_arbiter_fixed.sv \
 prim_esc_pkg.sv \
-prim_diff_decode.sv'
+prim_diff_decode.sv \
+gpiodpi.sv \
+spidpi.sv \
+uartdpi.sv\
+usbdpi.sv'
 
 TO_SURELOG = \
 	$(shell \
