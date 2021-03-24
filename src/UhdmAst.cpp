@@ -676,10 +676,6 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared) {
         if (itemp) { operands.push_back(itemp); }
     });
 
-    // TODO: Remove those two once all operations are done
-    AstNode* lhs = nullptr;
-    AstNode* rhs = nullptr;
-
     auto operation = vpi_get(vpiOpType, obj_h);
     switch (operation) {
         case vpiBitNegOp: {
@@ -832,30 +828,32 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared) {
             return new AstCond(new FileLine("uhdm"), operands[0], operands[1], operands[2]);
         }
         case vpiConcatOp: {
-            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
-                if (node != nullptr) {
-                    if (lhs == nullptr) {
-                        lhs = node;
-                    } else if (rhs == nullptr) {
-                        rhs = node;
+            AstNode* op1p = nullptr;
+            AstNode* op2p = nullptr;
+            for (auto op : operands) {
+                if (op != nullptr) {
+                    if (op1p == nullptr) {
+                        op1p = op;
+                    } else if (op2p == nullptr) {
+                        op2p = op;
                     } else {
                         // Add one more level
-                        lhs = new AstConcat(new FileLine("uhdm"), lhs, rhs);
-                        rhs = node;
+                        op1p = new AstConcat(new FileLine("uhdm"), op1p, op2p);
+                        op2p = op;
                     }
                 }
-            });
-            // Wrap in a Replicate node
-            if (rhs != nullptr) {
-                lhs = new AstConcat(new FileLine("uhdm"), lhs, rhs);
-                rhs = new AstConst(new FileLine("uhdm"), 1);
-            } else {
-                rhs = new AstConst(new FileLine("uhdm"), 1);
             }
-            return new AstReplicate(new FileLine("uhdm"), lhs, rhs);
+            // Wrap in a Replicate node
+            if (op2p != nullptr) {
+                op1p = new AstConcat(new FileLine("uhdm"), op1p, op2p);
+                op2p = new AstConst(new FileLine("uhdm"), 1);
+            } else {
+                op2p = new AstConst(new FileLine("uhdm"), 1);
+            }
+            return new AstReplicate(new FileLine("uhdm"), op1p, op2p);
         }
         case vpiMultiConcatOp: {
-            // Sides in AST are switched: first rhs (value), then lhs (count)
+            // Sides in AST are switched: first value, then count
             return new AstReplicate(new FileLine("uhdm"), operands[1], operands[0]);
         }
         case vpiArithLShiftOp:  // This behaves the same as normal shift
@@ -869,23 +867,14 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared) {
             return new AstShiftRS(new FileLine("uhdm"), operands[0], operands[1]);
         }
         case vpiInsideOp: {
-            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
-                if (node != nullptr) {
-                    if (lhs == nullptr) {
-                        lhs = node;
-                    } else if (rhs == nullptr) {
-                        rhs = node;
-                    } else {
-                        rhs->addNextNull(node);
-                    }
-                }
-            });
-            return new AstInside(new FileLine("uhdm"), lhs, rhs);
+            AstNode* exprp = operands[0];
+            AstNode* itemsp = operands[1];
+            for (auto it = operands.begin() + 2; it != operands.end(); it++) {
+                itemsp->addNextNull(*it);
+            }
+            return new AstInside(new FileLine("uhdm"), exprp, itemsp);
         }
         case vpiCastOp: {
-            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
-                if (lhs == nullptr) { lhs = node; }
-            });
             auto typespec_h = vpi_handle(vpiTypespec, obj_h);
             std::set<int> typespec_types = {
                 vpiClassTypespec, vpiEnumTypespec, vpiStructTypespec,
@@ -898,68 +887,55 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared) {
                     name = s;
                     sanitize_str(name);
                 } else {
-                    v3error("Encountered custom, but unnamed typespec");
+                    v3error("Encountered custom, but unnamed typespec in cast operation");
                 }
-                return new AstCast(new FileLine("uhdm"), lhs,
+                return new AstCast(new FileLine("uhdm"), operands[0],
                                    new AstRefDType(new FileLine("uhdm"), name));
             } else {
-                visit_one_to_one({vpiTypespec}, obj_h, shared, [&](AstNode* node) {
-                    if (rhs == nullptr) { rhs = node; }
+                AstNode* typespecp;
+                visit_one_to_one({vpiTypespec}, obj_h, shared, [&](AstNode* nodep) {
+                    typespecp = nodep;
                 });
+                return new AstCastParse(new FileLine("uhdm"), operands[0], typespecp);
             }
-            return new AstCastParse(new FileLine("uhdm"), lhs, rhs);
         }
         case vpiStreamRLOp: {
-            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
-                if (lhs == nullptr) {
-                    lhs = node;
-                } else if (rhs == nullptr) {
-                    rhs = node;
-                }
-            });
-
-            // Verilog {rhs{lhs}} - Note rhs() is the slice size, not the lhs()
+            // Verilog {op1{op0}} - Note op1 is the slice size, not the op0
             // IEEE 11.4.14.2: If a slice_size is not specified, the default is 1.
-            if (rhs == nullptr) {
-                return new AstStreamL(new FileLine("uhdm"), lhs,
+            if (operands.size() == 1) {
+                return new AstStreamL(new FileLine("uhdm"), operands[0],
                                       new AstConst(new FileLine("uhdm"), 1));
             } else {
-                return new AstStreamL(new FileLine("uhdm"), lhs, rhs);
+                return new AstStreamL(new FileLine("uhdm"), operands[0], operands[1]);
             }
         }
         case vpiStreamLROp: {
-            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
-                if (lhs == nullptr) {
-                    lhs = node;
-                } else if (rhs == nullptr) {
-                    rhs = node;
-                }
-            });
-            // See comments above - default rhs is 1
-            if (rhs == nullptr) {
-                return new AstStreamR(new FileLine("uhdm"), lhs,
+            // See comments above - default slice size is 1
+            if (operands.size() == 1) {
+                return new AstStreamR(new FileLine("uhdm"), operands[0],
                                       new AstConst(new FileLine("uhdm"), 1));
             } else {
-                return new AstStreamR(new FileLine("uhdm"), lhs, rhs);
+                return new AstStreamR(new FileLine("uhdm"), operands[0], operands[1]);
             }
         }
         case vpiPowerOp: {
             return new AstPow(new FileLine("uhdm"), operands[0], operands[1]);
         }
         case vpiAssignmentPatternOp: {
-            visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* node) {
+            AstNode* itemsp = nullptr;
+            for (auto op : operands) {
                 // Wrap only if this is a positional pattern
                 // Tagged patterns will return member nodes
-                if (node && !VN_IS(node, PatMember)) {
-                    node = new AstPatMember(new FileLine("uhdm"), node, nullptr, nullptr);
+                if (op && !VN_IS(op, PatMember)) {
+                    op = new AstPatMember(new FileLine("uhdm"), op, nullptr, nullptr);
                 }
-                if (lhs == nullptr) {
-                    lhs = node;
+                if (itemsp == nullptr) {
+                    itemsp = op;
                 } else {
-                    lhs->addNextNull(node);
+                    itemsp->addNextNull(op);
                 }
-            });
-            return new AstPattern(new FileLine("uhdm"), lhs);
+            }
+            return new AstPattern(new FileLine("uhdm"), itemsp);
         }
         default: {
             v3error("\t! Encountered unhandled operation: " << operation);
