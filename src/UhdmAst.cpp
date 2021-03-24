@@ -1688,7 +1688,6 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 vpiInternalScope,
                 vpiImport,
                 vpiAttribute,
-                vpiNet,
             },
             obj_h, shared, [&](AstNode* node) {
                 if (body == nullptr) {
