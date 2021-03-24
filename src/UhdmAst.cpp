@@ -678,271 +678,270 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared) {
 
     auto operation = vpi_get(vpiOpType, obj_h);
     switch (operation) {
-        case vpiBitNegOp: {
-            return new AstNot(new FileLine("uhdm"), operands[0]);
+    case vpiBitNegOp: {
+        return new AstNot(new FileLine("uhdm"), operands[0]);
+    }
+    case vpiNotOp: {
+        return new AstLogNot(new FileLine("uhdm"), operands[0]);
+    }
+    case vpiBitAndOp: {
+        return new AstAnd(new FileLine("uhdm"), operands[0], operands[1]);
+    }
+    case vpiListOp: {
+        AstNode* elementp = operands[0];
+        // First operand is assigned above, start from second
+        for (auto it = ++operands.begin(); it != operands.end(); it++) {
+            elementp->addNextNull(*it);
         }
-        case vpiNotOp: {
-            return new AstLogNot(new FileLine("uhdm"), operands[0]);
+        return elementp;
+    }
+    case vpiBitOrOp: {
+        return new AstOr(new FileLine("uhdm"), operands[0], operands[1]);
+    }
+    case vpiBitXorOp: {
+        return new AstXor(new FileLine("uhdm"), operands[1], operands[0]);
+    }
+    case vpiBitXnorOp: {
+        return new AstXnor(new FileLine("uhdm"), operands[1], operands[0]);
+    }
+    case vpiPostIncOp:
+    case vpiPostDecOp: {
+        auto* onep = new AstConst(new FileLine("uhdm"), 1);
+        AstNode* op = nullptr;
+        if (operation == vpiPostIncOp) {
+            op = new AstAdd(new FileLine("uhdm"), operands[0], onep);
+        } else if (operation == vpiPostDecOp) {
+            op = new AstSub(new FileLine("uhdm"), operands[0], onep);
         }
-        case vpiBitAndOp: {
-            return new AstAnd(new FileLine("uhdm"), operands[0], operands[1]);
-        }
-        case vpiListOp: {
-            AstNode* elementp = operands[0];
-            // First operand is assigned above, start from second
-            for (auto it = ++operands.begin(); it != operands.end(); it++) {
-                elementp->addNextNull(*it);
-            }
-            return elementp;
-        }
-        case vpiBitOrOp: {
-            return new AstOr(new FileLine("uhdm"), operands[0], operands[1]);
-        }
-        case vpiBitXorOp: {
-            return new AstXor(new FileLine("uhdm"), operands[1], operands[0]);
-        }
-        case vpiBitXnorOp: {
-            return new AstXnor(new FileLine("uhdm"), operands[1], operands[0]);
-        }
-        case vpiPostIncOp:
-        case vpiPostDecOp: {
-            auto* onep = new AstConst(new FileLine("uhdm"), 1);
-            AstNode* op = nullptr;
-            if (operation == vpiPostIncOp) {
-                op = new AstAdd(new FileLine("uhdm"), operands[0], onep);
-            } else if (operation == vpiPostDecOp) {
-                op = new AstSub(new FileLine("uhdm"), operands[0], onep);
-            }
-            auto* varp = new AstParseRef(new FileLine("uhdm"), VParseRefExp::en::PX_TEXT,
-                                        operands[0]->name(), nullptr, nullptr);
-            return new AstAssign(new FileLine("uhdm"), varp, op);
-        }
-        case vpiAssignmentOp: {
-            return new AstAssign(new FileLine("uhdm"), operands[0], operands[1]);
-        }
-        case vpiUnaryAndOp: {
-            return new AstRedAnd(new FileLine("uhdm"), operands[0]);
-        }
-        case vpiUnaryNandOp: {
-            auto* op = new AstRedAnd(new FileLine("uhdm"), operands[0]);
-            return new AstNot(new FileLine("uhdm"), op);
-        }
-        case vpiUnaryNorOp: {
-            auto* op = new AstRedOr(new FileLine("uhdm"), operands[0]);
-            return new AstNot(new FileLine("uhdm"), op);
-        }
-        case vpiUnaryOrOp: {
-            return new AstRedOr(new FileLine("uhdm"), operands[0]);
-        }
-        case vpiUnaryXorOp: {
-            return new AstRedXor(new FileLine("uhdm"), operands[0]);
-        }
-        case vpiUnaryXNorOp: {
-            return new AstRedXnor(new FileLine("uhdm"), operands[0]);
-        }
-        case vpiEventOrOp: {
-            // Do not create a separate node
-            // Chain operand nodes instead
-            AstNode* eventOrNodep = nullptr;
-            for (auto op : operands) {
-                if (op) {
-                    if (op->type() == AstType::en::atSenItem) {
-                        // This is a Posedge/Negedge operation, keep this op
-                        if (eventOrNodep == nullptr) {
-                            eventOrNodep = op;
-                        } else {
-                            eventOrNodep->addNextNull(op);
-                        }
+        auto* varp = new AstParseRef(new FileLine("uhdm"), VParseRefExp::en::PX_TEXT,
+                                     operands[0]->name(), nullptr, nullptr);
+        return new AstAssign(new FileLine("uhdm"), varp, op);
+    }
+    case vpiAssignmentOp: {
+        return new AstAssign(new FileLine("uhdm"), operands[0], operands[1]);
+    }
+    case vpiUnaryAndOp: {
+        return new AstRedAnd(new FileLine("uhdm"), operands[0]);
+    }
+    case vpiUnaryNandOp: {
+        auto* op = new AstRedAnd(new FileLine("uhdm"), operands[0]);
+        return new AstNot(new FileLine("uhdm"), op);
+    }
+    case vpiUnaryNorOp: {
+        auto* op = new AstRedOr(new FileLine("uhdm"), operands[0]);
+        return new AstNot(new FileLine("uhdm"), op);
+    }
+    case vpiUnaryOrOp: {
+        return new AstRedOr(new FileLine("uhdm"), operands[0]);
+    }
+    case vpiUnaryXorOp: {
+        return new AstRedXor(new FileLine("uhdm"), operands[0]);
+    }
+    case vpiUnaryXNorOp: {
+        return new AstRedXnor(new FileLine("uhdm"), operands[0]);
+    }
+    case vpiEventOrOp: {
+        // Do not create a separate node
+        // Chain operand nodes instead
+        AstNode* eventOrNodep = nullptr;
+        for (auto op : operands) {
+            if (op) {
+                if (op->type() == AstType::en::atSenItem) {
+                    // This is a Posedge/Negedge operation, keep this op
+                    if (eventOrNodep == nullptr) {
+                        eventOrNodep = op;
                     } else {
-                        // Edge not specified -> use ANY
-                        auto* wrapperp
-                            = new AstSenItem(new FileLine("uhdm"), VEdgeType::ET_ANYEDGE, op);
-                        if (eventOrNodep == nullptr) {
-                            eventOrNodep = wrapperp;
-                        } else {
-                            eventOrNodep->addNextNull(wrapperp);
-                        }
+                        eventOrNodep->addNextNull(op);
+                    }
+                } else {
+                    // Edge not specified -> use ANY
+                    auto* wrapperp
+                        = new AstSenItem(new FileLine("uhdm"), VEdgeType::ET_ANYEDGE, op);
+                    if (eventOrNodep == nullptr) {
+                        eventOrNodep = wrapperp;
+                    } else {
+                        eventOrNodep->addNextNull(wrapperp);
                     }
                 }
             }
-            return eventOrNodep;
         }
-        case vpiLogAndOp: {
-            return new AstLogAnd(new FileLine("uhdm"), operands[0], operands[1]);
-        }
-        case vpiLogOrOp: {
-            return new AstLogOr(new FileLine("uhdm"), operands[0], operands[1]);
-        }
-        case vpiPosedgeOp: {
-            return new AstSenItem(new FileLine("uhdm"), VEdgeType::ET_POSEDGE, operands[0]);
-        }
-        case vpiNegedgeOp: {
-            return new AstSenItem(new FileLine("uhdm"), VEdgeType::ET_NEGEDGE, operands[0]);
-        }
-        case vpiEqOp: {
-            return new AstEq(new FileLine("uhdm"), operands[0], operands[1]);
-        }
-        case vpiCaseEqOp: {
-            return new AstEqCase(new FileLine("uhdm"), operands[0], operands[1]);
-        }
-        case vpiNeqOp: {
-            return new AstNeq(new FileLine("uhdm"), operands[0], operands[1]);
-        }
-        case vpiCaseNeqOp: {
-            return new AstNeqCase(new FileLine("uhdm"), operands[0], operands[1]);
-        }
-        case vpiGtOp: {
-            return new AstGt(new FileLine("uhdm"), operands[0], operands[1]);
-        }
-        case vpiGeOp: {
-            return new AstGte(new FileLine("uhdm"), operands[0], operands[1]);
-        }
-        case vpiLtOp: {
-            return new AstLt(new FileLine("uhdm"), operands[0], operands[1]);
-        }
-        case vpiLeOp: {
-            return new AstLte(new FileLine("uhdm"), operands[0], operands[1]);
-        }
-        case vpiPlusOp: {
-            return operands[0];
-        }
-        case vpiSubOp: {
-            return new AstSub(new FileLine("uhdm"), operands[0], operands[1]);
-        }
-        case vpiMinusOp: {
-            return new AstNegate(new FileLine("uhdm"), operands[0]);
-        }
-        case vpiAddOp: {
-            return new AstAdd(new FileLine("uhdm"), operands[0], operands[1]);
-        }
-        case vpiMultOp: {
-            return new AstMul(new FileLine("uhdm"), operands[0], operands[1]);
-        }
-        case vpiDivOp: {
-            return new AstDiv(new FileLine("uhdm"), operands[0], operands[1]);
-        }
-        case vpiModOp: {
-            return new AstModDiv(new FileLine("uhdm"), operands[0], operands[1]);
-        }
-        case vpiConditionOp: {
-            return new AstCond(new FileLine("uhdm"), operands[0], operands[1], operands[2]);
-        }
-        case vpiConcatOp: {
-            AstNode* op1p = nullptr;
-            AstNode* op2p = nullptr;
-            for (auto op : operands) {
-                if (op != nullptr) {
-                    if (op1p == nullptr) {
-                        op1p = op;
-                    } else if (op2p == nullptr) {
-                        op2p = op;
-                    } else {
-                        // Add one more level
-                        op1p = new AstConcat(new FileLine("uhdm"), op1p, op2p);
-                        op2p = op;
-                    }
-                }
-            }
-            // Wrap in a Replicate node
-            if (op2p != nullptr) {
-                op1p = new AstConcat(new FileLine("uhdm"), op1p, op2p);
-                op2p = new AstConst(new FileLine("uhdm"), 1);
-            } else {
-                op2p = new AstConst(new FileLine("uhdm"), 1);
-            }
-            return new AstReplicate(new FileLine("uhdm"), op1p, op2p);
-        }
-        case vpiMultiConcatOp: {
-            // Sides in AST are switched: first value, then count
-            return new AstReplicate(new FileLine("uhdm"), operands[1], operands[0]);
-        }
-        case vpiArithLShiftOp:  // This behaves the same as normal shift
-        case vpiLShiftOp: {
-            return new AstShiftL(new FileLine("uhdm"), operands[0], operands[1]);
-        }
-        case vpiRShiftOp: {
-            return new AstShiftR(new FileLine("uhdm"), operands[0], operands[1]);
-        }
-        case vpiArithRShiftOp: {
-            return new AstShiftRS(new FileLine("uhdm"), operands[0], operands[1]);
-        }
-        case vpiInsideOp: {
-            AstNode* exprp = operands[0];
-            AstNode* itemsp = operands[1];
-            for (auto it = operands.begin() + 2; it != operands.end(); it++) {
-                itemsp->addNextNull(*it);
-            }
-            return new AstInside(new FileLine("uhdm"), exprp, itemsp);
-        }
-        case vpiCastOp: {
-            auto typespec_h = vpi_handle(vpiTypespec, obj_h);
-            std::set<int> typespec_types = {
-                vpiClassTypespec, vpiEnumTypespec, vpiStructTypespec,
-                vpiUnionTypespec, vpiVoidTypespec,
-            };
-            if (typespec_types.count(vpi_get(vpiType, typespec_h)) != 0) {
-                // Custom type, create reference only
-                std::string name;
-                if (auto s = vpi_get_str(vpiName, typespec_h)) {
-                    name = s;
-                    sanitize_str(name);
+        return eventOrNodep;
+    }
+    case vpiLogAndOp: {
+        return new AstLogAnd(new FileLine("uhdm"), operands[0], operands[1]);
+    }
+    case vpiLogOrOp: {
+        return new AstLogOr(new FileLine("uhdm"), operands[0], operands[1]);
+    }
+    case vpiPosedgeOp: {
+        return new AstSenItem(new FileLine("uhdm"), VEdgeType::ET_POSEDGE, operands[0]);
+    }
+    case vpiNegedgeOp: {
+        return new AstSenItem(new FileLine("uhdm"), VEdgeType::ET_NEGEDGE, operands[0]);
+    }
+    case vpiEqOp: {
+        return new AstEq(new FileLine("uhdm"), operands[0], operands[1]);
+    }
+    case vpiCaseEqOp: {
+        return new AstEqCase(new FileLine("uhdm"), operands[0], operands[1]);
+    }
+    case vpiNeqOp: {
+        return new AstNeq(new FileLine("uhdm"), operands[0], operands[1]);
+    }
+    case vpiCaseNeqOp: {
+        return new AstNeqCase(new FileLine("uhdm"), operands[0], operands[1]);
+    }
+    case vpiGtOp: {
+        return new AstGt(new FileLine("uhdm"), operands[0], operands[1]);
+    }
+    case vpiGeOp: {
+        return new AstGte(new FileLine("uhdm"), operands[0], operands[1]);
+    }
+    case vpiLtOp: {
+        return new AstLt(new FileLine("uhdm"), operands[0], operands[1]);
+    }
+    case vpiLeOp: {
+        return new AstLte(new FileLine("uhdm"), operands[0], operands[1]);
+    }
+    case vpiPlusOp: {
+        return operands[0];
+    }
+    case vpiSubOp: {
+        return new AstSub(new FileLine("uhdm"), operands[0], operands[1]);
+    }
+    case vpiMinusOp: {
+        return new AstNegate(new FileLine("uhdm"), operands[0]);
+    }
+    case vpiAddOp: {
+        return new AstAdd(new FileLine("uhdm"), operands[0], operands[1]);
+    }
+    case vpiMultOp: {
+        return new AstMul(new FileLine("uhdm"), operands[0], operands[1]);
+    }
+    case vpiDivOp: {
+        return new AstDiv(new FileLine("uhdm"), operands[0], operands[1]);
+    }
+    case vpiModOp: {
+        return new AstModDiv(new FileLine("uhdm"), operands[0], operands[1]);
+    }
+    case vpiConditionOp: {
+        return new AstCond(new FileLine("uhdm"), operands[0], operands[1], operands[2]);
+    }
+    case vpiConcatOp: {
+        AstNode* op1p = nullptr;
+        AstNode* op2p = nullptr;
+        for (auto op : operands) {
+            if (op != nullptr) {
+                if (op1p == nullptr) {
+                    op1p = op;
+                } else if (op2p == nullptr) {
+                    op2p = op;
                 } else {
-                    v3error("Encountered custom, but unnamed typespec in cast operation");
-                }
-                return new AstCast(new FileLine("uhdm"), operands[0],
-                                   new AstRefDType(new FileLine("uhdm"), name));
-            } else {
-                AstNode* typespecp;
-                visit_one_to_one({vpiTypespec}, obj_h, shared, [&](AstNode* nodep) {
-                    typespecp = nodep;
-                });
-                return new AstCastParse(new FileLine("uhdm"), operands[0], typespecp);
-            }
-        }
-        case vpiStreamRLOp: {
-            // Verilog {op1{op0}} - Note op1 is the slice size, not the op0
-            // IEEE 11.4.14.2: If a slice_size is not specified, the default is 1.
-            if (operands.size() == 1) {
-                return new AstStreamL(new FileLine("uhdm"), operands[0],
-                                      new AstConst(new FileLine("uhdm"), 1));
-            } else {
-                return new AstStreamL(new FileLine("uhdm"), operands[0], operands[1]);
-            }
-        }
-        case vpiStreamLROp: {
-            // See comments above - default slice size is 1
-            if (operands.size() == 1) {
-                return new AstStreamR(new FileLine("uhdm"), operands[0],
-                                      new AstConst(new FileLine("uhdm"), 1));
-            } else {
-                return new AstStreamR(new FileLine("uhdm"), operands[0], operands[1]);
-            }
-        }
-        case vpiPowerOp: {
-            return new AstPow(new FileLine("uhdm"), operands[0], operands[1]);
-        }
-        case vpiAssignmentPatternOp: {
-            AstNode* itemsp = nullptr;
-            for (auto op : operands) {
-                // Wrap only if this is a positional pattern
-                // Tagged patterns will return member nodes
-                if (op && !VN_IS(op, PatMember)) {
-                    op = new AstPatMember(new FileLine("uhdm"), op, nullptr, nullptr);
-                }
-                if (itemsp == nullptr) {
-                    itemsp = op;
-                } else {
-                    itemsp->addNextNull(op);
+                    // Add one more level
+                    op1p = new AstConcat(new FileLine("uhdm"), op1p, op2p);
+                    op2p = op;
                 }
             }
-            return new AstPattern(new FileLine("uhdm"), itemsp);
         }
-        default: {
-            v3error("\t! Encountered unhandled operation: " << operation);
-            break;
+        // Wrap in a Replicate node
+        if (op2p != nullptr) {
+            op1p = new AstConcat(new FileLine("uhdm"), op1p, op2p);
+            op2p = new AstConst(new FileLine("uhdm"), 1);
+        } else {
+            op2p = new AstConst(new FileLine("uhdm"), 1);
         }
+        return new AstReplicate(new FileLine("uhdm"), op1p, op2p);
+    }
+    case vpiMultiConcatOp: {
+        // Sides in AST are switched: first value, then count
+        return new AstReplicate(new FileLine("uhdm"), operands[1], operands[0]);
+    }
+    case vpiArithLShiftOp:  // This behaves the same as normal shift
+    case vpiLShiftOp: {
+        return new AstShiftL(new FileLine("uhdm"), operands[0], operands[1]);
+    }
+    case vpiRShiftOp: {
+        return new AstShiftR(new FileLine("uhdm"), operands[0], operands[1]);
+    }
+    case vpiArithRShiftOp: {
+        return new AstShiftRS(new FileLine("uhdm"), operands[0], operands[1]);
+    }
+    case vpiInsideOp: {
+        AstNode* exprp = operands[0];
+        AstNode* itemsp = operands[1];
+        for (auto it = operands.begin() + 2; it != operands.end(); it++) {
+            itemsp->addNextNull(*it);
         }
-        return nullptr;
+        return new AstInside(new FileLine("uhdm"), exprp, itemsp);
+    }
+    case vpiCastOp: {
+        auto typespec_h = vpi_handle(vpiTypespec, obj_h);
+        std::set<int> typespec_types = {
+            vpiClassTypespec, vpiEnumTypespec, vpiStructTypespec,
+            vpiUnionTypespec, vpiVoidTypespec,
+        };
+        if (typespec_types.count(vpi_get(vpiType, typespec_h)) != 0) {
+            // Custom type, create reference only
+            std::string name;
+            if (auto s = vpi_get_str(vpiName, typespec_h)) {
+                name = s;
+                sanitize_str(name);
+            } else {
+                v3error("Encountered custom, but unnamed typespec in cast operation");
+            }
+            return new AstCast(new FileLine("uhdm"), operands[0],
+                               new AstRefDType(new FileLine("uhdm"), name));
+        } else {
+            AstNode* typespecp;
+            visit_one_to_one({vpiTypespec}, obj_h, shared,
+                             [&](AstNode* nodep) { typespecp = nodep; });
+            return new AstCastParse(new FileLine("uhdm"), operands[0], typespecp);
+        }
+    }
+    case vpiStreamRLOp: {
+        // Verilog {op1{op0}} - Note op1 is the slice size, not the op0
+        // IEEE 11.4.14.2: If a slice_size is not specified, the default is 1.
+        if (operands.size() == 1) {
+            return new AstStreamL(new FileLine("uhdm"), operands[0],
+                                  new AstConst(new FileLine("uhdm"), 1));
+        } else {
+            return new AstStreamL(new FileLine("uhdm"), operands[0], operands[1]);
+        }
+    }
+    case vpiStreamLROp: {
+        // See comments above - default slice size is 1
+        if (operands.size() == 1) {
+            return new AstStreamR(new FileLine("uhdm"), operands[0],
+                                  new AstConst(new FileLine("uhdm"), 1));
+        } else {
+            return new AstStreamR(new FileLine("uhdm"), operands[0], operands[1]);
+        }
+    }
+    case vpiPowerOp: {
+        return new AstPow(new FileLine("uhdm"), operands[0], operands[1]);
+    }
+    case vpiAssignmentPatternOp: {
+        AstNode* itemsp = nullptr;
+        for (auto op : operands) {
+            // Wrap only if this is a positional pattern
+            // Tagged patterns will return member nodes
+            if (op && !VN_IS(op, PatMember)) {
+                op = new AstPatMember(new FileLine("uhdm"), op, nullptr, nullptr);
+            }
+            if (itemsp == nullptr) {
+                itemsp = op;
+            } else {
+                itemsp->addNextNull(op);
+            }
+        }
+        return new AstPattern(new FileLine("uhdm"), itemsp);
+    }
+    default: {
+        v3error("\t! Encountered unhandled operation: " << operation);
+        break;
+    }
+    }
+    return nullptr;
 }
 
 AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
