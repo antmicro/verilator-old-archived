@@ -1220,6 +1220,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                     if (node != nullptr) param_map[node->name()] = node;
                 });
             (shared.partial_modules)[module->name()] = module;
+            if (v3Global.opt.trace()) { module->modTrace(true); }
             shared.top_param_map[module->name()] = param_map;
         }
 
@@ -1296,6 +1297,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             UINFO(8, "Adding cell " << fullname << std::endl);
             AstCell* cell = new AstCell(new FileLine("uhdm"), new FileLine("uhdm"), objectName,
                                         name, modPins, modParams, nullptr);
+            if (v3Global.opt.trace()) { cell->trace(true); }
             return cell;
         }
         break;
@@ -1355,6 +1357,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         auto dtypep = getDType(obj_h, shared);
         AstVar* v = new AstVar(new FileLine("uhdm"), vpi_net->varType(), objectName,
                                VFlagChildDType(), dtypep);
+        if (v3Global.opt.trace()) { v->trace(true); }
         return v;
     }
 
@@ -1375,13 +1378,16 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             return nullptr;  // Skip this net
         }
 
-        return new AstVar(new FileLine("uhdm"), net_type, objectName, VFlagChildDType(), dtype);
+        auto* v = new AstVar(new FileLine("uhdm"), net_type, objectName, VFlagChildDType(), dtype);
+        if (v3Global.opt.trace()) { v->trace(true); }
+        return v;
     }
     case vpiStructVar: {
         AstNodeDType* dtype = getDType(obj_h, shared);
 
         auto* v = new AstVar(new FileLine("uhdm"), AstVarType::VAR, objectName, VFlagChildDType(),
                              dtype);
+        if (v3Global.opt.trace()) { v->trace(true); }
         return v;
     }
     case vpiParameter:
@@ -2414,6 +2420,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         AstNodeDType* dtype = getDType(obj_h, shared);
         auto* var = new AstVar(new FileLine("uhdm"), AstVarType::VAR, objectName,
                                VFlagChildDType(), dtype);
+        if (v3Global.opt.trace()) { var->trace(true); }
         visit_one_to_one({vpiExpr}, obj_h, shared, [&](AstNode* item) { var->valuep(item); });
         return var;
     }
@@ -2424,12 +2431,14 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         auto* var = new AstVar(new FileLine("uhdm"), AstVarType::VAR, objectName,
                                VFlagChildDType(), dtype);
         visit_one_to_one({vpiExpr}, obj_h, shared, [&](AstNode* item) { var->valuep(item); });
+        if (v3Global.opt.trace()) { var->trace(true); }
         return var;
     }
     case vpiChandleVar: {
         auto* dtype = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::CHANDLE);
         auto* var = new AstVar(new FileLine("uhdm"), AstVarType::VAR, objectName,
                                VFlagChildDType(), dtype);
+        if (v3Global.opt.trace()) { var->trace(true); }
         return var;
     }
     case vpiGenScopeArray: {
