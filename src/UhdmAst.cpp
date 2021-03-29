@@ -386,6 +386,8 @@ AstNodeDType* getDType(vpiHandle obj_h, UhdmShared& shared) {
         std::string type_name = "";
         if (auto s = vpi_get_str(vpiName, obj_h)) { type_name = s; }
         sanitize_str(type_name);
+        auto pos = type_name.find_last_of("::");
+        type_name = type_name.substr(pos + 1);
         if (shared.visited_types.find(object) != shared.visited_types.end()) {
             type_string = shared.visited_types[object];
             size_t delimiter_pos = type_string.find("::");
@@ -396,6 +398,8 @@ AstNodeDType* getDType(vpiHandle obj_h, UhdmShared& shared) {
                 auto classpackageName = type_string.substr(0, delimiter_pos);
                 auto type_name = type_string.substr(delimiter_pos + 2, type_string.length());
                 UINFO(7, "Found package prefix: " << classpackageName << std::endl);
+                auto pos = type_name.find_last_of("::");
+                type_name = type_name.substr(pos + 1);
                 // If we are in the same package - do not create reference,
                 // as it will confuse Verilator
                 if (classpackageName
@@ -890,6 +894,8 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared) {
             if (auto s = vpi_get_str(vpiName, typespec_h)) {
                 name = s;
                 sanitize_str(name);
+                auto pos = name.find_last_of("::");
+                name = name.substr(pos + 1);
             } else {
                 v3error("Encountered custom, but unnamed typespec in cast operation");
             }
@@ -999,7 +1005,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     case vpiPackage: {
         auto* package = new AstPackage(new FileLine(objectName), objectName);
         package->inLibrary(true);
-        shared.package_prefix += objectName + "::";
+        shared.package_prefix = objectName + "::";
         shared.m_symp->pushNew(package);
         visit_one_to_many(
             {
