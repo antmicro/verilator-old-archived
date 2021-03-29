@@ -2324,7 +2324,12 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             return nullptr;
         }
 
-        shared.visited_types[object] = shared.package_prefix + objectName;
+
+        shared.visited_types[object] = objectName;
+
+        // Use bare name for typespec itself, hierarchy was stored above
+        auto pos = objectName.find_last_of("::");
+        objectName = objectName.substr(pos + 1);
 
         AstNode* enum_members = nullptr;
         AstNodeDType* enum_member_dtype = nullptr;
@@ -2369,7 +2374,13 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             UINFO(6, "Object " << objectName << " was already visited" << std::endl);
             return node;
         }
-        shared.visited_types[object] = shared.package_prefix + objectName;
+
+        shared.visited_types[object] = objectName;
+
+        // Use bare name for typespec itself, hierarchy was stored above
+        auto pos = objectName.find_last_of("::");
+        objectName = objectName.substr(pos + 1);
+
         // VSigning below is used in AstStructDtype to indicate
         // if packed or not
         VSigning packed;
