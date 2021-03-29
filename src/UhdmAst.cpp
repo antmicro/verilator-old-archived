@@ -940,6 +940,9 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared) {
         }
         return new AstPattern(new FileLine("uhdm"), itemsp);
     }
+    case vpiNullOp: {
+        return nullptr;
+    }
     default: {
         v3error("\t! Encountered unhandled operation: " << operation);
         break;
