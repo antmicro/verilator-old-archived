@@ -46,7 +46,7 @@ void visit_one_to_one(const std::vector<int> childrenNodeTypes, vpiHandle parent
 
 void sanitize_str(std::string& s) {
     if (!s.empty()) {
-        auto pos = s.find_last_of("@");
+        auto pos = s.rfind("@");
         s = s.substr(pos + 1);
         // Replace [ and ], seen in GenScope names
         s = std::regex_replace(s, std::regex("\\["), "__BRA__");
@@ -386,20 +386,29 @@ AstNodeDType* getDType(vpiHandle obj_h, UhdmShared& shared) {
         std::string type_name = "";
         if (auto s = vpi_get_str(vpiName, obj_h)) { type_name = s; }
         sanitize_str(type_name);
-        auto pos = type_name.find_last_of("::");
-        type_name = type_name.substr(pos + 1);
+        auto pos = type_name.rfind("::");
+        if (pos != std::string::npos)
+            type_name = type_name.substr(pos + 2);
         if (shared.visited_types.find(object) != shared.visited_types.end()) {
             type_string = shared.visited_types[object];
-            size_t delimiter_pos = type_string.find("::");
+            size_t delimiter_pos = type_string.rfind("::");
+            size_t prefix_pos = type_string.find("::");
             if (delimiter_pos == string::npos) {
                 UINFO(7, "No package prefix found, creating ref" << std::endl);
                 dtype = new AstRefDType(new FileLine("uhdm"), type_string);
             } else {
-                auto classpackageName = type_string.substr(0, delimiter_pos);
+                std::string classpackageName = "";
+                if (prefix_pos < delimiter_pos) {
+                    // "Nested" packages - package importing package
+                    // Last one is where definition is located
+                    classpackageName = type_string.substr(prefix_pos + 2, delimiter_pos - prefix_pos - 2);
+                } else {
+                    // Simple package reference
+                    classpackageName = type_string.substr(0, delimiter_pos);
+                }
+                // Nested or not, type is named after last package
                 auto type_name = type_string.substr(delimiter_pos + 2, type_string.length());
                 UINFO(7, "Found package prefix: " << classpackageName << std::endl);
-                auto pos = type_name.find_last_of("::");
-                type_name = type_name.substr(pos + 1);
                 // If we are in the same package - do not create reference,
                 // as it will confuse Verilator
                 if (classpackageName
@@ -894,8 +903,9 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared) {
             if (auto s = vpi_get_str(vpiName, typespec_h)) {
                 name = s;
                 sanitize_str(name);
-                auto pos = name.find_last_of("::");
-                name = name.substr(pos + 1);
+                auto pos = name.rfind("::");
+                if (pos != std::string::npos)
+                    name = name.substr(pos + 2);
             } else {
                 v3error("Encountered custom, but unnamed typespec in cast operation");
             }
@@ -2334,8 +2344,9 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         shared.visited_types[object] = objectName;
 
         // Use bare name for typespec itself, hierarchy was stored above
-        auto pos = objectName.find_last_of("::");
-        objectName = objectName.substr(pos + 1);
+        auto pos = objectName.rfind("::");
+        if (pos != std::string::npos)
+            objectName = objectName.substr(pos + 2);
 
         AstNode* enum_members = nullptr;
         AstNodeDType* enum_member_dtype = nullptr;
@@ -2384,8 +2395,9 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         shared.visited_types[object] = objectName;
 
         // Use bare name for typespec itself, hierarchy was stored above
-        auto pos = objectName.find_last_of("::");
-        objectName = objectName.substr(pos + 1);
+        auto pos = objectName.rfind("::");
+        if (pos != std::string::npos)
+            objectName = objectName.substr(pos + 2);
 
         // VSigning below is used in AstStructDtype to indicate
         // if packed or not
