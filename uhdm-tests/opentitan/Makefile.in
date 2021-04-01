@@ -123,7 +123,7 @@ prepare-sources:
 		pip install -r ${OPEN_TITAN}/python-requirements.txt && \
 		pip install git+https://github.com/antmicro/edalize@surelog && \
 		fusesoc --cores-root=${OPEN_TITAN} run --flag=fileset_top --target=sim --setup lowrisc:systems:top_earlgrey_verilator \
-		--verilator_options '--threads ${CPU_COUNT}')
+		--verilator_options '--threads 2')
 
 uhdm/verilator/opentitan: clean-build | prepare-sources
 	(export PATH=${root_dir}/../image/bin:${PATH} && \
