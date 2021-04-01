@@ -14,6 +14,7 @@ OPEN_TITAN_INCLUDE = \
 
 # Working set of Opentitan files
 SURELOG_FILE_LIST='/ibex_pkg.sv \
+prim_cipher_pkg.sv \
 prim_generic_clock_gating.sv \
 ibex_prefetch_buffer.sv \
 ibex_branch_predict.sv \
@@ -75,7 +76,14 @@ prim_esc_pkg.sv \
 prim_diff_decode.sv \
 gpiodpi.sv \
 spidpi.sv \
-uartdpi.sv\
+uartdpi.sv \
+prim_slicer.sv \
+prim_gate_gen.sv \
+prim_pulse_sync.sv \
+prim_filter_ctr.sv \
+prim_subreg_arb.sv \
+prim_subreg_ext.sv \
+prim_intr_hw.sv \
 usbdpi.sv'
 
 TO_SURELOG = \
