@@ -114,7 +114,7 @@ OPEN_TITAN_SOURCES_DELETE_OR = \
 	$(shell \
 		echo ${OPEN_TITAN_SOURCES_DELETE} | sed 's/\s/\\|/g')
 
-CPU_COUNT = $(shell nproc)
+CPU_COUNT = 2
 
 prepare-sources:
 	virtualenv ${root_dir}/venv-opentitan
