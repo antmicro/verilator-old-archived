@@ -158,10 +158,12 @@ verilator/opentitan: clean-build | prepare-sources
 		cd ${OPEN_TITAN_BUILD}/sim-verilator/ && \
 		$(MAKE))
 
-ALL_SV_FILES = \
+ALL_SV_FILES := \
 	$(shell \
 		cat ${OPEN_TITAN_BUILD}/sim-verilator/lowrisc_systems_top_earlgrey_verilator_0.1.vc | \
 		grep -F .sv | xargs -n 1 basename)
 
+SURELOG_FILES := $(subst /, ,$(subst ', ,$(SURELOG_FILE_LIST)))
+
 uhdm/verilator/opentitan/get_not_surelog_modules: clean-build | prepare-sources
-	echo $(filter-out $(SURELOG_FILE_LIST),$(ALL_SV_FILES)) | tr " " "\n" > filtered_names.txt
+	echo $(filter-out $(SURELOG_FILES),$(ALL_SV_FILES)) | tr " " "\n" > filtered_names.txt
