@@ -14,6 +14,21 @@ OPEN_TITAN_INCLUDE = \
 
 # Working set of Opentitan files
 SURELOG_FILE_LIST='/ibex_pkg.sv \
+pattgen_ctrl_pkg.sv \
+otbn_reg_pkg.sv \
+nmi_gen_reg_pkg.sv \
+i2c_reg_pkg.sv \
+gpio_reg_pkg.sv \
+entropy_src_reg_pkg.sv \
+aes_sbox_canright_pkg.sv \
+dm_pkg.sv \
+usb_consts_pkg.sv \
+clkmgr_pkg.sv \
+sram_ctrl_reg_pkg.sv \
+edn_pkg.sv \
+edn_reg_pkg.sv \
+csrng_pkg.sv \
+csrng_reg_pkg.sv \
 top_pkg.sv \
 dv_test_status_pkg.sv \
 entropy_src_pkg.sv \
@@ -94,6 +109,28 @@ prim_intr_hw.sv \
 pins_if.sv \
 dmidpi.sv \
 jtagdpi.sv \
+ibex_tracer.sv \
+otbn_trace_if.sv \
+usb_fs_nb_out_pe.sv \
+usb_fs_rx.sv \
+usb_fs_tx.sv \
+usb_fs_tx_mux.sv \
+debug_rom.sv \
+debug_rom_one_scratch.sv \
+aes_reg_status.sv \
+entropy_src_watermark_reg.sv \
+entropy_src_cntr_reg.sv \
+entropy_src_repcnt_ht.sv \
+entropy_src_adaptp_ht.sv \
+entropy_src_bucket_ht.sv \
+entropy_src_markov_ht.sv \
+i2c_fsm.sv \
+keymgr_cfg_en.sv \
+otbn_instruction_fetch.sv \
+otp_ctrl_ecc_reg.sv \
+pattgen_chan.sv \
+rv_plic_gateway.sv \
+timer_core.sv \
 usbdpi.sv'
 
 TO_SURELOG = \
