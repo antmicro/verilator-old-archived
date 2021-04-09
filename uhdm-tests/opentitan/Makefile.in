@@ -110,7 +110,6 @@ pins_if.sv \
 dmidpi.sv \
 jtagdpi.sv \
 ibex_tracer.sv \
-otbn_trace_if.sv \
 usb_fs_nb_out_pe.sv \
 usb_fs_rx.sv \
 usb_fs_tx.sv \
@@ -126,7 +125,6 @@ entropy_src_bucket_ht.sv \
 entropy_src_markov_ht.sv \
 i2c_fsm.sv \
 keymgr_cfg_en.sv \
-otbn_instruction_fetch.sv \
 otp_ctrl_ecc_reg.sv \
 pattgen_chan.sv \
 rv_plic_gateway.sv \
