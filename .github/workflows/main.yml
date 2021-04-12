@@ -326,7 +326,10 @@ jobs:
 
     - name: uhdm verilator failed
       if: ${{ failure() }}
-      run: dmesg | grep -i kill
+      run: |
+        dmesg | grep -i kill
+        echo "Last 200 lines: "
+        tail -200 dmesg
 
     - name: Compare results
       run: |
