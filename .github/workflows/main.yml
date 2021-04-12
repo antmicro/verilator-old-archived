@@ -324,6 +324,10 @@ jobs:
         TARGET: uhdm/verilator/opentitan
         TEST_CASE: tests/opentitan
 
+    - name: uhdm verilator failed
+      if: ${{ failure() }}
+      run: dmesg | grep -i kill
+
     - name: Compare results
       run: |
         diff output_uhdm_vanilla_verilator/vanilla_verilator_uart.log output_uhdm_vanilla_verilator/uhdm_verilator_uart.log
