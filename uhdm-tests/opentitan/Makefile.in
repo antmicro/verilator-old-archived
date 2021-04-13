@@ -14,6 +14,14 @@ OPEN_TITAN_INCLUDE = \
 
 # Working set of Opentitan files
 SURELOG_FILE_LIST='/ibex_pkg.sv \
+rstmgr_pkg.sv \
+pinmux_pkg.sv \
+tl_peri_pkg.sv \
+tl_main_pkg.sv \
+clkmgr_reg_pkg.sv \
+uart_reg_pkg.sv \
+spi_device_reg_pkg.sv \
+sha3_pkg.sv \
 pattgen_ctrl_pkg.sv \
 otbn_reg_pkg.sv \
 nmi_gen_reg_pkg.sv \
@@ -129,6 +137,13 @@ otp_ctrl_ecc_reg.sv \
 pattgen_chan.sv \
 rv_plic_gateway.sv \
 timer_core.sv \
+ibex_icache.sv \
+spi_fwm_rxf_ctrl.sv \
+spi_fwm_txf_ctrl.sv \
+uart_rx.sv \
+uart_tx.sv \
+usbdev_flop_2syncpulse.sv \
+jtag_mux.sv \
 usbdpi.sv'
 
 TO_SURELOG = \
