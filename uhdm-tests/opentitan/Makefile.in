@@ -133,17 +133,6 @@ entropy_src_bucket_ht.sv \
 entropy_src_markov_ht.sv \
 i2c_fsm.sv \
 keymgr_cfg_en.sv \
-otp_ctrl_ecc_reg.sv \
-pattgen_chan.sv \
-rv_plic_gateway.sv \
-timer_core.sv \
-ibex_icache.sv \
-spi_fwm_rxf_ctrl.sv \
-spi_fwm_txf_ctrl.sv \
-uart_rx.sv \
-uart_tx.sv \
-usbdev_flop_2syncpulse.sv \
-jtag_mux.sv \
 usbdpi.sv'
 
 TO_SURELOG = \
