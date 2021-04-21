@@ -14,6 +14,9 @@ OPEN_TITAN_INCLUDE = \
 
 # Working set of Opentitan files
 SURELOG_FILE_LIST='/ibex_pkg.sv \
+usbdev_reg_pkg.sv \
+usbdev_pkg.sv \
+spi_device_pkg.sv \
 rstmgr_pkg.sv \
 pinmux_pkg.sv \
 tl_peri_pkg.sv \
