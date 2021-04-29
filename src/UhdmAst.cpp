@@ -620,7 +620,7 @@ AstNode* process_assignment(vpiHandle obj_h, UhdmShared& shared) {
 AstNode* process_function(vpiHandle obj_h, UhdmShared& shared) {
     AstNode* statementsp = nullptr;
     AstNode* functionVarsp = nullptr;
-    AstNode* taskFuncp = nullptr;
+    AstNodeFTask* taskFuncp = nullptr;
     shared.isFunction = false;
 
     std::string objectName;
@@ -665,16 +665,20 @@ AstNode* process_function(vpiHandle obj_h, UhdmShared& shared) {
     } else {
         taskFuncp = new AstTask(new FileLine("uhdm"), objectName, statementsp);
     }
-    AstDpiExport* exportp = nullptr;
     auto accessType = vpi_get(vpiAccessType, obj_h);
     if (accessType == vpiDPIExportAcc) {
-        exportp = new AstDpiExport(new FileLine("uhdm"), objectName, objectName);
+        AstDpiExport* exportp = new AstDpiExport(new FileLine("uhdm"), objectName, objectName);
         exportp->addNext(taskFuncp);
         v3Global.dpi(true);
         return exportp;
-    } else {
-        return taskFuncp;
+    } else if (accessType == vpiDPIImportAcc) {
+        taskFuncp->dpiImport(true);
+        v3Global.dpi(true);
+        if (taskFuncp->prettyName()[0] == '$')
+            shared.m_symp->reinsert(taskFuncp, nullptr, taskFuncp->prettyName());
+        shared.m_symp->reinsert(taskFuncp);
     }
+    return taskFuncp;
 }
 
 AstNode* process_genScopeArray(vpiHandle obj_h, UhdmShared& shared) {
