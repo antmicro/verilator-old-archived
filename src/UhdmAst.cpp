@@ -2415,6 +2415,17 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         shared.m_symp->reinsert(struct_type);
         return struct_type;
     }
+    case vpiPackedArrayTypespec: {
+        vpiHandle index_typespec_h = vpi_handle(vpiIndexTypespec, obj_h);
+        const unsigned int index_type = vpi_get(vpiType, index_typespec_h);
+        AstBasicDTypeKwd typeKwd = get_kwd_for_type(index_type);
+        AstRange* rangeNodep = nullptr;
+        visit_one_to_many({vpiRange}, obj_h, shared,
+                          [&](AstNode* node) { rangeNodep = reinterpret_cast<AstRange*>(node); });
+        auto* dtypep = new AstBasicDType(new FileLine("uhdm"), typeKwd);
+        dtypep->rangep(rangeNodep);
+        return dtypep;
+    }
     case vpiTypespecMember: {
         AstNodeDType* typespec = nullptr;
         auto typespec_h = vpi_handle(vpiTypespec, obj_h);
