@@ -1590,15 +1590,6 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         // For function arguments, the actual type
         // is inside vpiExpr
         AstNode* expr = nullptr;
-        visit_one_to_one({vpiExpr}, obj_h, shared, [&](AstNode* item) {
-            if (item) { expr = item; }
-        });
-        if (expr != nullptr) {
-            // Override name with IO name
-            expr->name(objectName);
-            return expr;
-        }  // else handle as normal IODecl
-
         VDirection dir;
         if (const int n = vpi_get(vpiDirection, obj_h)) {
             if (n == vpiInput) {
@@ -1609,6 +1600,25 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 dir = VDirection::INOUT;
             }
         }
+        visit_one_to_one({vpiExpr}, obj_h, shared, [&](AstNode* item) {
+            if (item) { expr = item; }
+        });
+        if (expr == nullptr) {
+            visit_one_to_one({vpiTypedef}, obj_h, shared, [&](AstNode* item) {
+                if (item) { expr = item; }
+            });
+            auto* dtypep = VN_CAST(expr, NodeDType);
+            if (dtypep != nullptr) {
+                auto* var = new AstVar(new FileLine("uhdm"), AstVarType::PORT, objectName,
+                                       VFlagChildDType(), dtypep);
+                return var;
+            }
+        }
+        if (expr != nullptr) {
+            // Override name with IO name
+            expr->name(objectName);
+            return expr;
+        }  // else handle as normal IODecl
 
         AstRange* var_range = nullptr;
         visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* item) {
