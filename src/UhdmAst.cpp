@@ -120,91 +120,94 @@ string deQuote(FileLine* fileline, string text) {
     return newtext;
 }
 
-AstNode* get_value_as_node(vpiHandle obj_h) {
+AstNode* get_value_as_node(vpiHandle obj_h, bool need_decompile = false) {
     AstNode* valueNodep = nullptr;
     std::string valStr;
 
     // Most nodes will have raw value in vpiDecompile, leave deducing the type to Verilator
-    if (auto s = vpi_get_str(vpiDecompile, obj_h)) {
-        valStr = s;
-        auto type = vpi_get(vpiConstType, obj_h);
-        if (type == vpiStringConst) {
-            valueNodep = new AstConst(new FileLine("uhdm"), AstConst::VerilogStringLiteral(),
-                                      deQuote(new FileLine("uhdm"), valStr));
-        } else {
-            V3Number value(valueNodep, valStr.c_str());
-            valueNodep = new AstConst(new FileLine("uhdm"), value);
-        }
-        return valueNodep;
-    } else {
-        s_vpi_value val;
-        std::string valStr;
-        vpi_get_value(obj_h, &val);
-        switch (val.format) {
-        case vpiIntVal:
-        case vpiScalarVal:
-        case vpiUIntVal: {
-            if (val.format == vpiIntVal)
-                valStr = std::to_string(val.value.integer);
-            else if (val.format == vpiScalarVal)
-                valStr = std::to_string(val.value.scalar);
-            else if (val.format == vpiUIntVal)
-                valStr = std::to_string(val.value.uint);
-
-            if (valStr[0] == '-') {
-                valStr = valStr.substr(1);
+    if (need_decompile) {
+        if (auto s = vpi_get_str(vpiDecompile, obj_h)) {
+            valStr = s;
+            auto type = vpi_get(vpiConstType, obj_h);
+            if (type == vpiStringConst) {
+                valueNodep = new AstConst(new FileLine("uhdm"), AstConst::VerilogStringLiteral(),
+                                          deQuote(new FileLine("uhdm"), valStr));
+            } else {
+                valStr = s;
                 V3Number value(valueNodep, valStr.c_str());
-                auto* inner = new AstConst(new FileLine("uhdm"), value);
-                valueNodep = new AstNegate(new FileLine("uhdm"), inner);
-                break;
+                valueNodep = new AstConst(new FileLine("uhdm"), value);
             }
-
-            V3Number value(valueNodep, valStr.c_str());
-            valueNodep = new AstConst(new FileLine("uhdm"), value);
-            break;
+            return valueNodep;
         }
-        case vpiRealVal: {
-            valStr = std::to_string(val.value.real);
-
-            bool parseSuccess;
-            double value = VString::parseDouble(valStr, &parseSuccess);
-            UASSERT(parseSuccess, "Unable to parse real value: " + valStr);
-
-            valueNodep = new AstConst(new FileLine("uhdm"), AstConst::RealDouble(), value);
-            break;
-        }
-        case vpiBinStrVal:
-        case vpiOctStrVal:
-        case vpiDecStrVal:
-        case vpiHexStrVal: {
-            // if vpiDecompile is unavailable i.e. in EnumConst, cast the string
-            // size is stored in enum typespec
-            if (val.format == vpiBinStrVal)
-                valStr = "'b" + std::string(val.value.str);
-            else if (val.format == vpiOctStrVal)
-                valStr = "'o" + std::string(val.value.str);
-            else if (val.format == vpiDecStrVal)
-                valStr = "'d" + std::string(val.value.str);
-            else if (val.format == vpiHexStrVal)
-                valStr = "'h" + std::string(val.value.str);
-            V3Number value(valueNodep, valStr.c_str());
-            valueNodep = new AstConst(new FileLine("uhdm"), value);
-            break;
-        }
-        case vpiStringVal: {
-            if (auto* s = val.value.str) valStr = std::to_string(*s);
-            valStr.assign(val.value.str);
-            valueNodep = new AstConst(new FileLine("uhdm"), AstConst::VerilogStringLiteral(),
-                                      deQuote(new FileLine("uhdm"), valStr));
-            break;
-        }
-        default: {
-            v3info("Encountered unknown value format " << val.format);
-            break;
-        }
-        }
-        return valueNodep;
+    } else {
+        UINFO(7, "Requested vpiDecompile value not found in UHDM" << std::endl);
     }
+    s_vpi_value val;
+    vpi_get_value(obj_h, &val);
+    switch (val.format) {
+    case vpiIntVal:
+    case vpiScalarVal:
+    case vpiUIntVal: {
+        if (val.format == vpiIntVal)
+            valStr = std::to_string(val.value.integer);
+        else if (val.format == vpiScalarVal)
+            valStr = std::to_string(val.value.scalar);
+        else if (val.format == vpiUIntVal)
+            valStr = std::to_string(val.value.uint);
+
+        if (valStr[0] == '-') {
+            valStr = valStr.substr(1);
+            V3Number value(valueNodep, valStr.c_str());
+            auto* inner = new AstConst(new FileLine("uhdm"), value);
+            valueNodep = new AstNegate(new FileLine("uhdm"), inner);
+            break;
+        }
+
+        V3Number value(valueNodep, valStr.c_str());
+        valueNodep = new AstConst(new FileLine("uhdm"), value);
+        break;
+    }
+    case vpiRealVal: {
+        valStr = std::to_string(val.value.real);
+
+        bool parseSuccess;
+        double value = VString::parseDouble(valStr, &parseSuccess);
+        UASSERT(parseSuccess, "Unable to parse real value: " + valStr);
+
+        valueNodep = new AstConst(new FileLine("uhdm"), AstConst::RealDouble(), value);
+        break;
+    }
+    case vpiBinStrVal:
+    case vpiOctStrVal:
+    case vpiDecStrVal:
+    case vpiHexStrVal: {
+        // if vpiDecompile is unavailable i.e. in EnumConst, cast the string
+        // size is stored in enum typespec
+        if (val.format == vpiBinStrVal)
+            valStr = "'b" + std::string(val.value.str);
+        else if (val.format == vpiOctStrVal)
+            valStr = "'o" + std::string(val.value.str);
+        else if (val.format == vpiDecStrVal)
+            valStr = "'d" + std::string(val.value.str);
+        else if (val.format == vpiHexStrVal)
+            valStr = "'h" + std::string(val.value.str);
+        V3Number value(valueNodep, valStr.c_str());
+        valueNodep = new AstConst(new FileLine("uhdm"), value);
+        break;
+    }
+    case vpiStringVal: {
+        if (auto* s = val.value.str) valStr = std::to_string(*s);
+        valStr.assign(val.value.str);
+        valueNodep = new AstConst(new FileLine("uhdm"), AstConst::VerilogStringLiteral(),
+                                  deQuote(new FileLine("uhdm"), valStr));
+        break;
+    }
+    default: {
+        v3info("Encountered unknown value format " << val.format);
+        break;
+    }
+    }
+    return valueNodep;
 }
 
 AstBasicDTypeKwd get_kwd_for_type(int vpi_var_type) {
@@ -1821,9 +1824,11 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             return new AstPatMember(new FileLine("uhdm"), pattern, typespec, nullptr);
         }
     }
-    case vpiEnumConst:
+    case vpiEnumConst: {
+        return get_value_as_node(obj_h, false);
+    }
     case vpiConstant: {
-        return get_value_as_node(obj_h);
+        return get_value_as_node(obj_h, true);
     }
     case vpiBitSelect: {
         auto* fromp = new AstParseRef(new FileLine("uhdm"), VParseRefExp::en::PX_TEXT, objectName,
