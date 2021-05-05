@@ -390,8 +390,7 @@ AstNodeDType* getDType(vpiHandle obj_h, UhdmShared& shared) {
         if (auto s = vpi_get_str(vpiName, obj_h)) { type_name = s; }
         sanitize_str(type_name);
         auto pos = type_name.rfind("::");
-        if (pos != std::string::npos)
-            type_name = type_name.substr(pos + 2);
+        if (pos != std::string::npos) type_name = type_name.substr(pos + 2);
         if (shared.visited_types.find(object) != shared.visited_types.end()) {
             type_string = shared.visited_types[object];
             size_t delimiter_pos = type_string.rfind("::");
@@ -404,7 +403,8 @@ AstNodeDType* getDType(vpiHandle obj_h, UhdmShared& shared) {
                 if (prefix_pos < delimiter_pos) {
                     // "Nested" packages - package importing package
                     // Last one is where definition is located
-                    classpackageName = type_string.substr(prefix_pos + 2, delimiter_pos - prefix_pos - 2);
+                    classpackageName
+                        = type_string.substr(prefix_pos + 2, delimiter_pos - prefix_pos - 2);
                 } else {
                     // Simple package reference
                     classpackageName = type_string.substr(0, delimiter_pos);
@@ -480,8 +480,7 @@ AstNodeDType* getDType(vpiHandle obj_h, UhdmShared& shared) {
             auto type_h = vpi_handle(vpiTypespec, member_h);
             if (type_h) {
                 elementDtypep = getDType(type_h, shared);
-            }
-            else {
+            } else {
                 auto element_type = vpi_get(vpiType, member_h);
                 if (element_type) {
                     AstBasicDTypeKwd keyword = get_kwd_for_type(element_type);
@@ -494,15 +493,12 @@ AstNodeDType* getDType(vpiHandle obj_h, UhdmShared& shared) {
 
         std::vector<AstRange*> ranges;
         visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* itemp) {
-            if (itemp != nullptr) {
-                ranges.push_back(reinterpret_cast<AstRange*>(itemp));
-            }
+            if (itemp != nullptr) { ranges.push_back(reinterpret_cast<AstRange*>(itemp)); }
         });
 
         for (auto rangep_it = ranges.rbegin(); rangep_it != ranges.rend(); rangep_it++) {
-            elementDtypep = new AstUnpackArrayDType(new FileLine("uhdm"),
-                                                     VFlagChildDType(),
-                                                     elementDtypep, *rangep_it);
+            elementDtypep = new AstUnpackArrayDType(new FileLine("uhdm"), VFlagChildDType(),
+                                                    elementDtypep, *rangep_it);
         }
         dtype = elementDtypep;
         break;
@@ -907,8 +903,7 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared) {
                 name = s;
                 sanitize_str(name);
                 auto pos = name.rfind("::");
-                if (pos != std::string::npos)
-                    name = name.substr(pos + 2);
+                if (pos != std::string::npos) name = name.substr(pos + 2);
             } else {
                 v3error("Encountered custom, but unnamed typespec in cast operation");
             }
@@ -2355,25 +2350,23 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             return nullptr;
         }
 
-
         shared.visited_types[object] = objectName;
 
         // Use bare name for typespec itself, hierarchy was stored above
         auto pos = objectName.rfind("::");
-        if (pos != std::string::npos)
-            objectName = objectName.substr(pos + 2);
+        if (pos != std::string::npos) objectName = objectName.substr(pos + 2);
 
         AstNode* enum_members = nullptr;
         AstNodeDType* enum_member_dtype = nullptr;
 
         vpiHandle itr = vpi_iterate(vpiEnumConst, obj_h);
         while (vpiHandle item_h = vpi_scan(itr)) {
-            auto* value = get_value_as_node(item_h);
             std::string item_name;
             if (auto s = vpi_get_str(vpiName, item_h)) {
                 item_name = s;
                 sanitize_str(item_name);
             }
+            auto* value = get_value_as_node(item_h, false);
             auto* wrapped_item = new AstEnumItem(new FileLine("uhdm"), item_name, nullptr, value);
             if (enum_members == nullptr) {
                 enum_members = wrapped_item;
@@ -2411,8 +2404,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
 
         // Use bare name for typespec itself, hierarchy was stored above
         auto pos = objectName.rfind("::");
-        if (pos != std::string::npos)
-            objectName = objectName.substr(pos + 2);
+        if (pos != std::string::npos) objectName = objectName.substr(pos + 2);
 
         // VSigning below is used in AstStructDtype to indicate
         // if packed or not
