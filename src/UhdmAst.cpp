@@ -686,6 +686,39 @@ AstNode* process_hierPath(vpiHandle obj_h, UhdmShared& shared) {
     return new AstDot(new FileLine("uhdm"), false, lhsp, rhsp);
 }
 
+AstNode* process_ioDecl(vpiHandle obj_h, UhdmShared& shared) {
+    std::string objectName;
+    if (auto s = vpi_get_str(vpiName, obj_h)) {
+        objectName = s;
+        sanitize_str(objectName);
+    }
+    VDirection dir;
+    if (const int n = vpi_get(vpiDirection, obj_h)) {
+        if (n == vpiInput) {
+            dir = VDirection::INPUT;
+        } else if (n == vpiOutput) {
+            dir = VDirection::OUTPUT;
+        } else if (n == vpiInout) {
+            dir = VDirection::INOUT;
+        }
+        // TODO: vpiMixedIO, vpiNoDirection - not encountered yet
+    }
+    AstNode* typep = nullptr;
+    visit_one_to_one({vpiTypedef}, obj_h, shared, [&](AstNode* itemp) {
+        if (itemp) { typep = itemp; }
+    });
+    AstNodeDType* dtypep = VN_CAST(typep, NodeDType);
+    if (dtypep == nullptr) {
+        UINFO(7, "No typedef found in vpiIODecl, falling back to logic" << std::endl);
+        dtypep = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::LOGIC);
+    }
+    auto* varp = new AstVar(new FileLine("uhdm"), AstVarType::PORT, objectName, VFlagChildDType(),
+                            dtypep);
+    varp->declDirection(dir);
+    varp->direction(dir);
+    return varp;
+}
+
 AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared) {
     std::vector<AstNode*> operands;
     visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* itemp) {
@@ -1585,50 +1618,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return new AstModport(new FileLine("uhdm"), objectName, modport_vars);
     }
     case vpiIODecl: {
-        // For function arguments, the actual type
-        // is inside vpiExpr
-        AstNode* expr = nullptr;
-        VDirection dir;
-        if (const int n = vpi_get(vpiDirection, obj_h)) {
-            if (n == vpiInput) {
-                dir = VDirection::INPUT;
-            } else if (n == vpiOutput) {
-                dir = VDirection::OUTPUT;
-            } else if (n == vpiInout) {
-                dir = VDirection::INOUT;
-            }
-        }
-        visit_one_to_one({vpiExpr}, obj_h, shared, [&](AstNode* item) {
-            if (item) { expr = item; }
-        });
-        if (expr == nullptr) {
-            visit_one_to_one({vpiTypedef}, obj_h, shared, [&](AstNode* item) {
-                if (item) { expr = item; }
-            });
-            auto* dtypep = VN_CAST(expr, NodeDType);
-            if (dtypep != nullptr) {
-                auto* var = new AstVar(new FileLine("uhdm"), AstVarType::PORT, objectName,
-                                       VFlagChildDType(), dtypep);
-                return var;
-            }
-        }
-        if (expr != nullptr) {
-            // Override name with IO name
-            expr->name(objectName);
-            return expr;
-        }  // else handle as normal IODecl
-
-        AstRange* var_range = nullptr;
-        visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* item) {
-            if (item) { var_range = reinterpret_cast<AstRange*>(item); }
-        });
-        auto* dtype = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::LOGIC);
-        dtype->rangep(var_range);
-        auto* var = new AstVar(new FileLine("uhdm"), AstVarType::PORT, objectName,
-                               VFlagChildDType(), dtype);
-        var->declDirection(dir);
-        var->direction(dir);
-        return var;
+        return process_ioDecl(obj_h, shared);
     }
     case vpiAlways: {
         VAlwaysKwd alwaysType;
