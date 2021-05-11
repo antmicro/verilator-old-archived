@@ -46,7 +46,7 @@ void visit_one_to_one(const std::vector<int> childrenNodeTypes, vpiHandle parent
 
 void sanitize_str(std::string& s) {
     if (!s.empty()) {
-        auto pos = s.find_last_of("@");
+        auto pos = s.rfind("@");
         s = s.substr(pos + 1);
         // Replace [ and ], seen in GenScope names
         s = std::regex_replace(s, std::regex("\\["), "__BRA__");
@@ -120,91 +120,94 @@ string deQuote(FileLine* fileline, string text) {
     return newtext;
 }
 
-AstNode* get_value_as_node(vpiHandle obj_h) {
+AstNode* get_value_as_node(vpiHandle obj_h, bool need_decompile = false) {
     AstNode* valueNodep = nullptr;
     std::string valStr;
 
     // Most nodes will have raw value in vpiDecompile, leave deducing the type to Verilator
-    if (auto s = vpi_get_str(vpiDecompile, obj_h)) {
-        valStr = s;
-        auto type = vpi_get(vpiConstType, obj_h);
-        if (type == vpiStringConst) {
-            valueNodep = new AstConst(new FileLine("uhdm"), AstConst::VerilogStringLiteral(),
-                                      deQuote(new FileLine("uhdm"), valStr));
-        } else {
-            V3Number value(valueNodep, valStr.c_str());
-            valueNodep = new AstConst(new FileLine("uhdm"), value);
-        }
-        return valueNodep;
-    } else {
-        s_vpi_value val;
-        std::string valStr;
-        vpi_get_value(obj_h, &val);
-        switch (val.format) {
-        case vpiIntVal:
-        case vpiScalarVal:
-        case vpiUIntVal: {
-            if (val.format == vpiIntVal)
-                valStr = std::to_string(val.value.integer);
-            else if (val.format == vpiScalarVal)
-                valStr = std::to_string(val.value.scalar);
-            else if (val.format == vpiUIntVal)
-                valStr = std::to_string(val.value.uint);
-
-            if (valStr[0] == '-') {
-                valStr = valStr.substr(1);
+    if (need_decompile) {
+        if (auto s = vpi_get_str(vpiDecompile, obj_h)) {
+            valStr = s;
+            auto type = vpi_get(vpiConstType, obj_h);
+            if (type == vpiStringConst) {
+                valueNodep = new AstConst(new FileLine("uhdm"), AstConst::VerilogStringLiteral(),
+                                          deQuote(new FileLine("uhdm"), valStr));
+            } else {
+                valStr = s;
                 V3Number value(valueNodep, valStr.c_str());
-                auto* inner = new AstConst(new FileLine("uhdm"), value);
-                valueNodep = new AstNegate(new FileLine("uhdm"), inner);
-                break;
+                valueNodep = new AstConst(new FileLine("uhdm"), value);
             }
-
-            V3Number value(valueNodep, valStr.c_str());
-            valueNodep = new AstConst(new FileLine("uhdm"), value);
-            break;
+            return valueNodep;
         }
-        case vpiRealVal: {
-            valStr = std::to_string(val.value.real);
-
-            bool parseSuccess;
-            double value = VString::parseDouble(valStr, &parseSuccess);
-            UASSERT(parseSuccess, "Unable to parse real value: " + valStr);
-
-            valueNodep = new AstConst(new FileLine("uhdm"), AstConst::RealDouble(), value);
-            break;
-        }
-        case vpiBinStrVal:
-        case vpiOctStrVal:
-        case vpiDecStrVal:
-        case vpiHexStrVal: {
-            // if vpiDecompile is unavailable i.e. in EnumConst, cast the string
-            // size is stored in enum typespec
-            if (val.format == vpiBinStrVal)
-                valStr = "'b" + std::string(val.value.str);
-            else if (val.format == vpiOctStrVal)
-                valStr = "'o" + std::string(val.value.str);
-            else if (val.format == vpiDecStrVal)
-                valStr = "'d" + std::string(val.value.str);
-            else if (val.format == vpiHexStrVal)
-                valStr = "'h" + std::string(val.value.str);
-            V3Number value(valueNodep, valStr.c_str());
-            valueNodep = new AstConst(new FileLine("uhdm"), value);
-            break;
-        }
-        case vpiStringVal: {
-            if (auto* s = val.value.str) valStr = std::to_string(*s);
-            valStr.assign(val.value.str);
-            valueNodep = new AstConst(new FileLine("uhdm"), AstConst::VerilogStringLiteral(),
-                                      deQuote(new FileLine("uhdm"), valStr));
-            break;
-        }
-        default: {
-            v3info("Encountered unknown value format " << val.format);
-            break;
-        }
-        }
-        return valueNodep;
+    } else {
+        UINFO(7, "Requested vpiDecompile value not found in UHDM" << std::endl);
     }
+    s_vpi_value val;
+    vpi_get_value(obj_h, &val);
+    switch (val.format) {
+    case vpiIntVal:
+    case vpiScalarVal:
+    case vpiUIntVal: {
+        if (val.format == vpiIntVal)
+            valStr = std::to_string(val.value.integer);
+        else if (val.format == vpiScalarVal)
+            valStr = std::to_string(val.value.scalar);
+        else if (val.format == vpiUIntVal)
+            valStr = std::to_string(val.value.uint);
+
+        if (valStr[0] == '-') {
+            valStr = valStr.substr(1);
+            V3Number value(valueNodep, valStr.c_str());
+            auto* inner = new AstConst(new FileLine("uhdm"), value);
+            valueNodep = new AstNegate(new FileLine("uhdm"), inner);
+            break;
+        }
+
+        V3Number value(valueNodep, valStr.c_str());
+        valueNodep = new AstConst(new FileLine("uhdm"), value);
+        break;
+    }
+    case vpiRealVal: {
+        valStr = std::to_string(val.value.real);
+
+        bool parseSuccess;
+        double value = VString::parseDouble(valStr, &parseSuccess);
+        UASSERT(parseSuccess, "Unable to parse real value: " + valStr);
+
+        valueNodep = new AstConst(new FileLine("uhdm"), AstConst::RealDouble(), value);
+        break;
+    }
+    case vpiBinStrVal:
+    case vpiOctStrVal:
+    case vpiDecStrVal:
+    case vpiHexStrVal: {
+        // if vpiDecompile is unavailable i.e. in EnumConst, cast the string
+        // size is stored in enum typespec
+        if (val.format == vpiBinStrVal)
+            valStr = "'b" + std::string(val.value.str);
+        else if (val.format == vpiOctStrVal)
+            valStr = "'o" + std::string(val.value.str);
+        else if (val.format == vpiDecStrVal)
+            valStr = "'d" + std::string(val.value.str);
+        else if (val.format == vpiHexStrVal)
+            valStr = "'h" + std::string(val.value.str);
+        V3Number value(valueNodep, valStr.c_str());
+        valueNodep = new AstConst(new FileLine("uhdm"), value);
+        break;
+    }
+    case vpiStringVal: {
+        if (auto* s = val.value.str) valStr = std::to_string(*s);
+        valStr.assign(val.value.str);
+        valueNodep = new AstConst(new FileLine("uhdm"), AstConst::VerilogStringLiteral(),
+                                  deQuote(new FileLine("uhdm"), valStr));
+        break;
+    }
+    default: {
+        v3info("Encountered unknown value format " << val.format);
+        break;
+    }
+    }
+    return valueNodep;
 }
 
 AstBasicDTypeKwd get_kwd_for_type(int vpi_var_type) {
@@ -386,14 +389,27 @@ AstNodeDType* getDType(vpiHandle obj_h, UhdmShared& shared) {
         std::string type_name = "";
         if (auto s = vpi_get_str(vpiName, obj_h)) { type_name = s; }
         sanitize_str(type_name);
+        auto pos = type_name.rfind("::");
+        if (pos != std::string::npos) type_name = type_name.substr(pos + 2);
         if (shared.visited_types.find(object) != shared.visited_types.end()) {
             type_string = shared.visited_types[object];
-            size_t delimiter_pos = type_string.find("::");
+            size_t delimiter_pos = type_string.rfind("::");
+            size_t prefix_pos = type_string.find("::");
             if (delimiter_pos == string::npos) {
                 UINFO(7, "No package prefix found, creating ref" << std::endl);
                 dtype = new AstRefDType(new FileLine("uhdm"), type_string);
             } else {
-                auto classpackageName = type_string.substr(0, delimiter_pos);
+                std::string classpackageName = "";
+                if (prefix_pos < delimiter_pos) {
+                    // "Nested" packages - package importing package
+                    // Last one is where definition is located
+                    classpackageName
+                        = type_string.substr(prefix_pos + 2, delimiter_pos - prefix_pos - 2);
+                } else {
+                    // Simple package reference
+                    classpackageName = type_string.substr(0, delimiter_pos);
+                }
+                // Nested or not, type is named after last package
                 auto type_name = type_string.substr(delimiter_pos + 2, type_string.length());
                 UINFO(7, "Found package prefix: " << classpackageName << std::endl);
                 // If we are in the same package - do not create reference,
@@ -464,8 +480,7 @@ AstNodeDType* getDType(vpiHandle obj_h, UhdmShared& shared) {
             auto type_h = vpi_handle(vpiTypespec, member_h);
             if (type_h) {
                 elementDtypep = getDType(type_h, shared);
-            }
-            else {
+            } else {
                 auto element_type = vpi_get(vpiType, member_h);
                 if (element_type) {
                     AstBasicDTypeKwd keyword = get_kwd_for_type(element_type);
@@ -478,15 +493,12 @@ AstNodeDType* getDType(vpiHandle obj_h, UhdmShared& shared) {
 
         std::vector<AstRange*> ranges;
         visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* itemp) {
-            if (itemp != nullptr) {
-                ranges.push_back(reinterpret_cast<AstRange*>(itemp));
-            }
+            if (itemp != nullptr) { ranges.push_back(reinterpret_cast<AstRange*>(itemp)); }
         });
 
         for (auto rangep_it = ranges.rbegin(); rangep_it != ranges.rend(); rangep_it++) {
-            elementDtypep = new AstUnpackArrayDType(new FileLine("uhdm"),
-                                                     VFlagChildDType(),
-                                                     elementDtypep, *rangep_it);
+            elementDtypep = new AstUnpackArrayDType(new FileLine("uhdm"), VFlagChildDType(),
+                                                    elementDtypep, *rangep_it);
         }
         dtype = elementDtypep;
         break;
@@ -672,6 +684,39 @@ AstNode* process_hierPath(vpiHandle obj_h, UhdmShared& shared) {
     });
 
     return new AstDot(new FileLine("uhdm"), false, lhsp, rhsp);
+}
+
+AstNode* process_ioDecl(vpiHandle obj_h, UhdmShared& shared) {
+    std::string objectName;
+    if (auto s = vpi_get_str(vpiName, obj_h)) {
+        objectName = s;
+        sanitize_str(objectName);
+    }
+    VDirection dir;
+    if (const int n = vpi_get(vpiDirection, obj_h)) {
+        if (n == vpiInput) {
+            dir = VDirection::INPUT;
+        } else if (n == vpiOutput) {
+            dir = VDirection::OUTPUT;
+        } else if (n == vpiInout) {
+            dir = VDirection::INOUT;
+        }
+        // TODO: vpiMixedIO, vpiNoDirection - not encountered yet
+    }
+    AstNode* typep = nullptr;
+    visit_one_to_one({vpiTypedef}, obj_h, shared, [&](AstNode* itemp) {
+        if (itemp) { typep = itemp; }
+    });
+    AstNodeDType* dtypep = VN_CAST(typep, NodeDType);
+    if (dtypep == nullptr) {
+        UINFO(7, "No typedef found in vpiIODecl, falling back to logic" << std::endl);
+        dtypep = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::LOGIC);
+    }
+    auto* varp = new AstVar(new FileLine("uhdm"), AstVarType::PORT, objectName, VFlagChildDType(),
+                            dtypep);
+    varp->declDirection(dir);
+    varp->direction(dir);
+    return varp;
 }
 
 AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared) {
@@ -890,6 +935,8 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared) {
             if (auto s = vpi_get_str(vpiName, typespec_h)) {
                 name = s;
                 sanitize_str(name);
+                auto pos = name.rfind("::");
+                if (pos != std::string::npos) name = name.substr(pos + 2);
             } else {
                 v3error("Encountered custom, but unnamed typespec in cast operation");
             }
@@ -939,6 +986,9 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared) {
             }
         }
         return new AstPattern(new FileLine("uhdm"), itemsp);
+    }
+    case vpiNullOp: {
+        return nullptr;
     }
     default: {
         v3error("\t! Encountered unhandled operation: " << operation);
@@ -996,7 +1046,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     case vpiPackage: {
         auto* package = new AstPackage(new FileLine(objectName), objectName);
         package->inLibrary(true);
-        shared.package_prefix += objectName + "::";
+        shared.package_prefix = objectName + "::";
         shared.m_symp->pushNew(package);
         visit_one_to_many(
             {
@@ -1220,6 +1270,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                     if (node != nullptr) param_map[node->name()] = node;
                 });
             (shared.partial_modules)[module->name()] = module;
+            if (v3Global.opt.trace()) { module->modTrace(true); }
             shared.top_param_map[module->name()] = param_map;
         }
 
@@ -1296,6 +1347,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             UINFO(8, "Adding cell " << fullname << std::endl);
             AstCell* cell = new AstCell(new FileLine("uhdm"), new FileLine("uhdm"), objectName,
                                         name, modPins, modParams, nullptr);
+            if (v3Global.opt.trace()) { cell->trace(true); }
             return cell;
         }
         break;
@@ -1355,6 +1407,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         auto dtypep = getDType(obj_h, shared);
         AstVar* v = new AstVar(new FileLine("uhdm"), vpi_net->varType(), objectName,
                                VFlagChildDType(), dtypep);
+        if (v3Global.opt.trace()) { v->trace(true); }
         return v;
     }
 
@@ -1375,13 +1428,16 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             return nullptr;  // Skip this net
         }
 
-        return new AstVar(new FileLine("uhdm"), net_type, objectName, VFlagChildDType(), dtype);
+        auto* v = new AstVar(new FileLine("uhdm"), net_type, objectName, VFlagChildDType(), dtype);
+        if (v3Global.opt.trace()) { v->trace(true); }
+        return v;
     }
     case vpiStructVar: {
         AstNodeDType* dtype = getDType(obj_h, shared);
 
         auto* v = new AstVar(new FileLine("uhdm"), AstVarType::VAR, objectName, VFlagChildDType(),
                              dtype);
+        if (v3Global.opt.trace()) { v->trace(true); }
         return v;
     }
     case vpiParameter:
@@ -1562,40 +1618,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return new AstModport(new FileLine("uhdm"), objectName, modport_vars);
     }
     case vpiIODecl: {
-        // For function arguments, the actual type
-        // is inside vpiExpr
-        AstNode* expr = nullptr;
-        visit_one_to_one({vpiExpr}, obj_h, shared, [&](AstNode* item) {
-            if (item) { expr = item; }
-        });
-        if (expr != nullptr) {
-            // Override name with IO name
-            expr->name(objectName);
-            return expr;
-        }  // else handle as normal IODecl
-
-        VDirection dir;
-        if (const int n = vpi_get(vpiDirection, obj_h)) {
-            if (n == vpiInput) {
-                dir = VDirection::INPUT;
-            } else if (n == vpiOutput) {
-                dir = VDirection::OUTPUT;
-            } else if (n == vpiInout) {
-                dir = VDirection::INOUT;
-            }
-        }
-
-        AstRange* var_range = nullptr;
-        visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* item) {
-            if (item) { var_range = reinterpret_cast<AstRange*>(item); }
-        });
-        auto* dtype = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::LOGIC);
-        dtype->rangep(var_range);
-        auto* var = new AstVar(new FileLine("uhdm"), AstVarType::PORT, objectName,
-                               VFlagChildDType(), dtype);
-        var->declDirection(dir);
-        var->direction(dir);
-        return var;
+        return process_ioDecl(obj_h, shared);
     }
     case vpiAlways: {
         VAlwaysKwd alwaysType;
@@ -1786,9 +1809,11 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             return new AstPatMember(new FileLine("uhdm"), pattern, typespec, nullptr);
         }
     }
-    case vpiEnumConst:
+    case vpiEnumConst: {
+        return get_value_as_node(obj_h, false);
+    }
     case vpiConstant: {
-        return get_value_as_node(obj_h);
+        return get_value_as_node(obj_h, true);
     }
     case vpiBitSelect: {
         auto* fromp = new AstParseRef(new FileLine("uhdm"), VParseRefExp::en::PX_TEXT, objectName,
@@ -2315,19 +2340,23 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             return nullptr;
         }
 
-        shared.visited_types[object] = shared.package_prefix + objectName;
+        shared.visited_types[object] = objectName;
+
+        // Use bare name for typespec itself, hierarchy was stored above
+        auto pos = objectName.rfind("::");
+        if (pos != std::string::npos) objectName = objectName.substr(pos + 2);
 
         AstNode* enum_members = nullptr;
         AstNodeDType* enum_member_dtype = nullptr;
 
         vpiHandle itr = vpi_iterate(vpiEnumConst, obj_h);
         while (vpiHandle item_h = vpi_scan(itr)) {
-            auto* value = get_value_as_node(item_h);
             std::string item_name;
             if (auto s = vpi_get_str(vpiName, item_h)) {
                 item_name = s;
                 sanitize_str(item_name);
             }
+            auto* value = get_value_as_node(item_h, false);
             auto* wrapped_item = new AstEnumItem(new FileLine("uhdm"), item_name, nullptr, value);
             if (enum_members == nullptr) {
                 enum_members = wrapped_item;
@@ -2360,7 +2389,13 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             UINFO(6, "Object " << objectName << " was already visited" << std::endl);
             return node;
         }
-        shared.visited_types[object] = shared.package_prefix + objectName;
+
+        shared.visited_types[object] = objectName;
+
+        // Use bare name for typespec itself, hierarchy was stored above
+        auto pos = objectName.rfind("::");
+        if (pos != std::string::npos) objectName = objectName.substr(pos + 2);
+
         // VSigning below is used in AstStructDtype to indicate
         // if packed or not
         VSigning packed;
@@ -2379,6 +2414,17 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             = new AstTypedef(new FileLine("uhdm"), objectName, nullptr, VFlagChildDType(), dtype);
         shared.m_symp->reinsert(struct_type);
         return struct_type;
+    }
+    case vpiPackedArrayTypespec: {
+        vpiHandle index_typespec_h = vpi_handle(vpiIndexTypespec, obj_h);
+        const unsigned int index_type = vpi_get(vpiType, index_typespec_h);
+        AstBasicDTypeKwd typeKwd = get_kwd_for_type(index_type);
+        AstRange* rangeNodep = nullptr;
+        visit_one_to_many({vpiRange}, obj_h, shared,
+                          [&](AstNode* node) { rangeNodep = reinterpret_cast<AstRange*>(node); });
+        auto* dtypep = new AstBasicDType(new FileLine("uhdm"), typeKwd);
+        dtypep->rangep(rangeNodep);
+        return dtypep;
     }
     case vpiTypespecMember: {
         AstNodeDType* typespec = nullptr;
@@ -2414,6 +2460,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         AstNodeDType* dtype = getDType(obj_h, shared);
         auto* var = new AstVar(new FileLine("uhdm"), AstVarType::VAR, objectName,
                                VFlagChildDType(), dtype);
+        if (v3Global.opt.trace()) { var->trace(true); }
         visit_one_to_one({vpiExpr}, obj_h, shared, [&](AstNode* item) { var->valuep(item); });
         return var;
     }
@@ -2424,12 +2471,14 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         auto* var = new AstVar(new FileLine("uhdm"), AstVarType::VAR, objectName,
                                VFlagChildDType(), dtype);
         visit_one_to_one({vpiExpr}, obj_h, shared, [&](AstNode* item) { var->valuep(item); });
+        if (v3Global.opt.trace()) { var->trace(true); }
         return var;
     }
     case vpiChandleVar: {
         auto* dtype = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::CHANDLE);
         auto* var = new AstVar(new FileLine("uhdm"), AstVarType::VAR, objectName,
                                VFlagChildDType(), dtype);
+        if (v3Global.opt.trace()) { var->trace(true); }
         return var;
     }
     case vpiGenScopeArray: {
