@@ -132,6 +132,12 @@ AstNode* get_value_as_node(vpiHandle obj_h, bool need_decompile = false) {
             if (type == vpiStringConst) {
                 valueNodep = new AstConst(new FileLine("uhdm"), AstConst::VerilogStringLiteral(),
                                           deQuote(new FileLine("uhdm"), valStr));
+            } else if (type == vpiRealConst) {
+                bool parseSuccess;
+                double value = VString::parseDouble(valStr, &parseSuccess);
+                UASSERT(parseSuccess, "Unable to parse real value: " + valStr);
+
+                valueNodep = new AstConst(new FileLine("uhdm"), AstConst::RealDouble(), value);
             } else {
                 valStr = s;
                 V3Number value(valueNodep, valStr.c_str());
