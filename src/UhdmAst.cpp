@@ -257,6 +257,7 @@ AstBasicDTypeKwd get_kwd_for_type(int vpi_var_type) {
     case vpiTimeVar: {
         return AstBasicDTypeKwd::TIME;
     }
+    case vpiChandleTypespec:
     case vpiChandleVar: {
         return AstBasicDTypeKwd::CHANDLE;
     }
@@ -377,6 +378,7 @@ AstNodeDType* getDType(vpiHandle obj_h, UhdmShared& shared) {
     case vpiByteTypespec:
     case vpiRealTypespec:
     case vpiStringTypespec:
+    case vpiChandleTypespec:
     case vpiTimeTypespec: {
         AstBasicDTypeKwd keyword = get_kwd_for_type(type);
         dtype = new AstBasicDType(new FileLine("uhdm"), keyword);
@@ -2324,6 +2326,10 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     case vpiStringTypespec: {
         auto* dtype = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::STRING);
         return dtype;
+    }
+    case vpiChandleTypespec: {
+        auto* dtypep = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::CHANDLE);
+        return dtypep;
     }
     case vpiIntegerTypespec: {
         AstNode* constNode = get_value_as_node(obj_h);
