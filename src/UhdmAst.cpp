@@ -62,6 +62,37 @@ bool is_imported(vpiHandle obj_h) {
     }
 }
 
+bool is_expr_context(vpiHandle obj_h) {
+    auto parent_h = vpi_handle(vpiParent, obj_h);
+    if (parent_h) {
+        auto parent_type = vpi_get(vpiType, parent_h);
+        switch (parent_type) {
+        case vpiOperation:
+        case vpiIf:
+        case vpiIfElse:
+        case vpiAssignStmt:
+        case vpiAssignment:
+        case vpiContAssign: {
+            return true;
+        }
+        case vpiBegin:
+        case vpiFuncCall:
+        case vpiTaskCall:
+        case vpiCaseItem: {
+            return false;
+        }
+        default: {
+            v3info("Encountered unhandled parent type in " << __FUNCTION__ << std::endl);
+            return false;
+        }
+        }
+    } else {
+        v3info("Missing parent handle in " << __FUNCTION__ << std::endl);
+        // TODO: it seems that this happens only in expr context?
+        return true;
+    }
+}
+
 string deQuote(FileLine* fileline, string text) {
     // Fix up the quoted strings the user put in, for example "\"" becomes "
     // Reverse is V3OutFormatter::quoteNameControls(...)
@@ -590,6 +621,7 @@ AstNode* process_function(vpiHandle obj_h, UhdmShared& shared) {
     AstNode* statementsp = nullptr;
     AstNode* functionVarsp = nullptr;
     AstNode* taskFuncp = nullptr;
+    shared.isFunction = false;
 
     std::string objectName;
     if (auto s = vpi_get_str(vpiName, obj_h)) {
@@ -599,7 +631,15 @@ AstNode* process_function(vpiHandle obj_h, UhdmShared& shared) {
 
     auto return_h = vpi_handle(vpiReturn, obj_h);
     if (return_h) {
-        AstNode* dtypep = getDType(return_h, shared);
+        AstNodeDType* dtypep = getDType(return_h, shared);
+        // Implicit return type is always logic.
+        // If we see another type here, it must be a function.
+        // If not, we will check for vpiReturn when visiting statements below.
+        if (auto basicp = dtypep->basicp()) {
+            if (basicp->keyword() != AstBasicDTypeKwd::LOGIC || basicp->rangep() != nullptr) {
+                shared.isFunction = true;
+            }
+        }
         functionVarsp = dtypep;
     }
 
@@ -631,7 +671,7 @@ AstNode* process_function(vpiHandle obj_h, UhdmShared& shared) {
         }
     });
 
-    if (return_h) {
+    if (shared.isFunction) {
         taskFuncp = new AstFunc(new FileLine("uhdm"), objectName, statementsp, functionVarsp);
     } else {
         taskFuncp = new AstTask(new FileLine("uhdm"), objectName, statementsp);
@@ -1898,6 +1938,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         visit_one_to_one({vpiCondition}, obj_h, shared, [&](AstNode* item) {
             if (item) { condition = item; }
         });
+        if (condition) shared.isFunction = true;
         return new AstReturn(new FileLine("uhdm"), condition);
     }
     case vpiFuncCall: {
@@ -1922,10 +1963,10 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                                                 lhs, nullptr, nullptr);
             return new AstMethodCall(new FileLine("uhdm"), from, rhs, arguments);
         }
-        // Check if this is a task or function by looking for return value
-        auto function_h = vpi_handle(vpiFunction, obj_h);
-        auto return_h = vpi_handle(vpiReturn, function_h);
-        if (return_h)
+        // Functions can be called as tasks, depending on context
+        bool inExpression = is_expr_context(obj_h);
+
+        if (inExpression)
             return new AstFuncRef(new FileLine("uhdm"), objectName, arguments);
         else
             return new AstTaskRef(new FileLine("uhdm"), objectName, arguments);
