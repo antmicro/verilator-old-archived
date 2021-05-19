@@ -23,6 +23,8 @@ struct UhdmShared {
     std::map<std::string, NameNodeMap> top_param_map;
     std::set<std::tuple<std::string, int, std::string>> coverage_set;
     V3ParseSym* m_symp;
+    // Used to distinguish between task/function calls inside statement hierarchy
+    bool isFunction;
 
     std::map<std::string, AstNodeModule*> top_nodes;
 };
