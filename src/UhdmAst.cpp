@@ -1099,7 +1099,6 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         visit_one_to_many(
             {
                 vpiTypedef,
-                vpiParameter,
                 vpiParamAssign,
                 vpiProgram,
                 vpiProgramArray,
@@ -1274,11 +1273,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             if (param_it != shared.top_param_map.end()) {
                 auto param_map = param_it->second;
                 visit_one_to_many(
-                    {
-                        vpiParameter,
-                        vpiParamAssign,
-                    },
-                    obj_h, shared, [&](AstNode* node) {
+                    {vpiParamAssign}, obj_h, shared, [&](AstNode* node) {
                         if (VN_IS(node, Var)) {
                             AstVar* param_node = VN_CAST(node, Var);
                             // Global parameters are added as pins, skip them here
@@ -1310,11 +1305,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                     if (node != nullptr) module->addStmtp(node);
                 });
             visit_one_to_many(
-                {
-                    vpiParamAssign,
-                    vpiParameter,
-                },
-                obj_h, shared, [&](AstNode* node) {
+                {vpiParamAssign}, obj_h, shared, [&](AstNode* node) {
                     if (node != nullptr) param_map[node->name()] = node;
                 });
             (shared.partial_modules)[module->name()] = module;
@@ -1491,7 +1482,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     case vpiParameter: {
         AstVar* parameter = nullptr;
         AstNode* parameter_value = nullptr;
-        
+
         if (is_imported(obj_h)) {
             // Skip imported parameters, they will still be visible in their packages
             UINFO(3, "Skipping imported parameter " << objectName << std::endl);
@@ -1527,6 +1518,8 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         else
             parameter_type = AstVarType::GPARAM;
 
+        sanitize_str(objectName);
+                
         parameter = new AstVar(new FileLine("uhdm"), parameter_type, objectName,
                                VFlagChildDType(), dtype);
         if (parameter_value != nullptr)
@@ -1547,11 +1540,9 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                          [&](AstNode* node) {
                              parameter = reinterpret_cast<AstVar*>(node);
 
-                             objectName = parameter->name();
-                             sanitize_str(objectName);
-                             parameter->name(objectName);
-
-                             parameter->valuep(parameter_value);
+                             
+                             if (parameter_value != nullptr)
+                                 parameter->valuep(parameter_value);
                          });
         
         return parameter;
@@ -1563,7 +1554,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         visit_one_to_many(
             {
                 vpiPort,
-                vpiParameter,
+                vpiParamAssign,
                 vpiInterfaceTfDecl,
                 vpiModPath,
                 vpiContAssign,
@@ -1753,7 +1744,6 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 vpiReg,
                 vpiRegArray,
                 vpiMemory,
-                vpiParameter,
                 vpiParamAssign,
                 vpiInternalScope,
                 vpiImport,
@@ -2644,7 +2634,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 vpiVariables,
                 // vpiMethods,  // Not supported yet in UHDM
                 vpiConstraint,
-                vpiParameter,
+                vpiParamAssign,
                 vpiNamedEvent,
                 vpiNamedEventArray,
                 vpiInternalScope,
