@@ -1488,75 +1488,74 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         if (v3Global.opt.trace()) { v->trace(true); }
         return v;
     }
-    case vpiParameter:
-    case vpiParamAssign: {
+    case vpiParameter: {
         AstVar* parameter = nullptr;
         AstNode* parameter_value = nullptr;
-        vpiHandle parameter_h;
-
-        if (objectType == vpiParamAssign) {
-            parameter_h = vpi_handle(vpiLhs, obj_h);
-            // Update object name using parameter handle
-            if (auto s = vpi_get_str(vpiName, parameter_h)) {
-                objectName = s;
-                sanitize_str(objectName);
-            }
-        } else if (objectType == vpiParameter) {
-            parameter_h = obj_h;
-        }
-        if (is_imported(parameter_h)) {
+        
+        if (is_imported(obj_h)) {
             // Skip imported parameters, they will still be visible in their packages
             UINFO(3, "Skipping imported parameter " << objectName << std::endl);
             return nullptr;
         }
 
         AstRange* rangeNode = nullptr;
-        visit_one_to_many({vpiRange}, parameter_h, shared, [&](AstNode* node) {
+        visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* node) {
             if (node) rangeNode = reinterpret_cast<AstRange*>(node);
         });
 
         AstNodeDType* dtype = nullptr;
-        auto typespec_h = vpi_handle(vpiTypespec, parameter_h);
+        auto typespec_h = vpi_handle(vpiTypespec, obj_h);
         if (typespec_h) { dtype = getDType(typespec_h, shared); }
 
         // If no typespec provided assume default
         if (dtype == nullptr) {
-            auto* temp_dtype
-                = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::LOGIC_IMPLICIT);
-            dtype = temp_dtype;
+            dtype = new AstBasicDType(new FileLine("uhdm"),
+                                      AstBasicDTypeKwd::LOGIC_IMPLICIT);
         }
         if (rangeNode) {
             dtype = new AstUnpackArrayDType(new FileLine("uhdm"), VFlagChildDType(), dtype,
                                             rangeNode);
         }
         AstVarType parameter_type;
-        int is_local = 0;
 
         // Get value
-        if (objectType == vpiParamAssign) {
-            visit_one_to_one({vpiRhs}, obj_h, shared,
-                             [&](AstNode* node) { parameter_value = node; });
-            is_local = vpi_get(vpiLocalParam, vpi_handle(vpiLhs, obj_h));
-        } else if (objectType == vpiParameter) {
-            parameter_value = get_value_as_node(obj_h);
-            is_local = vpi_get(vpiLocalParam, obj_h);
-        }
-
+        parameter_value = get_value_as_node(obj_h);
+        int is_local = vpi_get(vpiLocalParam, obj_h);
+        
         if (is_local)
             parameter_type = AstVarType::LPARAM;
         else
             parameter_type = AstVarType::GPARAM;
 
-        // if no value: bail
-        if (parameter_value == nullptr) {
-            return nullptr;
-        } else {
-            parameter = new AstVar(new FileLine("uhdm"), parameter_type, objectName,
-                                   VFlagChildDType(), dtype);
+        parameter = new AstVar(new FileLine("uhdm"), parameter_type, objectName,
+                               VFlagChildDType(), dtype);
+        if (parameter_value != nullptr)
             parameter->valuep(parameter_value);
-            return parameter;
-        }
+        return parameter;
     }
+    case vpiParamAssign: {
+        
+        AstVar* parameter = nullptr;
+        AstNode* parameter_value = nullptr;
+
+        visit_one_to_one({vpiRhs}, obj_h, shared,
+                         [&](AstNode* node) {
+                             parameter_value = node;
+                         });
+        
+        visit_one_to_one({vpiLhs}, obj_h, shared,
+                         [&](AstNode* node) {
+                             parameter = reinterpret_cast<AstVar*>(node);
+
+                             objectName = parameter->name();
+                             sanitize_str(objectName);
+                             parameter->name(objectName);
+
+                             parameter->valuep(parameter_value);
+                         });
+        
+        return parameter;
+    }                 
     case vpiInterface: {
         // Interface definition is represented by a module node
         AstIface* elaboratedInterface = new AstIface(new FileLine("uhdm"), objectName);
