@@ -28,6 +28,7 @@ nmi_gen_reg_pkg.sv \
 i2c_reg_pkg.sv \
 gpio_reg_pkg.sv \
 entropy_src_reg_pkg.sv \
+aes_reg_pkg.sv \
 aes_sbox_canright_pkg.sv \
 dm_pkg.sv \
 usb_consts_pkg.sv \
