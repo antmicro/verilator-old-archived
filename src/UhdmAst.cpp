@@ -1046,6 +1046,91 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared) {
     return nullptr;
 }
 
+AstVar* process_parameter(vpiHandle obj_h, UhdmShared& shared, bool get_value) {
+    AstVar* parameterp = nullptr;
+    AstNode* parameterValuep = nullptr;
+
+    std::string objectName;
+    for (auto name : {vpiName, vpiFullName, vpiDefName}) {
+        if (auto s = vpi_get_str(name, obj_h)) {
+            objectName = s;
+            sanitize_str(objectName);
+            break;
+        }
+    }
+
+    if (is_imported(obj_h)) {
+        // Skip imported parameters, they will still be visible in their packages
+        UINFO(3, "Skipping imported parameter " << objectName << std::endl);
+        return nullptr;
+    }
+
+    AstRange* rangeNodep = nullptr;
+    visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* nodep) {
+        if (nodep) rangeNodep = reinterpret_cast<AstRange*>(nodep);
+    });
+
+    AstNodeDType* dtypep = nullptr;
+    auto typespec_h = vpi_handle(vpiTypespec, obj_h);
+    if (typespec_h) {
+        dtypep = getDType(typespec_h, shared);
+    }
+    else {
+        UINFO(7, "No typespec found in vpiParameter " << objectName << std::endl);
+    }
+
+    // If no typespec provided assume default
+    if (dtypep == nullptr) {
+        dtypep = new AstBasicDType(new FileLine("uhdm"),
+                                   AstBasicDTypeKwd::LOGIC_IMPLICIT);
+    }
+    if (rangeNodep) {
+        dtypep = new AstUnpackArrayDType(new FileLine("uhdm"), VFlagChildDType(), dtypep,
+                                         rangeNodep);
+    }
+
+    if (get_value) {
+        parameterValuep = get_value_as_node(obj_h);
+    }
+
+    AstVarType parameterType;
+    int is_local = vpi_get(vpiLocalParam, obj_h);
+
+    if (is_local)
+        parameterType = AstVarType::LPARAM;
+    else
+        parameterType = AstVarType::GPARAM;
+
+    parameterp = new AstVar(new FileLine("uhdm"), parameterType, objectName,
+                            VFlagChildDType(), dtypep);
+    if (parameterValuep != nullptr)
+        parameterp->valuep(parameterValuep);
+    return parameterp;
+}
+
+AstVar* process_param_assign(vpiHandle obj_h, UhdmShared& shared) {
+    AstVar* parameterp = nullptr;
+    AstNode* parameterValuep = nullptr;
+
+    visit_one_to_one({vpiRhs}, obj_h, shared,
+                     [&](AstNode* nodep) {
+                         parameterValuep = nodep;
+                     });
+
+    vpiHandle parameter_h = vpi_handle(vpiLhs, obj_h);
+
+    if (parameterValuep == nullptr) {
+        parameterp = process_parameter(parameter_h, shared, true);
+    } else {
+        parameterp = process_parameter(parameter_h, shared, false);
+        if (parameterp != nullptr) {
+            parameterp->valuep(parameterValuep);
+        }
+    }
+         
+    return parameterp;
+}
+
 AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     // Will keep current node
     AstNode* node = nullptr;
@@ -1099,7 +1184,6 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         visit_one_to_many(
             {
                 vpiTypedef,
-                vpiParameter,
                 vpiParamAssign,
                 vpiProgram,
                 vpiProgramArray,
@@ -1274,11 +1358,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             if (param_it != shared.top_param_map.end()) {
                 auto param_map = param_it->second;
                 visit_one_to_many(
-                    {
-                        vpiParameter,
-                        vpiParamAssign,
-                    },
-                    obj_h, shared, [&](AstNode* node) {
+                    {vpiParamAssign}, obj_h, shared, [&](AstNode* node) {
                         if (VN_IS(node, Var)) {
                             AstVar* param_node = VN_CAST(node, Var);
                             // Global parameters are added as pins, skip them here
@@ -1310,11 +1390,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                     if (node != nullptr) module->addStmtp(node);
                 });
             visit_one_to_many(
-                {
-                    vpiParamAssign,
-                    vpiParameter,
-                },
-                obj_h, shared, [&](AstNode* node) {
+                {vpiParamAssign}, obj_h, shared, [&](AstNode* node) {
                     if (node != nullptr) param_map[node->name()] = node;
                 });
             (shared.partial_modules)[module->name()] = module;
@@ -1488,75 +1564,12 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         if (v3Global.opt.trace()) { v->trace(true); }
         return v;
     }
-    case vpiParameter:
-    case vpiParamAssign: {
-        AstVar* parameter = nullptr;
-        AstNode* parameter_value = nullptr;
-        vpiHandle parameter_h;
-
-        if (objectType == vpiParamAssign) {
-            parameter_h = vpi_handle(vpiLhs, obj_h);
-            // Update object name using parameter handle
-            if (auto s = vpi_get_str(vpiName, parameter_h)) {
-                objectName = s;
-                sanitize_str(objectName);
-            }
-        } else if (objectType == vpiParameter) {
-            parameter_h = obj_h;
-        }
-        if (is_imported(parameter_h)) {
-            // Skip imported parameters, they will still be visible in their packages
-            UINFO(3, "Skipping imported parameter " << objectName << std::endl);
-            return nullptr;
-        }
-
-        AstRange* rangeNode = nullptr;
-        visit_one_to_many({vpiRange}, parameter_h, shared, [&](AstNode* node) {
-            if (node) rangeNode = reinterpret_cast<AstRange*>(node);
-        });
-
-        AstNodeDType* dtype = nullptr;
-        auto typespec_h = vpi_handle(vpiTypespec, parameter_h);
-        if (typespec_h) { dtype = getDType(typespec_h, shared); }
-
-        // If no typespec provided assume default
-        if (dtype == nullptr) {
-            auto* temp_dtype
-                = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::LOGIC_IMPLICIT);
-            dtype = temp_dtype;
-        }
-        if (rangeNode) {
-            dtype = new AstUnpackArrayDType(new FileLine("uhdm"), VFlagChildDType(), dtype,
-                                            rangeNode);
-        }
-        AstVarType parameter_type;
-        int is_local = 0;
-
-        // Get value
-        if (objectType == vpiParamAssign) {
-            visit_one_to_one({vpiRhs}, obj_h, shared,
-                             [&](AstNode* node) { parameter_value = node; });
-            is_local = vpi_get(vpiLocalParam, vpi_handle(vpiLhs, obj_h));
-        } else if (objectType == vpiParameter) {
-            parameter_value = get_value_as_node(obj_h);
-            is_local = vpi_get(vpiLocalParam, obj_h);
-        }
-
-        if (is_local)
-            parameter_type = AstVarType::LPARAM;
-        else
-            parameter_type = AstVarType::GPARAM;
-
-        // if no value: bail
-        if (parameter_value == nullptr) {
-            return nullptr;
-        } else {
-            parameter = new AstVar(new FileLine("uhdm"), parameter_type, objectName,
-                                   VFlagChildDType(), dtype);
-            parameter->valuep(parameter_value);
-            return parameter;
-        }
+    case vpiParameter: {
+        return process_parameter(obj_h, shared, true);
     }
+    case vpiParamAssign: {
+        return process_param_assign(obj_h, shared);
+    }                 
     case vpiInterface: {
         // Interface definition is represented by a module node
         AstIface* elaboratedInterface = new AstIface(new FileLine("uhdm"), objectName);
@@ -1564,7 +1577,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         visit_one_to_many(
             {
                 vpiPort,
-                vpiParameter,
+                vpiParamAssign,
                 vpiInterfaceTfDecl,
                 vpiModPath,
                 vpiContAssign,
@@ -1754,7 +1767,6 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 vpiReg,
                 vpiRegArray,
                 vpiMemory,
-                vpiParameter,
                 vpiParamAssign,
                 vpiInternalScope,
                 vpiImport,
@@ -2645,7 +2657,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 vpiVariables,
                 // vpiMethods,  // Not supported yet in UHDM
                 vpiConstraint,
-                vpiParameter,
+                vpiParamAssign,
                 vpiNamedEvent,
                 vpiNamedEventArray,
                 vpiInternalScope,
