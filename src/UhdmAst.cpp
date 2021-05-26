@@ -1072,7 +1072,12 @@ AstVar* process_parameter(vpiHandle obj_h, UhdmShared& shared, bool get_value) {
 
     AstNodeDType* dtypep = nullptr;
     auto typespec_h = vpi_handle(vpiTypespec, obj_h);
-    if (typespec_h) { dtypep = getDType(typespec_h, shared); }
+    if (typespec_h) {
+        dtypep = getDType(typespec_h, shared);
+    }
+    else {
+        UINFO(7, "No typespec found in vpiParameter " << objectName << std::endl);
+    }
 
     // If no typespec provided assume default
     if (dtypep == nullptr) {
