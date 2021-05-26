@@ -151,6 +151,21 @@ string deQuote(FileLine* fileline, string text) {
     return newtext;
 }
 
+AstNode* get_referenceNode(const string name) {
+    size_t dot_pos = name.find('.');
+    if (dot_pos != std::string::npos) {
+        std::string lhs = name.substr(0, dot_pos);
+        std::string rhs = name.substr(dot_pos + 1, name.length());
+        AstParseRef* lhsNode = new AstParseRef(new FileLine("uhdm"), VParseRefExp::en::PX_TEXT,
+                                               lhs, nullptr, nullptr);
+        AstNode* rhsNode = get_referenceNode(rhs);
+        return new AstDot(new FileLine("uhdm"), false, lhsNode, rhsNode);
+    } else {
+        return new AstParseRef(new FileLine("uhdm"), VParseRefExp::en::PX_TEXT, name,
+                               nullptr, nullptr);
+    }
+}
+
 AstNode* get_value_as_node(vpiHandle obj_h, bool need_decompile = false) {
     AstNode* valueNodep = nullptr;
     std::string valStr;
@@ -829,8 +844,7 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared) {
         } else if (operation == vpiPostDecOp) {
             op = new AstSub(new FileLine("uhdm"), operands[0], onep);
         }
-        auto* varp = new AstParseRef(new FileLine("uhdm"), VParseRefExp::en::PX_TEXT,
-                                     operands[0]->name(), nullptr, nullptr);
+        auto* varp = get_referenceNode(operands[0]->name());
         return new AstAssign(new FileLine("uhdm"), varp, op);
     }
     case vpiAssignmentOp: {
@@ -1504,39 +1518,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return process_hierPath(obj_h, shared);
     }
     case vpiRefObj: {
-        size_t dot_pos = objectName.rfind('.');
-        if (dot_pos != std::string::npos) {
-            // TODO: Handle >1 dot
-            std::string lhs = objectName.substr(0, dot_pos);
-            std::string rhs = objectName.substr(dot_pos + 1, objectName.length());
-            AstParseRef* lhsNode = new AstParseRef(new FileLine("uhdm"), VParseRefExp::en::PX_TEXT,
-                                                   lhs, nullptr, nullptr);
-            AstParseRef* rhsNode = new AstParseRef(new FileLine("uhdm"), VParseRefExp::en::PX_TEXT,
-                                                   rhs, nullptr, nullptr);
-
-            return new AstDot(new FileLine("uhdm"), false, lhsNode, rhsNode);
-        } else {
-            bool isLvalue = false;
-            vpiHandle actual = vpi_handle(vpiActual, obj_h);
-            if (actual) {
-                auto actual_type = vpi_get(vpiType, actual);
-                if (actual_type == vpiPort) {
-                    if (const int n = vpi_get(vpiDirection, actual)) {
-                        if (n == vpiInput) {
-                            isLvalue = false;
-                        } else if (n == vpiOutput) {
-                            isLvalue = true;
-                        } else if (n == vpiInout) {
-                            isLvalue = true;
-                        }
-                    }
-                }
-                vpi_free_object(actual);
-            }
-            return new AstParseRef(new FileLine("uhdm"), VParseRefExp::en::PX_TEXT, objectName,
-                                   nullptr, nullptr);
-        }
-        break;
+        return get_referenceNode(objectName);
     }
     case vpiNetArray: {  // also defined as vpiArrayNet
         // vpiNetArray is used for unpacked arrays
@@ -1895,8 +1877,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return get_value_as_node(obj_h, true);
     }
     case vpiBitSelect: {
-        auto* fromp = new AstParseRef(new FileLine("uhdm"), VParseRefExp::en::PX_TEXT, objectName,
-                                      nullptr, nullptr);
+        auto* fromp = get_referenceNode(objectName);
         AstNode* bitp = nullptr;
         visit_one_to_one({vpiIndex}, obj_h, shared, [&](AstNode* item) {
             if (item) { bitp = item; }
@@ -1904,8 +1885,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return new AstSelBit(new FileLine("uhdm"), fromp, bitp);
     }
     case vpiVarSelect: {
-        AstNode* fromp = new AstParseRef(new FileLine("uhdm"), VParseRefExp::en::PX_TEXT,
-                                         objectName, nullptr, nullptr);
+        auto* fromp = get_referenceNode(objectName);
         AstNode* bitp = nullptr;
         AstNode* select = nullptr;
         visit_one_to_many({vpiIndex}, obj_h, shared, [&](AstNode* item) {
@@ -1990,8 +1970,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             // TODO: Handle >1 dot, currently all goes into prefix
             std::string lhs = objectName.substr(0, dot_pos);
             std::string rhs = objectName.substr(dot_pos + 1, objectName.length());
-            AstParseRef* from = new AstParseRef(new FileLine("uhdm"), VParseRefExp::en::PX_TEXT,
-                                                lhs, nullptr, nullptr);
+            AstNode* from = get_referenceNode(lhs);
             return new AstMethodCall(new FileLine("uhdm"), from, rhs, arguments);
         }
         // Functions can be called as tasks, depending on context
@@ -2230,8 +2209,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             std::string parent_name;
             if (auto s = vpi_get_str(vpiName, parent_h)) parent_name = s;
             sanitize_str(parent_name);
-            fromNode = new AstParseRef(new FileLine("uhdm"), VParseRefExp::en::PX_TEXT,
-                                       parent_name, nullptr, nullptr);
+            fromNode = get_referenceNode(parent_name);
         }
         return new AstSelExtract(new FileLine("uhdm"), fromNode, msbNode, lsbNode);
     }
@@ -2257,8 +2235,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         auto parent_h = vpi_handle(vpiParent, obj_h);
         std::string parent_name = vpi_get_str(vpiName, parent_h);
         sanitize_str(parent_name);
-        fromNode = new AstParseRef(new FileLine("uhdm"), VParseRefExp::en::PX_TEXT, parent_name,
-                                   nullptr, nullptr);
+        fromNode = get_referenceNode(parent_name);
 
         auto type = vpi_get(vpiIndexedPartSelectType, obj_h);
         if (type == vpiPosIndexed) {
@@ -2698,8 +2675,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     case vpiUnsupportedTypespec: {
         v3info("\t! This typespec is unsupported in UHDM: " << file_name << ":" << currentLine);
         // Create a reference and try to resolve later
-        return new AstParseRef(new FileLine("uhdm"), VParseRefExp::en::PX_TEXT, objectName,
-                               nullptr, nullptr);
+        return get_referenceNode(objectName);
     }
     case vpiUnsupportedStmt:
         v3info("\t! This statement is unsupported in UHDM: " << file_name << ":" << currentLine);
