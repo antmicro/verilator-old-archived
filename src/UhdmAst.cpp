@@ -318,7 +318,7 @@ AstBasicDTypeKwd get_kwd_for_type(int vpi_var_type) {
         // Not a basic dtype, needs further handling
         return AstBasicDTypeKwd::UNKNOWN;
     }
-    default: v3error("Unknown object type");
+    default: v3error("Unknown object type " << vpi_var_type);
     }
     return AstBasicDTypeKwd::UNKNOWN;
 }
