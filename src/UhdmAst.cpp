@@ -643,18 +643,7 @@ AstNode* process_function(vpiHandle obj_h, UhdmShared& shared) {
         functionVarsp = dtypep;
     }
 
-    visit_one_to_many({vpiIODecl}, obj_h, shared, [&](AstNode* itemp) {
-        if (itemp) {
-            // Overwrite direction for arguments
-            auto* iop = VN_CAST(itemp, Var);
-            iop->direction(VDirection::INPUT);
-            if (statementsp)
-                statementsp->addNextNull(iop);
-            else
-                statementsp = iop;
-        }
-    });
-    visit_one_to_many({vpiVariables}, obj_h, shared, [&](AstNode* itemp) {
+    visit_one_to_many({vpiIODecl, vpiVariables}, obj_h, shared, [&](AstNode* itemp) {
         if (itemp) {
             if (statementsp)
                 statementsp->addNextNull(itemp);
