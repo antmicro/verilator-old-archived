@@ -396,7 +396,7 @@ AstNodeDType* getDType(vpiHandle obj_h, UhdmShared& shared) {
     }
     case vpiPackedArrayTypespec: {
         auto elem_typespec_h = vpi_handle(vpiElemTypespec, obj_h);
-        AstNodeDType* subdtypep = getDType(elem_typespec_h, shared);
+        dtype = getDType(elem_typespec_h, shared);
 
         AstRange* rangeNodep = nullptr;
         std::stack<AstRange*> range_stack;
@@ -405,9 +405,9 @@ AstNodeDType* getDType(vpiHandle obj_h, UhdmShared& shared) {
              range_stack.push(rangeNodep);
         });
         while (!range_stack.empty()) {
-                rangeNodep = range_stack.top();
-                dtype = new AstPackArrayDType(new FileLine("uhdm"), VFlagChildDType(), subdtypep,
-                                              rangeNodep);
+            rangeNodep = range_stack.top();
+            dtype = new AstPackArrayDType(new FileLine("uhdm"), VFlagChildDType(), dtype,
+                                          rangeNodep);
             range_stack.pop();
         }
         break;
@@ -518,12 +518,19 @@ AstNodeDType* getDType(vpiHandle obj_h, UhdmShared& shared) {
         } else {
             v3error("Missing typespec for unpacked/packed_array_var");
         }
-        AstRange* rangep = nullptr;
 
-        visit_one_to_many({vpiRange}, obj_h, shared,
-                          [&](AstNode* node) { rangep = reinterpret_cast<AstRange*>(node); });
-
-        dtype = new AstPackArrayDType(new FileLine("uhdm"), VFlagChildDType(), dtype, rangep);
+        AstRange* rangeNodep = nullptr;
+        std::stack<AstRange*> range_stack;
+        visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* node) {
+            rangeNodep = reinterpret_cast<AstRange*>(node);
+            range_stack.push(rangeNodep);
+        });
+        while (!range_stack.empty()) {
+            rangeNodep = range_stack.top();
+            dtype = new AstPackArrayDType(new FileLine("uhdm"), VFlagChildDType(), dtype,
+                                          rangeNodep);
+            range_stack.pop();
+        }
         break;
     }
     case vpiArrayVar: {
