@@ -142,6 +142,10 @@ uart_tx.sv \
 usbdev_flop_2syncpulse.sv \
 jtag_mux.sv \
 csrng_state_db.sv \
+tlul_assert_multiple.sv \
+tlul_assert.sv \
+prim_generic_ram_2p.sv \
+prim_ram_2p.sv \
 usbdpi.sv'
 
 TO_SURELOG = \
