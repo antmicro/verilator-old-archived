@@ -14,6 +14,24 @@ OPEN_TITAN_INCLUDE = \
 
 # Working set of Opentitan files
 SURELOG_FILE_LIST='/ibex_pkg.sv \
+hmac_reg_pkg.sv \
+ast_pkg.sv \
+otp_ctrl_reg_pkg.sv \
+lc_ctrl_reg_pkg.sv \
+rv_plic_reg_pkg.sv \
+sensor_ctrl_pkg.sv \
+pwrmgr_pkg.sv \
+flash_ctrl_reg_pkg.sv \
+kmac_reg_pkg.sv \
+pattgen_reg_pkg.sv \
+pinmux_reg_pkg.sv \
+usbdev_reg_pkg.sv \
+sensor_ctrl_reg_pkg.sv \
+rv_timer_reg_pkg.sv \
+rstmgr_reg_pkg.sv \
+pwrmgr_reg_pkg.sv \
+alert_handler_reg_pkg.sv \
+keymgr_reg_pkg.sv \
 rstmgr_pkg.sv \
 pinmux_pkg.sv \
 tl_peri_pkg.sv \
