@@ -28,6 +28,7 @@ nmi_gen_reg_pkg.sv \
 i2c_reg_pkg.sv \
 gpio_reg_pkg.sv \
 entropy_src_reg_pkg.sv \
+aes_reg_pkg.sv \
 aes_sbox_canright_pkg.sv \
 dm_pkg.sv \
 usb_consts_pkg.sv \
@@ -199,9 +200,9 @@ uhdm/verilator/opentitan: clean-build | prepare-sources
 		cd ${OPEN_TITAN_BUILD}/sim-verilator/ && \
 		sed 's/-Wall -DVM_TRACE_FMT_FST/-DVM_TRACE_FMT_FST/g' -i config.mk && \
 		sed '/--cc/a --uhdm-ast-sv' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
+		sed '/--uhdm-ast-sv/a ${root_dir}/build/ibex_core.uhdm' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
 		sed '/${OPEN_TITAN_SOURCES_DELETE_OR}/d' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
 		sed '/usbdev_pkg.sv/i ${READD}' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
-		sed '/--top-module.*/i ${root_dir}/build/ibex_core.uhdm' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
 		$(MAKE))
 
 verilator/opentitan: clean-build | prepare-sources
