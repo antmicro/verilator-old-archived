@@ -809,13 +809,10 @@ AstNode* process_ioDecl(vpiHandle obj_h, UhdmShared& shared) {
         }
         // TODO: vpiMixedIO, vpiNoDirection - not encountered yet
     }
-    AstNode* typep = nullptr;
-    visit_one_to_one({vpiTypedef}, obj_h, shared, [&](AstNode* itemp) {
-        if (itemp) { typep = itemp; }
-    });
-    AstNodeDType* dtypep = VN_CAST(typep, NodeDType);
+    vpiHandle typedef_h = vpi_handle(vpiTypedef, obj_h);
+    AstNodeDType* dtypep = getDType(typedef_h, shared);
     if (dtypep == nullptr) {
-        UINFO(7, "No typedef found in vpiIODecl, falling back to logic" << std::endl);
+        UINFO(7, "No dtype found in vpiIODecl, falling back to logic" << std::endl);
         dtypep = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::LOGIC);
     }
     auto* varp = new AstVar(new FileLine("uhdm"), AstVarType::PORT, objectName, VFlagChildDType(),
