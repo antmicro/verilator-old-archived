@@ -165,6 +165,10 @@ tlul_assert_multiple.sv \
 tlul_assert.sv \
 prim_generic_ram_2p.sv \
 prim_ram_2p.sv \
+pwrmgr_wake_info.sv \
+padring.sv \
+prim_ram_2p_async_adv.sv \
+pwrmgr_slow_fsm.sv \
 usbdpi.sv'
 
 TO_SURELOG = \
