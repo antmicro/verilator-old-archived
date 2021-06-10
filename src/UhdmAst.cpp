@@ -1953,6 +1953,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return new AstReturn(new FileLine("uhdm"), condition);
     }
     case vpiFuncCall: {
+        AstNode* func_refp = nullptr;
         AstNode* arguments = nullptr;
         visit_one_to_many({vpiArgument}, obj_h, shared, [&](AstNode* item) {
             if (item) {
@@ -1964,6 +1965,28 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             }
         });
 
+        AstNode* refp = nullptr;
+        size_t colon_pos = objectName.find("::");
+        while(colon_pos != std::string::npos) {
+            std::string classPkgName = objectName.substr(0, colon_pos);
+            objectName = objectName.substr(colon_pos + 2, objectName.length());
+
+            UINFO(7, "Creating ClassOrPackageRef" << std::endl);
+            AstPackage* classpackagep = nullptr;
+            auto it = shared.package_map.find(classPkgName);
+            if (it != shared.package_map.end()) { classpackagep = it->second; }
+            AstNode* classpackageref = new AstClassOrPackageRef(
+                                                                new FileLine("uhdm"), classPkgName,
+                                                                classpackagep, nullptr);
+            shared.m_symp->nextId(classpackagep);
+            if (refp == nullptr)
+                refp = classpackageref;
+            else
+                refp = new AstDot(new FileLine("uhdm"), true, refp, classpackageref);
+
+            colon_pos = objectName.find("::");
+        }
+
         size_t dot_pos = objectName.rfind('.');
         if (dot_pos != std::string::npos) {
             // Split object name into prefix.method
@@ -1971,15 +1994,19 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             std::string lhs = objectName.substr(0, dot_pos);
             std::string rhs = objectName.substr(dot_pos + 1, objectName.length());
             AstNode* from = get_referenceNode(lhs);
-            return new AstMethodCall(new FileLine("uhdm"), from, rhs, arguments);
+            func_refp = new AstMethodCall(new FileLine("uhdm"), from, rhs, arguments);
         }
-        // Functions can be called as tasks, depending on context
-        bool inExpression = is_expr_context(obj_h);
+        else {
+            // Functions can be called as tasks, depending on context
+            bool inExpression = is_expr_context(obj_h);
 
-        if (inExpression)
-            return new AstFuncRef(new FileLine("uhdm"), objectName, arguments);
-        else
-            return new AstTaskRef(new FileLine("uhdm"), objectName, arguments);
+            if (inExpression)
+                func_refp = new AstFuncRef(new FileLine("uhdm"), objectName, arguments);
+            else
+                func_refp = new AstTaskRef(new FileLine("uhdm"), objectName, arguments);
+        }
+
+        return AstDot::newIfPkg(new FileLine("uhdm"), refp, func_refp);
     }
     case vpiSysFuncCall: {
         std::vector<AstNode*> arguments;
