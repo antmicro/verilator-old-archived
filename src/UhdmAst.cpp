@@ -1103,7 +1103,7 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared) {
     return nullptr;
 }
 
-AstVar* process_parameter(vpiHandle obj_h, UhdmShared& shared, bool get_value) {
+AstNode* process_parameter(vpiHandle obj_h, UhdmShared& shared, bool get_value) {
     AstVar* parameterp = nullptr;
     AstNode* parameterValuep = nullptr;
 
@@ -1116,6 +1116,20 @@ AstVar* process_parameter(vpiHandle obj_h, UhdmShared& shared, bool get_value) {
         }
     }
 
+    std::string fullName;
+    if (auto s = vpi_get_str(vpiFullName, obj_h)) {
+        fullName = s;
+        sanitize_str(fullName);
+    }
+    size_t colon_pos = fullName.rfind("::");
+    if (colon_pos != std::string::npos) {
+        AstNode* class_pkg_refp = get_class_package_ref_node(fullName, shared);
+
+        AstNode* var_refp = new AstParseRef(new FileLine("uhdm"), VParseRefExp::en::PX_TEXT,
+                                            objectName, nullptr, nullptr);
+        return AstDot::newIfPkg(new FileLine("uhdm"), class_pkg_refp, var_refp);
+    }
+    
     if (is_imported(obj_h)) {
         // Skip imported parameters, they will still be visible in their packages
         UINFO(3, "Skipping imported parameter " << objectName << std::endl);
@@ -1177,9 +1191,9 @@ AstVar* process_param_assign(vpiHandle obj_h, UhdmShared& shared) {
     vpiHandle parameter_h = vpi_handle(vpiLhs, obj_h);
 
     if (parameterValuep == nullptr) {
-        parameterp = process_parameter(parameter_h, shared, true);
+        parameterp = reinterpret_cast<AstVar*>(process_parameter(parameter_h, shared, true));
     } else {
-        parameterp = process_parameter(parameter_h, shared, false);
+        parameterp = reinterpret_cast<AstVar*>(process_parameter(parameter_h, shared, false));
         if (parameterp != nullptr) {
             parameterp->valuep(parameterValuep);
         }
