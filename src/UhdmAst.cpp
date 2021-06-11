@@ -434,15 +434,35 @@ AstNodeDType* getDType(vpiHandle obj_h, UhdmShared& shared) {
         break;
     }
     case vpiPackedArrayTypespec: {
-        auto elem_typespec_h = vpi_handle(vpiElemTypespec, obj_h);
-        dtype = getDType(elem_typespec_h, shared);
-
         AstRange* rangeNodep = nullptr;
         std::stack<AstRange*> range_stack;
         visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* node) {
              rangeNodep = reinterpret_cast<AstRange*>(node);
              range_stack.push(rangeNodep);
         });
+
+        auto elem_typespec_h = vpi_handle(vpiElemTypespec, obj_h);
+        if (elem_typespec_h) {
+            dtype = getDType(elem_typespec_h, shared);
+        } else {
+            UINFO(7, "No elem_typespec found in vpiPackedArrayTypespec, trying IndexTypespec" << std::endl);
+            auto index_typespec_h = vpi_handle(vpiIndexTypespec, obj_h);
+            if (index_typespec_h) {
+                dtype = getDType(index_typespec_h, shared);
+
+                // Workaround for implicit function argument types
+                // They are stored in UHDM as PackedArrays, but parsed by Verilator
+                // like the simple types above
+                AstBasicDType* basicDTypep = VN_CAST(dtype, BasicDType);
+                if (range_stack.size() == 1 && basicDTypep) {
+                    basicDTypep->rangep(range_stack.top());
+                    range_stack.pop();
+                }
+            } else {
+                v3error("\t! Failed to get typespec handle for PackedArrayTypespec");
+            }
+        }
+
         while (!range_stack.empty()) {
             rangeNodep = range_stack.top();
             dtype = new AstPackArrayDType(new FileLine("uhdm"), VFlagChildDType(), dtype,
