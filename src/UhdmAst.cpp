@@ -810,7 +810,12 @@ AstNode* process_ioDecl(vpiHandle obj_h, UhdmShared& shared) {
         // TODO: vpiMixedIO, vpiNoDirection - not encountered yet
     }
     vpiHandle typedef_h = vpi_handle(vpiTypedef, obj_h);
-    AstNodeDType* dtypep = getDType(typedef_h, shared);
+    AstNodeDType* dtypep = nullptr;
+    if (typedef_h) {
+        dtypep = getDType(typedef_h, shared);
+    } else {
+        UINFO(7, "No typedef handle found in vpiIODecl" << std::endl);
+    }
     if (dtypep == nullptr) {
         UINFO(7, "No dtype found in vpiIODecl, falling back to logic" << std::endl);
         dtypep = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::LOGIC);
