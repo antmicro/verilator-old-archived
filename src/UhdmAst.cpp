@@ -330,8 +330,15 @@ AstNode* get_value_as_node(vpiHandle obj_h, bool need_decompile = false) {
                 valueNodep = new AstConst(make_fileline(obj_h), AstConst::RealDouble(), value);
             } else {
                 valStr = s;
-                V3Number value(valueNodep, valStr.c_str());
-                valueNodep = new AstConst(make_fileline(obj_h), value);
+                if (valStr.find('\'') == std::string::npos)
+                    if (int size = vpi_get(vpiSize, obj_h)) {
+                        if (type == vpiBinaryConst) valStr = "'b" + valStr;
+                        else if (type == vpiOctConst) valStr = "'o" + valStr;
+                        else if (type == vpiHexConst) valStr = "'h" + valStr;
+                        else valStr = "'d" + valStr;
+                        valStr = std::to_string(size) + valStr;
+                    }
+                valueNodep = new AstConst(make_fileline(obj_h), AstConst::StringToParse(), valStr.c_str());
             }
             return valueNodep;
         }
@@ -353,14 +360,12 @@ AstNode* get_value_as_node(vpiHandle obj_h, bool need_decompile = false) {
 
         if (valStr[0] == '-') {
             valStr = valStr.substr(1);
-            V3Number value(valueNodep, valStr.c_str());
-            auto* inner = new AstConst(make_fileline(obj_h), value);
+            auto* inner = new AstConst(make_fileline(obj_h), AstConst::StringToParse(), valStr.c_str());
             valueNodep = new AstNegate(make_fileline(obj_h), inner);
             break;
         }
 
-        V3Number value(valueNodep, valStr.c_str());
-        valueNodep = new AstConst(make_fileline(obj_h), value);
+        valueNodep = new AstConst(make_fileline(obj_h), AstConst::StringToParse(), valStr.c_str());
         break;
     }
     case vpiRealVal: {
@@ -378,18 +383,17 @@ AstNode* get_value_as_node(vpiHandle obj_h, bool need_decompile = false) {
     case vpiDecStrVal:
     case vpiHexStrVal: {
         // if vpiDecompile is unavailable i.e. in EnumConst, cast the string
-        std::string size = "";
-        if (auto s = vpi_get(vpiSize, obj_h)) size = std::to_string(s);
         if (val.format == vpiBinStrVal)
-            valStr = size + "'b" + std::string(val.value.str);
+            valStr = "'b" + std::string(val.value.str);
         else if (val.format == vpiOctStrVal)
-            valStr = size + "'o" + std::string(val.value.str);
+            valStr = "'o" + std::string(val.value.str);
         else if (val.format == vpiDecStrVal)
-            valStr = size + "'d" + std::string(val.value.str);
+            valStr = "'d" + std::string(val.value.str);
         else if (val.format == vpiHexStrVal)
-            valStr = size + "'h" + std::string(val.value.str);
-        V3Number value(valueNodep, valStr.c_str());
-        valueNodep = new AstConst(make_fileline(obj_h), value);
+            valStr = "'h" + std::string(val.value.str);
+        if (int size = vpi_get(vpiSize, obj_h))
+            valStr = std::to_string(size) + valStr;
+        valueNodep = new AstConst(make_fileline(obj_h), AstConst::StringToParse(), valStr.c_str());
         break;
     }
     case vpiStringVal: {
