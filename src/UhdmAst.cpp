@@ -62,6 +62,11 @@ bool is_imported(vpiHandle obj_h) {
     }
 }
 
+void remove_scope(std::string& s) {
+    auto pos = s.rfind("::");
+    if (pos != std::string::npos) s = s.substr(pos + 2);
+}
+
 bool is_expr_context(vpiHandle obj_h) {
     auto parent_h = vpi_handle(vpiParent, obj_h);
     if (parent_h) {
@@ -393,7 +398,8 @@ AstNodeDType* getDType(vpiHandle obj_h, UhdmShared& shared) {
             return new AstIfaceRefDType(new FileLine("uhdm"), cellName, ifaceName);
         }
     }
-    if (type == vpiEnumNet || type == vpiStructNet || type == vpiStructVar || type == vpiEnumVar) {
+    if (type == vpiLogicVar || type == vpiBitVar
+     || type == vpiEnumNet || type == vpiStructNet || type == vpiStructVar || type == vpiEnumVar) {
         auto typespec_h = vpi_handle(vpiTypespec, obj_h);
         if (typespec_h) {
             type = vpi_get(vpiType, typespec_h);
@@ -404,7 +410,6 @@ AstNodeDType* getDType(vpiHandle obj_h, UhdmShared& shared) {
     switch (type) {
     case vpiLogicNet:
     case vpiLogicTypespec:
-    case vpiLogicVar:
     case vpiBitVar:
     case vpiBitTypespec: {
         AstBasicDTypeKwd keyword = get_kwd_for_type(type);
@@ -2418,7 +2423,15 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
 
     case vpiBitTypespec:
     case vpiLogicTypespec: {
-        return getDType(obj_h, shared);
+        auto* dtype = getDType(obj_h, shared);
+        if (!objectName.empty()) {
+            remove_scope(objectName);
+            auto* typedefp = new AstTypedef(new FileLine("uhdm"), objectName,
+                                            nullptr, VFlagChildDType(), dtype);
+            shared.m_symp->reinsert(typedefp);
+            return typedefp;
+        }
+        return dtype;
     }
     case vpiIntTypespec: {
         auto* name = vpi_get_str(vpiName, obj_h);
@@ -2452,6 +2465,22 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     case vpiEnumTypespec: {
         const uhdm_handle* const handle = (const uhdm_handle*)obj_h;
         const UHDM::BaseClass* const object = (const UHDM::BaseClass*)handle->object;
+        if (vpiHandle alias_h = vpi_handle(vpiTypedefAlias, obj_h)) {
+            std::string aliasedName;
+            if (auto s = vpi_get_str(vpiName, alias_h)) {
+                aliasedName = s;
+                shared.visited_types[object] = objectName;
+                remove_scope(objectName);
+                remove_scope(aliasedName);
+                auto dtypep = new AstRefDType(new FileLine("uhdm"), aliasedName);
+                auto* aliasType = new AstTypedef(new FileLine("uhdm"), objectName,
+                                                 nullptr, VFlagChildDType(), dtypep);
+                shared.m_symp->reinsert(aliasType);
+                vpi_free_object(alias_h);
+                return aliasType;
+            }
+            vpi_free_object(alias_h);
+        }
         if (shared.visited_types.find(object) != shared.visited_types.end()) {
             // Already seen this, do not create a duplicate
             // References are handled using getDType, not in visit_object
