@@ -2416,21 +2416,9 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         break;
     }
 
-    case vpiBitTypespec: {
-        AstRange* rangeNode = nullptr;
-        visit_one_to_many({vpiRange}, obj_h, shared,
-                          [&](AstNode* node) { rangeNode = reinterpret_cast<AstRange*>(node); });
-        auto* dtype = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::BIT);
-        dtype->rangep(rangeNode);
-        return dtype;
-    }
+    case vpiBitTypespec:
     case vpiLogicTypespec: {
-        AstRange* rangeNode = nullptr;
-        visit_one_to_many({vpiRange}, obj_h, shared,
-                          [&](AstNode* node) { rangeNode = reinterpret_cast<AstRange*>(node); });
-        auto* dtype = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::LOGIC);
-        dtype->rangep(rangeNode);
-        return dtype;
+        return getDType(obj_h, shared);
     }
     case vpiIntTypespec: {
         auto* name = vpi_get_str(vpiName, obj_h);
