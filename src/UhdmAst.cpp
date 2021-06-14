@@ -1116,20 +1116,21 @@ AstNode* process_parameter(vpiHandle obj_h, UhdmShared& shared, bool get_value) 
         }
     }
 
-    std::string fullName;
-    if (auto s = vpi_get_str(vpiFullName, obj_h)) {
-        fullName = s;
-        sanitize_str(fullName);
-    }
-    size_t colon_pos = fullName.rfind("::");
-    if (colon_pos != std::string::npos) {
-        AstNode* class_pkg_refp = get_class_package_ref_node(fullName, shared);
+    if (get_value) {
+        std::string fullName;
+        if (auto s = vpi_get_str(vpiFullName, obj_h)) {
+            fullName = s;
+            sanitize_str(fullName);
+        }
+        size_t colon_pos = fullName.rfind("::");
+        if (colon_pos != std::string::npos) {
+            AstNode* class_pkg_refp = get_class_package_ref_node(fullName, shared);
 
-        AstNode* var_refp = new AstParseRef(new FileLine("uhdm"), VParseRefExp::en::PX_TEXT,
-                                            objectName, nullptr, nullptr);
-        return AstDot::newIfPkg(new FileLine("uhdm"), class_pkg_refp, var_refp);
+            AstNode* var_refp = new AstParseRef(new FileLine("uhdm"), VParseRefExp::en::PX_TEXT,
+                                                objectName, nullptr, nullptr);
+            return AstDot::newIfPkg(new FileLine("uhdm"), class_pkg_refp, var_refp);
+        }
     }
-    
     if (is_imported(obj_h)) {
         // Skip imported parameters, they will still be visible in their packages
         UINFO(3, "Skipping imported parameter " << objectName << std::endl);
