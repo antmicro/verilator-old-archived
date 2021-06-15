@@ -410,6 +410,7 @@ AstNodeDType* getDType(vpiHandle obj_h, UhdmShared& shared) {
     switch (type) {
     case vpiLogicNet:
     case vpiLogicTypespec:
+    case vpiLogicVar:
     case vpiBitVar:
     case vpiBitTypespec: {
         AstBasicDTypeKwd keyword = get_kwd_for_type(type);
