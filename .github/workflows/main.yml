@@ -2,8 +2,6 @@ name: 'main'
 
 on:
   push:
-    branches:
-      - uhdm-verilator
   pull_request:
 
 jobs:

@@ -2417,7 +2417,13 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 item_name = s;
                 sanitize_str(item_name);
             }
-            auto* value = get_value_as_node(item_h, false);
+
+	    bool decompile = false;
+	    if (auto tmp = vpi_get_str(vpiDecompile, item_h)) {
+	       decompile = true;
+	    }
+
+            auto* value = get_value_as_node(item_h, decompile);
             auto* wrapped_item = new AstEnumItem(new FileLine("uhdm"), item_name, nullptr, value);
             if (enum_members == nullptr) {
                 enum_members = wrapped_item;
