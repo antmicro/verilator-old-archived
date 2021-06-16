@@ -166,6 +166,30 @@ AstNode* get_referenceNode(const string name) {
     }
 }
 
+AstNode* get_class_package_ref_node(std::string objectName, UhdmShared& shared) {
+    AstNode* refp = nullptr;
+    size_t colon_pos = objectName.find("::");
+    while(colon_pos != std::string::npos) {
+        std::string classPkgName = objectName.substr(0, colon_pos);
+        objectName = objectName.substr(colon_pos + 2, objectName.length());
+
+        UINFO(7, "Creating ClassOrPackageRef" << std::endl);
+        AstPackage* classpackagep = nullptr;
+        auto it = shared.package_map.find(classPkgName);
+        if (it != shared.package_map.end()) { classpackagep = it->second; }
+        AstNode* classpackageref = new AstClassOrPackageRef(new FileLine("uhdm"), classPkgName,
+                                                            classpackagep, nullptr);
+        shared.m_symp->nextId(classpackagep);
+        if (refp == nullptr)
+            refp = classpackageref;
+        else
+            refp = new AstDot(new FileLine("uhdm"), true, refp, classpackageref);
+
+        colon_pos = objectName.find("::");
+    }
+    return refp;
+}
+
 AstNode* get_value_as_node(vpiHandle obj_h, bool need_decompile = false) {
     AstNode* valueNodep = nullptr;
     std::string valStr;
@@ -1079,7 +1103,7 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared) {
     return nullptr;
 }
 
-AstVar* process_parameter(vpiHandle obj_h, UhdmShared& shared, bool get_value) {
+AstNode* process_parameter(vpiHandle obj_h, UhdmShared& shared, bool get_value) {
     AstVar* parameterp = nullptr;
     AstNode* parameterValuep = nullptr;
 
@@ -1092,6 +1116,21 @@ AstVar* process_parameter(vpiHandle obj_h, UhdmShared& shared, bool get_value) {
         }
     }
 
+    if (get_value) {
+        std::string fullName;
+        if (auto s = vpi_get_str(vpiFullName, obj_h)) {
+            fullName = s;
+            sanitize_str(fullName);
+        }
+        size_t colon_pos = fullName.rfind("::");
+        if (colon_pos != std::string::npos) {
+            AstNode* class_pkg_refp = get_class_package_ref_node(fullName, shared);
+
+            AstNode* var_refp = new AstParseRef(new FileLine("uhdm"), VParseRefExp::en::PX_TEXT,
+                                                objectName, nullptr, nullptr);
+            return AstDot::newIfPkg(new FileLine("uhdm"), class_pkg_refp, var_refp);
+        }
+    }
     if (is_imported(obj_h)) {
         // Skip imported parameters, they will still be visible in their packages
         UINFO(3, "Skipping imported parameter " << objectName << std::endl);
@@ -1153,9 +1192,9 @@ AstVar* process_param_assign(vpiHandle obj_h, UhdmShared& shared) {
     vpiHandle parameter_h = vpi_handle(vpiLhs, obj_h);
 
     if (parameterValuep == nullptr) {
-        parameterp = process_parameter(parameter_h, shared, true);
+        parameterp = reinterpret_cast<AstVar*>(process_parameter(parameter_h, shared, true));
     } else {
-        parameterp = process_parameter(parameter_h, shared, false);
+        parameterp = reinterpret_cast<AstVar*>(process_parameter(parameter_h, shared, false));
         if (parameterp != nullptr) {
             parameterp->valuep(parameterValuep);
         }
@@ -1877,14 +1916,27 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return get_value_as_node(obj_h, true);
     }
     case vpiBitSelect: {
+        AstNode* refp = get_class_package_ref_node(objectName, shared);
+        size_t colon_pos = objectName.rfind("::");
+        if (colon_pos != std::string::npos)
+            objectName = objectName.substr(colon_pos + 2);
+
         auto* fromp = get_referenceNode(objectName);
         AstNode* bitp = nullptr;
         visit_one_to_one({vpiIndex}, obj_h, shared, [&](AstNode* item) {
             if (item) { bitp = item; }
         });
-        return new AstSelBit(new FileLine("uhdm"), fromp, bitp);
+
+        AstNode* selbitp = new AstSelBit(new FileLine("uhdm"), fromp, bitp);
+
+        return AstDot::newIfPkg(new FileLine("uhdm"), refp, selbitp);
     }
     case vpiVarSelect: {
+        AstNode* refp = get_class_package_ref_node(objectName, shared);
+        size_t colon_pos = objectName.rfind("::");
+        if (colon_pos != std::string::npos)
+            objectName = objectName.substr(colon_pos + 2);
+
         auto* fromp = get_referenceNode(objectName);
         AstNode* bitp = nullptr;
         AstNode* select = nullptr;
@@ -1912,7 +1964,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             }
             fromp = select;
         });
-        return select;
+        return AstDot::newIfPkg(new FileLine("uhdm"), refp, select);
     }
     case vpiTask: {
         AstNode* statements = nullptr;
@@ -1953,6 +2005,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return new AstReturn(new FileLine("uhdm"), condition);
     }
     case vpiFuncCall: {
+        AstNode* func_refp = nullptr;
         AstNode* arguments = nullptr;
         visit_one_to_many({vpiArgument}, obj_h, shared, [&](AstNode* item) {
             if (item) {
@@ -1963,6 +2016,10 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 }
             }
         });
+        AstNode* refp = get_class_package_ref_node(objectName, shared);
+        size_t colon_pos = objectName.rfind("::");
+        if (colon_pos != std::string::npos)
+            objectName = objectName.substr(colon_pos + 2);
 
         size_t dot_pos = objectName.rfind('.');
         if (dot_pos != std::string::npos) {
@@ -1971,15 +2028,19 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             std::string lhs = objectName.substr(0, dot_pos);
             std::string rhs = objectName.substr(dot_pos + 1, objectName.length());
             AstNode* from = get_referenceNode(lhs);
-            return new AstMethodCall(new FileLine("uhdm"), from, rhs, arguments);
+            func_refp = new AstMethodCall(new FileLine("uhdm"), from, rhs, arguments);
         }
-        // Functions can be called as tasks, depending on context
-        bool inExpression = is_expr_context(obj_h);
+        else {
+            // Functions can be called as tasks, depending on context
+            bool inExpression = is_expr_context(obj_h);
 
-        if (inExpression)
-            return new AstFuncRef(new FileLine("uhdm"), objectName, arguments);
-        else
-            return new AstTaskRef(new FileLine("uhdm"), objectName, arguments);
+            if (inExpression)
+                func_refp = new AstFuncRef(new FileLine("uhdm"), objectName, arguments);
+            else
+                func_refp = new AstTaskRef(new FileLine("uhdm"), objectName, arguments);
+        }
+
+        return AstDot::newIfPkg(new FileLine("uhdm"), refp, func_refp);
     }
     case vpiSysFuncCall: {
         std::vector<AstNode*> arguments;
@@ -2209,7 +2270,15 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             std::string parent_name;
             if (auto s = vpi_get_str(vpiName, parent_h)) parent_name = s;
             sanitize_str(parent_name);
+
+            AstNode* refp = get_class_package_ref_node(parent_name, shared);
+            size_t colon_pos = parent_name.rfind("::");
+            if (colon_pos != std::string::npos)
+                parent_name = parent_name.substr(colon_pos + 2);
+
             fromNode = get_referenceNode(parent_name);
+            if (refp != nullptr)
+                fromNode = new AstDot(new FileLine("uhdm"), true, refp, fromNode);
         }
         return new AstSelExtract(new FileLine("uhdm"), fromNode, msbNode, lsbNode);
     }
@@ -2347,21 +2416,9 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         break;
     }
 
-    case vpiBitTypespec: {
-        AstRange* rangeNode = nullptr;
-        visit_one_to_many({vpiRange}, obj_h, shared,
-                          [&](AstNode* node) { rangeNode = reinterpret_cast<AstRange*>(node); });
-        auto* dtype = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::BIT);
-        dtype->rangep(rangeNode);
-        return dtype;
-    }
+    case vpiBitTypespec:
     case vpiLogicTypespec: {
-        AstRange* rangeNode = nullptr;
-        visit_one_to_many({vpiRange}, obj_h, shared,
-                          [&](AstNode* node) { rangeNode = reinterpret_cast<AstRange*>(node); });
-        auto* dtype = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::LOGIC);
-        dtype->rangep(rangeNode);
-        return dtype;
+        return getDType(obj_h, shared);
     }
     case vpiIntTypespec: {
         auto* name = vpi_get_str(vpiName, obj_h);
