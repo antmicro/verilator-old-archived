@@ -434,15 +434,35 @@ AstNodeDType* getDType(vpiHandle obj_h, UhdmShared& shared) {
         break;
     }
     case vpiPackedArrayTypespec: {
-        auto elem_typespec_h = vpi_handle(vpiElemTypespec, obj_h);
-        dtype = getDType(elem_typespec_h, shared);
-
         AstRange* rangeNodep = nullptr;
         std::stack<AstRange*> range_stack;
         visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* node) {
              rangeNodep = reinterpret_cast<AstRange*>(node);
              range_stack.push(rangeNodep);
         });
+
+        auto elem_typespec_h = vpi_handle(vpiElemTypespec, obj_h);
+        if (elem_typespec_h) {
+            dtype = getDType(elem_typespec_h, shared);
+        } else {
+            UINFO(7, "No elem_typespec found in vpiPackedArrayTypespec, trying IndexTypespec" << std::endl);
+            auto index_typespec_h = vpi_handle(vpiIndexTypespec, obj_h);
+            if (index_typespec_h) {
+                dtype = getDType(index_typespec_h, shared);
+
+                // Workaround for implicit function argument types
+                // They are stored in UHDM as PackedArrays, but parsed by Verilator
+                // like the simple types above
+                AstBasicDType* basicDTypep = VN_CAST(dtype, BasicDType);
+                if (range_stack.size() == 1 && basicDTypep) {
+                    basicDTypep->rangep(range_stack.top());
+                    range_stack.pop();
+                }
+            } else {
+                v3error("\t! Failed to get typespec handle for PackedArrayTypespec");
+            }
+        }
+
         while (!range_stack.empty()) {
             rangeNodep = range_stack.top();
             dtype = new AstPackArrayDType(new FileLine("uhdm"), VFlagChildDType(), dtype,
@@ -809,13 +829,15 @@ AstNode* process_ioDecl(vpiHandle obj_h, UhdmShared& shared) {
         }
         // TODO: vpiMixedIO, vpiNoDirection - not encountered yet
     }
-    AstNode* typep = nullptr;
-    visit_one_to_one({vpiTypedef}, obj_h, shared, [&](AstNode* itemp) {
-        if (itemp) { typep = itemp; }
-    });
-    AstNodeDType* dtypep = VN_CAST(typep, NodeDType);
+    vpiHandle typedef_h = vpi_handle(vpiTypedef, obj_h);
+    AstNodeDType* dtypep = nullptr;
+    if (typedef_h) {
+        dtypep = getDType(typedef_h, shared);
+    } else {
+        UINFO(7, "No typedef handle found in vpiIODecl" << std::endl);
+    }
     if (dtypep == nullptr) {
-        UINFO(7, "No typedef found in vpiIODecl, falling back to logic" << std::endl);
+        UINFO(7, "No dtype found in vpiIODecl, falling back to logic" << std::endl);
         dtypep = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::LOGIC);
     }
     auto* varp = new AstVar(new FileLine("uhdm"), AstVarType::PORT, objectName, VFlagChildDType(),
