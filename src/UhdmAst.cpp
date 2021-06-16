@@ -658,201 +658,7 @@ AstNodeDType* getDType(vpiHandle obj_h, UhdmShared& shared) {
     return dtype;
 }
 
-AstNode* process_assignment(vpiHandle obj_h, UhdmShared& shared) {
-    AstNode* lvaluep = nullptr;
-    AstNode* rvaluep = nullptr;
-    const unsigned int objectType = vpi_get(vpiType, obj_h);
-
-    // Right
-    visit_one_to_one({vpiRhs}, obj_h, shared, [&](AstNode* childp) { rvaluep = childp; });
-
-    // Left
-    visit_one_to_one({vpiLhs}, obj_h, shared, [&](AstNode* childp) { lvaluep = childp; });
-
-    if (rvaluep != nullptr && rvaluep->type() == AstType::en::atFOpen) {
-        // Not really an assignpment, AstFOpen node takes care of the lhs
-        return rvaluep;
-    }
-    if (lvaluep && rvaluep) {
-        if (objectType == vpiAssignment) {
-            auto blocking = vpi_get(vpiBlocking, obj_h);
-            if (blocking) {
-                return new AstAssign(new FileLine("uhdm"), lvaluep, rvaluep);
-            } else {
-                return new AstAssignDly(new FileLine("uhdm"), lvaluep, rvaluep);
-            }
-        } else {
-            AstNode* assignp;
-            if (lvaluep->type() == AstType::en::atVar) {
-                // This is not a true assignpment
-                // Set initial value to a variable and return it
-                AstVar* varp = static_cast<AstVar*>(lvaluep);
-                varp->valuep(rvaluep);
-                return varp;
-            } else {
-                if (objectType == vpiContAssign)
-                    assignp = new AstAssignW(new FileLine("uhdm"), lvaluep, rvaluep);
-                else
-                    assignp = new AstAssign(new FileLine("uhdm"), lvaluep, rvaluep);
-                return assignp;
-            }
-        }
-    }
-    v3error("Failed to handle assignment");
-    return nullptr;
-}
-
-AstNode* process_function(vpiHandle obj_h, UhdmShared& shared) {
-    AstNode* statementsp = nullptr;
-    AstNode* functionVarsp = nullptr;
-    AstNodeFTask* taskFuncp = nullptr;
-    shared.isFunction = false;
-
-    std::string objectName;
-    if (auto s = vpi_get_str(vpiName, obj_h)) {
-        objectName = s;
-        sanitize_str(objectName);
-    }
-
-    auto return_h = vpi_handle(vpiReturn, obj_h);
-    if (return_h) {
-        AstNodeDType* dtypep = getDType(return_h, shared);
-        // Implicit return type is always logic.
-        // If we see another type here, it must be a function.
-        // If not, we will check for vpiReturn when visiting statements below.
-        if (auto basicp = dtypep->basicp()) {
-            if (basicp->keyword() != AstBasicDTypeKwd::LOGIC || basicp->rangep() != nullptr) {
-                shared.isFunction = true;
-            }
-        }
-        functionVarsp = dtypep;
-    }
-
-    visit_one_to_many({vpiIODecl, vpiVariables}, obj_h, shared, [&](AstNode* itemp) {
-        if (itemp) {
-            if (statementsp)
-                statementsp->addNextNull(itemp);
-            else
-                statementsp = itemp;
-        }
-    });
-    visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* itemp) {
-        if (itemp) {
-            if (statementsp)
-                statementsp->addNextNull(itemp);
-            else
-                statementsp = itemp;
-        }
-    });
-
-    if (shared.isFunction) {
-        taskFuncp = new AstFunc(new FileLine("uhdm"), objectName, statementsp, functionVarsp);
-    } else {
-        taskFuncp = new AstTask(new FileLine("uhdm"), objectName, statementsp);
-    }
-    auto accessType = vpi_get(vpiAccessType, obj_h);
-    if (accessType == vpiDPIExportAcc) {
-        AstDpiExport* exportp = new AstDpiExport(new FileLine("uhdm"), objectName, objectName);
-        exportp->addNext(taskFuncp);
-        v3Global.dpi(true);
-        return exportp;
-    } else if (accessType == vpiDPIImportAcc) {
-        taskFuncp->dpiImport(true);
-        v3Global.dpi(true);
-        if (taskFuncp->prettyName()[0] == '$')
-            shared.m_symp->reinsert(taskFuncp, nullptr, taskFuncp->prettyName());
-        shared.m_symp->reinsert(taskFuncp);
-    }
-    return taskFuncp;
-}
-
-AstNode* process_genScopeArray(vpiHandle obj_h, UhdmShared& shared) {
-    AstNode* statementsp = nullptr;
-    std::string objectName;
-    if (auto s = vpi_get_str(vpiName, obj_h)) {
-        objectName = s;
-        sanitize_str(objectName);
-    }
-    visit_one_to_many({vpiGenScope}, obj_h, shared, [&](AstNode* itemp) {
-        if (statementsp == nullptr) {
-            statementsp = itemp;
-        } else {
-            statementsp->addNextNull(itemp);
-        }
-    });
-    // Cheat here a little:
-    // UHDM already provides us with a correct, elaborated branch only, but then we lose
-    // hierarchy for named scopes. Create here an always-true scope that will be expanded
-    // by Verilator later, preserving naming hierarchy.
-    if (objectName != "") {
-        auto* truep = new AstConst(new FileLine("uhdm"), AstConst::Unsized32(), 1);
-        auto* blockp = new AstBegin(new FileLine("uhdm"), objectName, statementsp, true, false);
-        auto* scopep = new AstGenIf(new FileLine("uhdm"), truep, blockp, nullptr);
-        return scopep;
-    } else {
-        return new AstBegin(new FileLine("uhdm"), "", statementsp);
-    }
-}
-
-AstNode* process_hierPath(vpiHandle obj_h, UhdmShared& shared) {
-    AstNode* lhsp = nullptr;
-    AstNode* rhsp = nullptr;
-
-    visit_one_to_many({vpiActual}, obj_h, shared, [&](AstNode* childp) {
-        if (lhsp == nullptr) {
-            lhsp = childp;
-        } else if (rhsp == nullptr) {
-            rhsp = childp;
-        } else {
-            lhsp = new AstDot(new FileLine("uhdm"), false, lhsp, rhsp);
-            rhsp = childp;
-        }
-    });
-
-    return new AstDot(new FileLine("uhdm"), false, lhsp, rhsp);
-}
-
-AstNode* process_ioDecl(vpiHandle obj_h, UhdmShared& shared) {
-    std::string objectName;
-    if (auto s = vpi_get_str(vpiName, obj_h)) {
-        objectName = s;
-        sanitize_str(objectName);
-    }
-    VDirection dir;
-    if (const int n = vpi_get(vpiDirection, obj_h)) {
-        if (n == vpiInput) {
-            dir = VDirection::INPUT;
-        } else if (n == vpiOutput) {
-            dir = VDirection::OUTPUT;
-        } else if (n == vpiInout) {
-            dir = VDirection::INOUT;
-        }
-        // TODO: vpiMixedIO, vpiNoDirection - not encountered yet
-    }
-    vpiHandle typedef_h = vpi_handle(vpiTypedef, obj_h);
-    AstNodeDType* dtypep = nullptr;
-    if (typedef_h) {
-        dtypep = getDType(typedef_h, shared);
-    } else {
-        UINFO(7, "No typedef handle found in vpiIODecl" << std::endl);
-    }
-    if (dtypep == nullptr) {
-        UINFO(7, "No dtype found in vpiIODecl, falling back to logic" << std::endl);
-        dtypep = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::LOGIC);
-    }
-    auto* varp = new AstVar(new FileLine("uhdm"), AstVarType::PORT, objectName, VFlagChildDType(),
-                            dtypep);
-    varp->declDirection(dir);
-    varp->direction(dir);
-    return varp;
-}
-
-AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared) {
-    std::vector<AstNode*> operands;
-    visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* itemp) {
-        if (itemp) { operands.push_back(itemp); }
-    });
-
+AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared, const std::vector<AstNode*>& operands) {
     auto operation = vpi_get(vpiOpType, obj_h);
     switch (operation) {
     case vpiBitNegOp: {
@@ -876,10 +682,10 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared) {
         return new AstOr(new FileLine("uhdm"), operands[0], operands[1]);
     }
     case vpiBitXorOp: {
-        return new AstXor(new FileLine("uhdm"), operands[1], operands[0]);
+        return new AstXor(new FileLine("uhdm"), operands[0], operands[1]);
     }
     case vpiBitXnorOp: {
-        return new AstXnor(new FileLine("uhdm"), operands[1], operands[0]);
+        return new AstXnor(new FileLine("uhdm"), operands[0], operands[1]);
     }
     case vpiPostIncOp:
     case vpiPostDecOp: {
@@ -1123,6 +929,208 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared) {
     }
     }
     return nullptr;
+}
+
+AstNode* process_assignment(vpiHandle obj_h, UhdmShared& shared) {
+    AstNode* lvaluep = nullptr;
+    AstNode* rvaluep = nullptr;
+    const unsigned int objectType = vpi_get(vpiType, obj_h);
+    const unsigned int operationType = vpi_get(vpiOpType, obj_h);
+    
+    // Right
+    visit_one_to_one({vpiRhs}, obj_h, shared, [&](AstNode* childp) { rvaluep = childp; });
+
+    // Left
+    visit_one_to_one({vpiLhs}, obj_h, shared, [&](AstNode* childp) { lvaluep = childp; });
+
+    const unsigned int arithmeticAssignmentOpTypes[] = {vpiBitAndOp, vpiBitOrOp, vpiBitXorOp,
+                                                        vpiBitXnorOp, vpiLogAndOp, vpiLogOrOp,
+                                                        vpiSubOp, vpiAddOp, vpiMultOp, vpiDivOp,
+                                                        vpiModOp, vpiArithLShiftOp, vpiLShiftOp,
+                                                        vpiRShiftOp, vpiArithRShiftOp};
+    if (std::find(std::begin(arithmeticAssignmentOpTypes),
+                  std::end(arithmeticAssignmentOpTypes),
+                  operationType) != std::end(arithmeticAssignmentOpTypes)) {
+        rvaluep = process_operation(obj_h, shared, {lvaluep, rvaluep});
+        lvaluep = lvaluep->cloneTree(true);
+    }
+    
+    if (rvaluep != nullptr && rvaluep->type() == AstType::en::atFOpen) {
+        // Not really an assignment, AstFOpen node takes care of the lhs
+        return rvaluep;
+    }
+    if (lvaluep && rvaluep) {
+        if (objectType == vpiAssignment) {
+            auto blocking = vpi_get(vpiBlocking, obj_h);
+            if (blocking) {
+                return new AstAssign(new FileLine("uhdm"), lvaluep, rvaluep);
+            } else {
+                return new AstAssignDly(new FileLine("uhdm"), lvaluep, rvaluep);
+            }
+        } else {
+            AstNode* assignp;
+            if (lvaluep->type() == AstType::en::atVar) {
+                // This is not a true assignment
+                // Set initial value to a variable and return it
+                AstVar* varp = static_cast<AstVar*>(lvaluep);
+                varp->valuep(rvaluep);
+                return varp;
+            } else {
+                if (objectType == vpiContAssign)
+                    assignp = new AstAssignW(new FileLine("uhdm"), lvaluep, rvaluep);
+                else
+                    assignp = new AstAssign(new FileLine("uhdm"), lvaluep, rvaluep);
+                return assignp;
+            }
+        }
+    }
+    v3error("Failed to handle assignment");
+    return nullptr;
+}
+
+AstNode* process_function(vpiHandle obj_h, UhdmShared& shared) {
+    AstNode* statementsp = nullptr;
+    AstNode* functionVarsp = nullptr;
+    AstNodeFTask* taskFuncp = nullptr;
+    shared.isFunction = false;
+
+    std::string objectName;
+    if (auto s = vpi_get_str(vpiName, obj_h)) {
+        objectName = s;
+        sanitize_str(objectName);
+    }
+
+    auto return_h = vpi_handle(vpiReturn, obj_h);
+    if (return_h) {
+        AstNodeDType* dtypep = getDType(return_h, shared);
+        // Implicit return type is always logic.
+        // If we see another type here, it must be a function.
+        // If not, we will check for vpiReturn when visiting statements below.
+        if (auto basicp = dtypep->basicp()) {
+            if (basicp->keyword() != AstBasicDTypeKwd::LOGIC || basicp->rangep() != nullptr) {
+                shared.isFunction = true;
+            }
+        }
+        functionVarsp = dtypep;
+    }
+
+    visit_one_to_many({vpiIODecl, vpiVariables}, obj_h, shared, [&](AstNode* itemp) {
+        if (itemp) {
+            if (statementsp)
+                statementsp->addNextNull(itemp);
+            else
+                statementsp = itemp;
+        }
+    });
+    visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* itemp) {
+        if (itemp) {
+            if (statementsp)
+                statementsp->addNextNull(itemp);
+            else
+                statementsp = itemp;
+        }
+    });
+
+    if (shared.isFunction) {
+        taskFuncp = new AstFunc(new FileLine("uhdm"), objectName, statementsp, functionVarsp);
+    } else {
+        taskFuncp = new AstTask(new FileLine("uhdm"), objectName, statementsp);
+    }
+    auto accessType = vpi_get(vpiAccessType, obj_h);
+    if (accessType == vpiDPIExportAcc) {
+        AstDpiExport* exportp = new AstDpiExport(new FileLine("uhdm"), objectName, objectName);
+        exportp->addNext(taskFuncp);
+        v3Global.dpi(true);
+        return exportp;
+    } else if (accessType == vpiDPIImportAcc) {
+        taskFuncp->dpiImport(true);
+        v3Global.dpi(true);
+        if (taskFuncp->prettyName()[0] == '$')
+            shared.m_symp->reinsert(taskFuncp, nullptr, taskFuncp->prettyName());
+        shared.m_symp->reinsert(taskFuncp);
+    }
+    return taskFuncp;
+}
+
+AstNode* process_genScopeArray(vpiHandle obj_h, UhdmShared& shared) {
+    AstNode* statementsp = nullptr;
+    std::string objectName;
+    if (auto s = vpi_get_str(vpiName, obj_h)) {
+        objectName = s;
+        sanitize_str(objectName);
+    }
+    visit_one_to_many({vpiGenScope}, obj_h, shared, [&](AstNode* itemp) {
+        if (statementsp == nullptr) {
+            statementsp = itemp;
+        } else {
+            statementsp->addNextNull(itemp);
+        }
+    });
+    // Cheat here a little:
+    // UHDM already provides us with a correct, elaborated branch only, but then we lose
+    // hierarchy for named scopes. Create here an always-true scope that will be expanded
+    // by Verilator later, preserving naming hierarchy.
+    if (objectName != "") {
+        auto* truep = new AstConst(new FileLine("uhdm"), AstConst::Unsized32(), 1);
+        auto* blockp = new AstBegin(new FileLine("uhdm"), objectName, statementsp, true, false);
+        auto* scopep = new AstGenIf(new FileLine("uhdm"), truep, blockp, nullptr);
+        return scopep;
+    } else {
+        return new AstBegin(new FileLine("uhdm"), "", statementsp);
+    }
+}
+
+AstNode* process_hierPath(vpiHandle obj_h, UhdmShared& shared) {
+    AstNode* lhsp = nullptr;
+    AstNode* rhsp = nullptr;
+
+    visit_one_to_many({vpiActual}, obj_h, shared, [&](AstNode* childp) {
+        if (lhsp == nullptr) {
+            lhsp = childp;
+        } else if (rhsp == nullptr) {
+            rhsp = childp;
+        } else {
+            lhsp = new AstDot(new FileLine("uhdm"), false, lhsp, rhsp);
+            rhsp = childp;
+        }
+    });
+
+    return new AstDot(new FileLine("uhdm"), false, lhsp, rhsp);
+}
+
+AstNode* process_ioDecl(vpiHandle obj_h, UhdmShared& shared) {
+    std::string objectName;
+    if (auto s = vpi_get_str(vpiName, obj_h)) {
+        objectName = s;
+        sanitize_str(objectName);
+    }
+    VDirection dir;
+    if (const int n = vpi_get(vpiDirection, obj_h)) {
+        if (n == vpiInput) {
+            dir = VDirection::INPUT;
+        } else if (n == vpiOutput) {
+            dir = VDirection::OUTPUT;
+        } else if (n == vpiInout) {
+            dir = VDirection::INOUT;
+        }
+        // TODO: vpiMixedIO, vpiNoDirection - not encountered yet
+    }
+    vpiHandle typedef_h = vpi_handle(vpiTypedef, obj_h);
+    AstNodeDType* dtypep = nullptr;
+    if (typedef_h) {
+        dtypep = getDType(typedef_h, shared);
+    } else {
+        UINFO(7, "No typedef handle found in vpiIODecl" << std::endl);
+    }
+    if (dtypep == nullptr) {
+        UINFO(7, "No dtype found in vpiIODecl, falling back to logic" << std::endl);
+        dtypep = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::LOGIC);
+    }
+    auto* varp = new AstVar(new FileLine("uhdm"), AstVarType::PORT, objectName, VFlagChildDType(),
+                            dtypep);
+    varp->declDirection(dir);
+    varp->direction(dir);
+    return varp;
 }
 
 AstNode* process_parameter(vpiHandle obj_h, UhdmShared& shared, bool get_value) {
@@ -1911,7 +1919,11 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return new AstCaseItem(new FileLine("uhdm"), expressionNode, bodyNode);
     }
     case vpiOperation: {
-        return process_operation(obj_h, shared);
+        std::vector<AstNode*> operands;
+        visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* itemp) {
+            if (itemp) { operands.push_back(itemp); }
+        });
+        return process_operation(obj_h, shared, operands);
     }
     case vpiTaggedPattern: {
         AstNode* typespec = nullptr;
