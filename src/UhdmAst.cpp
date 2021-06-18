@@ -1261,8 +1261,12 @@ AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
         break;
     }
     case vpiIntTypespec: {
-        dtypep = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::INT);
-        break;
+        if (objectName == "") {
+            return new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::INT);
+        } else {
+            return new AstParseRef(new FileLine("uhdm"), VParseRefExp::en::PX_TEXT, objectName, nullptr);
+        }
+
     }
     case vpiStringTypespec: {
         dtypep = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::STRING);
