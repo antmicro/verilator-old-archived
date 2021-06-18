@@ -1225,6 +1225,161 @@ AstVar* process_param_assign(vpiHandle obj_h, UhdmShared& shared) {
     return parameterp;
 }
 
+AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
+    AstNodeDType* dtypep;
+    std::string objectName;
+    for (auto name : {vpiName, vpiFullName, vpiDefName}) {
+        if (auto s = vpi_get_str(name, obj_h)) {
+            objectName = s;
+            sanitize_str(objectName);
+            break;
+        }
+    }
+    // Use bare name for typespec itself, keep full name to store hierarchy for custom types
+    std::string fullName = objectName;
+    auto pos = objectName.rfind("::");
+    if (pos != std::string::npos) objectName = objectName.substr(pos + 2);
+
+    const unsigned int objectType = vpi_get(vpiType, obj_h);
+    switch (objectType) {
+    case vpiBitTypespec: {
+        AstRange* rangeNode = nullptr;
+        visit_one_to_many({vpiRange}, obj_h, shared,
+                          [&](AstNode* node) { rangeNode = reinterpret_cast<AstRange*>(node); });
+        auto* basicDTypep = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::BIT);
+        basicDTypep->rangep(rangeNode);
+        dtypep = basicDTypep;
+        break;
+    }
+    case vpiLogicTypespec: {
+        AstRange* rangeNode = nullptr;
+        visit_one_to_many({vpiRange}, obj_h, shared,
+                          [&](AstNode* node) { rangeNode = reinterpret_cast<AstRange*>(node); });
+        auto* basicDTypep = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::LOGIC);
+        basicDTypep->rangep(rangeNode);
+        dtypep = basicDTypep;
+        break;
+    }
+    case vpiIntTypespec: {
+        dtypep = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::INT);
+        break;
+    }
+    case vpiStringTypespec: {
+        dtypep = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::STRING);
+        break;
+    }
+    case vpiChandleTypespec: {
+        dtypep = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::CHANDLE);
+        break;
+    }
+    case vpiIntegerTypespec: {
+        AstNode* constNode = get_value_as_node(obj_h);
+        if (constNode == nullptr) {
+            v3info("Valueless typepec, returning dtypep");
+            auto* dtypep = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::INTEGER);
+            return dtypep;
+        }
+        return constNode;
+    }
+    case vpiVoidTypespec: {
+        dtypep = new AstVoidDType(new FileLine("uhdm"));
+        break;
+    }
+    case vpiEnumTypespec: {
+        const uhdm_handle* const handle = (const uhdm_handle*)obj_h;
+        const UHDM::BaseClass* const object = (const UHDM::BaseClass*)handle->object;
+        if (shared.visited_types.find(object) != shared.visited_types.end()) {
+            // Already seen this, do not create a duplicate
+            // References are handled using getDType, not in visit_object
+            return nullptr;
+        }
+
+        shared.visited_types[object] = fullName;
+
+
+        AstNode* enum_members = nullptr;
+        AstNodeDType* enum_member_dtypep = nullptr;
+
+        vpiHandle itr = vpi_iterate(vpiEnumConst, obj_h);
+        while (vpiHandle item_h = vpi_scan(itr)) {
+            std::string item_name;
+            if (auto s = vpi_get_str(vpiName, item_h)) {
+                item_name = s;
+                sanitize_str(item_name);
+            }
+            auto* value = get_value_as_node(item_h, false);
+            auto* wrapped_item = new AstEnumItem(new FileLine("uhdm"), item_name, nullptr, value);
+            if (enum_members == nullptr) {
+                enum_members = wrapped_item;
+            } else {
+                enum_members->addNextNull(wrapped_item);
+            }
+        }
+        vpi_free_object(itr);
+
+        visit_one_to_one({vpiBaseTypespec}, obj_h, shared, [&](AstNode* item) {
+                //FIXME:
+            if (item != nullptr) { enum_member_dtypep = VN_CAST(item, NodeDType); }
+        });
+        if (enum_member_dtypep == nullptr) {
+            // No data type specified, use default
+            enum_member_dtypep = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::INT);
+        }
+        auto* enum_dtypep = new AstEnumDType(new FileLine("uhdm"), VFlagChildDType(),
+                                            enum_member_dtypep, enum_members);
+        dtypep = new AstDefImplicitDType(new FileLine("uhdm"), objectName, nullptr,
+                                              VFlagChildDType(), enum_dtypep);
+        break;
+    }
+    case vpiStructTypespec: {
+        const uhdm_handle* const handle = (const uhdm_handle*)obj_h;
+        const UHDM::BaseClass* const object = (const UHDM::BaseClass*)handle->object;
+        if (shared.visited_types.find(object) != shared.visited_types.end()) {
+            UINFO(6, "Object " << objectName << " was already visited" << std::endl);
+            return nullptr;
+        }
+
+        shared.visited_types[object] = fullName;
+
+
+        // VSigning below is used in AstStructDtype to indicate
+        // if packed or not
+        VSigning packed;
+        if (vpi_get(vpiPacked, obj_h)) {
+            packed = VSigning::SIGNED;
+        } else {
+            packed = VSigning::UNSIGNED;
+        }
+        auto* struct_dtypep = new AstStructDType(new FileLine("uhdm"), packed);
+        visit_one_to_many({vpiTypespecMember}, obj_h, shared, [&](AstNode* item) {
+            if (item != nullptr) { struct_dtypep->addMembersp(item); }
+        });
+        dtypep = new AstDefImplicitDType(new FileLine("uhdm"), objectName, nullptr,
+                                              VFlagChildDType(), struct_dtypep);
+        break;
+    }
+    case vpiPackedArrayTypespec: {
+        vpiHandle index_typespec_h = vpi_handle(vpiIndexTypespec, obj_h);
+        const unsigned int index_type = vpi_get(vpiType, index_typespec_h);
+        AstBasicDTypeKwd typeKwd = get_kwd_for_type(index_type);
+        AstRange* rangeNodep = nullptr;
+        visit_one_to_many({vpiRange}, obj_h, shared,
+                          [&](AstNode* node) { rangeNodep = reinterpret_cast<AstRange*>(node); });
+        auto* basicDTypep = new AstBasicDType(new FileLine("uhdm"), typeKwd);
+        basicDTypep->rangep(rangeNodep);
+        dtypep = basicDTypep;
+        break;
+    }
+    default:
+        v3error("Encountered unknown typespec type: " << objectType);
+        return nullptr;
+    }
+    auto* ast_typedef
+        = new AstTypedef(new FileLine("uhdm"), objectName, nullptr, VFlagChildDType(), dtypep);
+    shared.m_symp->reinsert(ast_typedef);
+    return ast_typedef;
+}
+
 AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     // Will keep current node
     AstNode* node = nullptr;
@@ -2437,134 +2592,17 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         }
         break;
     }
-
     case vpiBitTypespec:
-    case vpiLogicTypespec: {
-        return getDType(obj_h, shared);
-    }
-    case vpiIntTypespec: {
-        auto* name = vpi_get_str(vpiName, obj_h);
-        if (name == nullptr) {
-            auto* dtype = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::INT);
-            return dtype;
-        }
-        return new AstParseRef(new FileLine("uhdm"), VParseRefExp::en::PX_TEXT, name, nullptr,
-                               nullptr);
-    }
-    case vpiStringTypespec: {
-        auto* dtype = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::STRING);
-        return dtype;
-    }
-    case vpiChandleTypespec: {
-        auto* dtypep = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::CHANDLE);
-        return dtypep;
-    }
-    case vpiIntegerTypespec: {
-        AstNode* constNode = get_value_as_node(obj_h);
-        if (constNode == nullptr) {
-            v3info("Valueless typepec, returning dtype");
-            auto* dtype = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::INTEGER);
-            return dtype;
-        }
-        return constNode;
-    }
-    case vpiVoidTypespec: {
-        return new AstVoidDType(new FileLine("uhdm"));
-    }
-    case vpiEnumTypespec: {
-        const uhdm_handle* const handle = (const uhdm_handle*)obj_h;
-        const UHDM::BaseClass* const object = (const UHDM::BaseClass*)handle->object;
-        if (shared.visited_types.find(object) != shared.visited_types.end()) {
-            // Already seen this, do not create a duplicate
-            // References are handled using getDType, not in visit_object
-            return nullptr;
-        }
-
-        shared.visited_types[object] = objectName;
-
-        // Use bare name for typespec itself, hierarchy was stored above
-        auto pos = objectName.rfind("::");
-        if (pos != std::string::npos) objectName = objectName.substr(pos + 2);
-
-        AstNode* enum_members = nullptr;
-        AstNodeDType* enum_member_dtype = nullptr;
-
-        vpiHandle itr = vpi_iterate(vpiEnumConst, obj_h);
-        while (vpiHandle item_h = vpi_scan(itr)) {
-            std::string item_name;
-            if (auto s = vpi_get_str(vpiName, item_h)) {
-                item_name = s;
-                sanitize_str(item_name);
-            }
-            auto* value = get_value_as_node(item_h, false);
-            auto* wrapped_item = new AstEnumItem(new FileLine("uhdm"), item_name, nullptr, value);
-            if (enum_members == nullptr) {
-                enum_members = wrapped_item;
-            } else {
-                enum_members->addNextNull(wrapped_item);
-            }
-        }
-        vpi_free_object(itr);
-
-        visit_one_to_one({vpiBaseTypespec}, obj_h, shared, [&](AstNode* item) {
-            if (item != nullptr) { enum_member_dtype = reinterpret_cast<AstNodeDType*>(item); }
-        });
-        if (enum_member_dtype == nullptr) {
-            // No data type specified, use default
-            enum_member_dtype = new AstBasicDType(new FileLine("uhdm"), AstBasicDTypeKwd::INT);
-        }
-        auto* enum_dtype = new AstEnumDType(new FileLine("uhdm"), VFlagChildDType(),
-                                            enum_member_dtype, enum_members);
-        auto* dtype = new AstDefImplicitDType(new FileLine("uhdm"), objectName, nullptr,
-                                              VFlagChildDType(), enum_dtype);
-        auto* enum_type
-            = new AstTypedef(new FileLine("uhdm"), objectName, nullptr, VFlagChildDType(), dtype);
-        shared.m_symp->reinsert(enum_type);
-        return enum_type;
-    }
-    case vpiStructTypespec: {
-        const uhdm_handle* const handle = (const uhdm_handle*)obj_h;
-        const UHDM::BaseClass* const object = (const UHDM::BaseClass*)handle->object;
-        if (shared.visited_types.find(object) != shared.visited_types.end()) {
-            UINFO(6, "Object " << objectName << " was already visited" << std::endl);
-            return node;
-        }
-
-        shared.visited_types[object] = objectName;
-
-        // Use bare name for typespec itself, hierarchy was stored above
-        auto pos = objectName.rfind("::");
-        if (pos != std::string::npos) objectName = objectName.substr(pos + 2);
-
-        // VSigning below is used in AstStructDtype to indicate
-        // if packed or not
-        VSigning packed;
-        if (vpi_get(vpiPacked, obj_h)) {
-            packed = VSigning::SIGNED;
-        } else {
-            packed = VSigning::UNSIGNED;
-        }
-        auto* struct_dtype = new AstStructDType(new FileLine("uhdm"), packed);
-        visit_one_to_many({vpiTypespecMember}, obj_h, shared, [&](AstNode* item) {
-            if (item != nullptr) { struct_dtype->addMembersp(item); }
-        });
-        auto* dtype = new AstDefImplicitDType(new FileLine("uhdm"), objectName, nullptr,
-                                              VFlagChildDType(), struct_dtype);
-        auto* struct_type
-            = new AstTypedef(new FileLine("uhdm"), objectName, nullptr, VFlagChildDType(), dtype);
-        shared.m_symp->reinsert(struct_type);
-        return struct_type;
-    }
+    case vpiLogicTypespec:
+    case vpiIntTypespec:
+    case vpiStringTypespec:
+    case vpiChandleTypespec:
+    case vpiIntegerTypespec:
+    case vpiVoidTypespec:
+    case vpiEnumTypespec:
+    case vpiStructTypespec:
     case vpiPackedArrayTypespec: {
-        vpiHandle index_typespec_h = vpi_handle(vpiIndexTypespec, obj_h);
-        const unsigned int index_type = vpi_get(vpiType, index_typespec_h);
-        AstBasicDTypeKwd typeKwd = get_kwd_for_type(index_type);
-        AstRange* rangeNodep = nullptr;
-        visit_one_to_many({vpiRange}, obj_h, shared,
-                          [&](AstNode* node) { rangeNodep = reinterpret_cast<AstRange*>(node); });
-        auto* dtypep = new AstBasicDType(new FileLine("uhdm"), typeKwd);
-        dtypep->rangep(rangeNodep);
-        return dtypep;
+        return process_typespec(obj_h, shared);
     }
     case vpiTypespecMember: {
         AstNodeDType* typespec = nullptr;
