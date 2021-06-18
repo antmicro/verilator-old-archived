@@ -169,7 +169,6 @@ pwrmgr_wake_info.sv \
 padring.sv \
 prim_ram_2p_async_adv.sv \
 pwrmgr_slow_fsm.sv \
-prim_prince.sv \
 prim_present.sv \
 usbdpi.sv'
 
