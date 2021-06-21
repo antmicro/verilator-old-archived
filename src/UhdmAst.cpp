@@ -1281,6 +1281,46 @@ AstVar* process_param_assign(vpiHandle obj_h, UhdmShared& shared) {
     return parameterp;
 }
 
+AstNode* process_typedef(vpiHandle obj_h, UhdmShared& shared) {
+    const unsigned int type = vpi_get(vpiType, obj_h);
+    if (type == vpiImport || type == UHDM::uhdmimport) {
+        // imports are under vpiTypedef nodes, but they are not defined types 
+        return visit_object(obj_h, shared);
+    }
+    
+    std::string objectName = vpi_get_str(vpiName, obj_h);
+    sanitize_str(objectName);
+    auto pos = objectName.rfind("::");
+    if(pos != std::string::npos)
+        objectName = objectName.substr(pos + 2);
+
+    AstNodeDType* refp = nullptr;
+    if (vpiHandle alias_h = vpi_handle(vpiTypedefAlias, obj_h)) {
+        if (auto s = vpi_get_str(vpiName, alias_h)) {
+            std::string refName = s;
+            sanitize_str(refName);
+            auto pos = refName.rfind("::");
+            if (pos != std::string::npos)
+                refName = refName.substr(pos + 2);
+            refp = new AstRefDType(new FileLine("uhdm"), refName, nullptr, nullptr);
+        }
+        else {
+            refp = reinterpret_cast<AstNodeDType*>(visit_object(alias_h, shared));
+        }
+    }
+    if (refp == nullptr) {
+        refp = reinterpret_cast<AstNodeDType*>(visit_object(obj_h, shared));
+        if (refp == nullptr)
+            return nullptr;
+    }
+
+    AstTypedef* typedefp = new AstTypedef(new FileLine("uhdm"), objectName, nullptr,
+                                          VFlagChildDType(), refp);
+
+    shared.m_symp->reinsert(typedefp);
+    return typedefp;
+}
+    
 AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     // Will keep current node
     AstNode* node = nullptr;
@@ -1331,9 +1371,16 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         package->inLibrary(true);
         shared.package_prefix = objectName + "::";
         shared.m_symp->pushNew(package);
+
+        vpiHandle typedef_itr = vpi_iterate(vpiTypedef, obj_h);
+        while(vpiHandle typedef_obj = vpi_scan(typedef_itr)) {
+            AstNode* typedefp = process_typedef(typedef_obj, shared);
+            if (typedefp != nullptr)
+                package->addStmtp(typedefp);
+        }
+        
         visit_one_to_many(
             {
-                vpiTypedef,
                 vpiParamAssign,
                 vpiProgram,
                 vpiProgramArray,
@@ -1533,10 +1580,16 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         } else {
             // Encountered for the first time
             module = new AstModule(new FileLine(modType), modType);
-            NameNodeMap param_map;
+
+            vpiHandle typedef_itr = vpi_iterate(vpiTypedef, obj_h);
+            while(vpiHandle typedef_obj = vpi_scan(typedef_itr)) {
+                AstNode* typedefp = process_typedef(typedef_obj, shared);
+                if (typedefp != nullptr)
+                    module->addStmtp(typedefp);
+            }
+
             visit_one_to_many(
                 {
-                    vpiTypedef,  // Keep this before parameters
                     vpiModule,
                     vpiContAssign,
                     vpiProcess,
@@ -1545,6 +1598,8 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 obj_h, shared, [&](AstNode* node) {
                     if (node != nullptr) module->addStmtp(node);
                 });
+            
+            NameNodeMap param_map;
             visit_one_to_many(
                 {vpiParamAssign}, obj_h, shared, [&](AstNode* node) {
                     if (node != nullptr) param_map[node->name()] = node;
@@ -1883,9 +1938,18 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     case vpiNamedBegin:
     case vpiBegin: {
         AstNode* body = nullptr;
+
+        vpiHandle typedef_itr = vpi_iterate(vpiTypedef, obj_h);
+        while(vpiHandle typedef_obj = vpi_scan(typedef_itr)) {
+            AstNode* typedefp = process_typedef(typedef_obj, shared);
+            if (body == nullptr)
+                body = typedefp;
+            else
+                body->addNextNull(typedefp);
+        }
+
         visit_one_to_many(
             {
-                vpiTypedef,
                 vpiStmt,
                 vpiPropertyDecl,
                 vpiSequenceDecl,
@@ -2698,9 +2762,18 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     }
     case vpiGenScope: {
         AstNode* statements = nullptr;
+
+        vpiHandle typedef_itr = vpi_iterate(vpiTypedef, obj_h);
+        while(vpiHandle typedef_obj = vpi_scan(typedef_itr)) {
+            AstNode* typedefp = process_typedef(typedef_obj, shared);
+            if (statements == nullptr)
+                statements = typedefp;
+            else
+                statements->addNextNull(typedefp);
+        }
+
         visit_one_to_many(
             {
-                vpiTypedef,
                 vpiInternalScope,
                 vpiArrayNet,
                 // vpiLogicVar,
@@ -2800,7 +2873,6 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         auto* definition = new AstClass(make_fileline(obj_h), objectName);
         visit_one_to_many(
             {
-                vpiTypedef,
                 vpiVariables,
                 // vpiMethods,  // Not supported yet in UHDM
                 vpiConstraint,
