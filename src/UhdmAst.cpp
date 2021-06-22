@@ -1296,19 +1296,9 @@ AstNode* process_typedef(vpiHandle obj_h, UhdmShared& shared) {
 
     AstNodeDType* refp = nullptr;
     if (vpiHandle alias_h = vpi_handle(vpiTypedefAlias, obj_h)) {
-        if (auto s = vpi_get_str(vpiName, alias_h)) {
-            std::string refName = s;
-            sanitize_str(refName);
-            auto pos = refName.rfind("::");
-            if (pos != std::string::npos)
-                refName = refName.substr(pos + 2);
-            refp = new AstRefDType(new FileLine("uhdm"), refName, nullptr, nullptr);
-        }
-        else {
-            refp = reinterpret_cast<AstNodeDType*>(visit_object(alias_h, shared));
-        }
+        refp = getDType(alias_h, shared);
     }
-    if (refp == nullptr) {
+    else {
         refp = reinterpret_cast<AstNodeDType*>(visit_object(obj_h, shared));
         if (refp == nullptr)
             return nullptr;
