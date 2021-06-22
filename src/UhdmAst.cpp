@@ -1399,11 +1399,17 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         if (it != shared.partial_modules.end()) {
             // Was created before, fill missing
             module = reinterpret_cast<AstModule*>(it->second);
-            AstModule* full_module = nullptr;
-            if (objectName != modType) {
+            // If available, check vpiFullName instead of vpiName, as vpiName can equal vpiDefName
+            std::string fullName = name;
+            if (auto* s = vpi_get_str(vpiFullName, obj_h)) {
+                fullName = s;
+                sanitize_str(fullName);
+            }
+            if (fullName != modType) {
                 static int module_counter;
                 // Not a top module, create separate node with proper params
                 module = module->cloneTree(false);
+                module->user4p(nullptr); // Clear SymEnt
                 // Use more specific name
                 name = modType + "_" + objectName + std::to_string(module_counter++);
             }
@@ -1500,7 +1506,13 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             shared.top_param_map[module->name()] = param_map;
         }
 
-        if (objectName != modType) {
+        // If available, check vpiFullName instead of vpiName, as vpiName can equal vpiDefName
+        std::string fullName = name;
+        if (auto* s = vpi_get_str(vpiFullName, obj_h)) {
+            fullName = s;
+            sanitize_str(fullName);
+        }
+        if (fullName != modType) {
             // Not a top module, create instance
             AstPin* modPins = nullptr;
             AstPin* modParams = nullptr;
