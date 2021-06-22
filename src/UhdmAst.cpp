@@ -62,6 +62,36 @@ bool is_imported(vpiHandle obj_h) {
     }
 }
 
+void remove_scope(std::string& s) {
+    auto pos = s.rfind("::");
+    if (pos != std::string::npos) s = s.substr(pos + 2);
+}
+
+AstPackage* get_package(UhdmShared& shared, const std::string& objectName) {
+    std::size_t delimiter_pos = objectName.rfind("::");
+    std::size_t prefix_pos = objectName.find("::");
+    AstPackage* classpackagep = nullptr;
+    if (delimiter_pos != std::string::npos) {
+        std::string classpackageName = "";
+        if (prefix_pos < delimiter_pos) {
+            // "Nested" packages - package importing package
+            // Last one is where definition is located
+            classpackageName
+                = objectName.substr(prefix_pos + 2, delimiter_pos - prefix_pos - 2);
+        } else {
+            // Simple package reference
+            classpackageName = objectName.substr(0, delimiter_pos);
+        }
+        // Nested or not, func is named after last package
+        auto object_name = objectName.substr(delimiter_pos + 2, objectName.length());
+        UINFO(7, "Found package prefix: " << classpackageName << std::endl);
+        remove_scope(classpackageName);
+        auto it = shared.package_map.find(classpackageName);
+        if (it != shared.package_map.end()) { classpackagep = it->second; }
+    }
+    return classpackagep;
+}
+
 bool is_expr_context(vpiHandle obj_h) {
     auto parent_h = vpi_handle(vpiParent, obj_h);
     if (parent_h) {
@@ -868,13 +898,14 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared, const std::vecto
             if (auto s = vpi_get_str(vpiName, typespec_h)) {
                 name = s;
                 sanitize_str(name);
-                auto pos = name.rfind("::");
-                if (pos != std::string::npos) name = name.substr(pos + 2);
             } else {
                 v3error("Encountered custom, but unnamed typespec in cast operation");
             }
-            return new AstCast(new FileLine("uhdm"), operands[0],
-                               new AstRefDType(new FileLine("uhdm"), name));
+            AstPackage* packagep = get_package(shared, name);
+            remove_scope(name);
+            auto* refDtypep = new AstRefDType(new FileLine("uhdm"), name);
+            refDtypep->packagep(packagep);
+            return new AstCast(new FileLine("uhdm"), operands[0], refDtypep);
         } else {
             AstNode* typespecp;
             visit_one_to_one({vpiTypespec}, obj_h, shared,
