@@ -1281,7 +1281,7 @@ AstVar* process_param_assign(vpiHandle obj_h, UhdmShared& shared) {
     return parameterp;
 }
 
-AstPackageImport* process_import(vpiHandle obj_h, UhdmShared& shared) {
+AstPackageImport* process_uhdm_import(vpiHandle obj_h, UhdmShared& shared) {
     std::string objectName;
     if (auto s = vpi_get_str(vpiName, obj_h)) {
         objectName = s;
@@ -1308,9 +1308,9 @@ AstPackageImport* process_import(vpiHandle obj_h, UhdmShared& shared) {
 
 AstNode* process_typedef(vpiHandle obj_h, UhdmShared& shared) {
     const unsigned int type = vpi_get(vpiType, obj_h);
-    if (type == vpiImport || type == UHDM::uhdmimport) {
+    if (type == UHDM::uhdmimport) {
         // imports are under vpiTypedef nodes, but they are not defined types 
-        return process_import(obj_h, shared);
+        return process_uhdm_import(obj_h, shared);
     }
     
     std::string objectName = vpi_get_str(vpiName, obj_h);
@@ -1496,7 +1496,6 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         }
     }
     case vpiModule: {
-
         std::string modType = vpi_get_str(vpiDefName, obj_h);
         sanitize_str(modType);
 
@@ -1566,7 +1565,6 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                     vpiRegArray,
                     vpiMemory,
                     vpiInternalScope,
-                    vpiImport,
                     vpiAttribute,
                 },
                 obj_h, shared, [&](AstNode* node) {
@@ -1978,7 +1976,6 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 vpiMemory,
                 vpiParamAssign,
                 vpiInternalScope,
-                vpiImport,
                 vpiAttribute,
             },
             obj_h, shared, [&](AstNode* node) {
