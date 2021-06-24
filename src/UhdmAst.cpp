@@ -1281,11 +1281,36 @@ AstVar* process_param_assign(vpiHandle obj_h, UhdmShared& shared) {
     return parameterp;
 }
 
+AstPackageImport* process_import(vpiHandle obj_h, UhdmShared& shared) {
+    std::string objectName;
+    if (auto s = vpi_get_str(vpiName, obj_h)) {
+        objectName = s;
+        sanitize_str(objectName);
+    }
+    AstPackage* packagep = nullptr;
+    auto it = shared.package_map.find(objectName);
+    if (it != shared.package_map.end()) { packagep = it->second; }
+    if (packagep != nullptr) {
+        std::string symbol_name;
+        vpiHandle imported_name = vpi_handle(vpiImport, obj_h);
+        if (imported_name) {
+            s_vpi_value val;
+            vpi_get_value(imported_name, &val);
+            symbol_name = val.value.str;
+        }
+        auto* package_importp
+            = new AstPackageImport(new FileLine("uhdm"), packagep, symbol_name);
+        shared.m_symp->importItem(packagep, symbol_name);
+        return package_importp;
+    }
+    return nullptr;
+}
+
 AstNode* process_typedef(vpiHandle obj_h, UhdmShared& shared) {
     const unsigned int type = vpi_get(vpiType, obj_h);
     if (type == vpiImport || type == UHDM::uhdmimport) {
         // imports are under vpiTypedef nodes, but they are not defined types 
-        return visit_object(obj_h, shared);
+        return process_import(obj_h, shared);
     }
     
     std::string objectName = vpi_get_str(vpiName, obj_h);
