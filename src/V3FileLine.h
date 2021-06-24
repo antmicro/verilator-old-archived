@@ -163,6 +163,10 @@ public:
         m_lastLineno = num;
         m_firstColumn = m_lastColumn = 1;
     }
+    void firstLineno(int num) { m_firstLineno = num; }
+    void firstColumn(int num) { m_firstColumn = num; }
+    void lastLineno(int num) { m_lastLineno = num; }
+    void lastColumn(int num) { m_lastColumn = num; }
     void language(V3LangCode lang) { singleton().numberToLang(filenameno(), lang); }
     void filename(const string& name) { m_filenameno = singleton().nameToNumber(name); }
     void parent(FileLine* fileline) { m_parent = fileline; }
