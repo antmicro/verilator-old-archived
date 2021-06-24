@@ -54,6 +54,18 @@ void sanitize_str(std::string& s) {
     }
 }
 
+std::string get_object_name(vpiHandle obj_h) {
+    std::string objectName;
+    for (auto name : {vpiName, vpiFullName, vpiDefName}) {
+        if (auto s = vpi_get_str(name, obj_h)) {
+            objectName = s;
+            sanitize_str(objectName);
+            break;
+        }
+    }
+    return objectName;
+}
+
 bool is_imported(vpiHandle obj_h) {
     if (auto s = vpi_get_str(vpiImported, obj_h)) {
         return true;
@@ -550,11 +562,11 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
         std::string type_string;
         const uhdm_handle* const handle = (const uhdm_handle*)obj_h;
         const UHDM::BaseClass* const object = (const UHDM::BaseClass*)handle->object;
-        std::string type_name = "";
-        if (auto s = vpi_get_str(vpiName, obj_h)) { type_name = s; }
-        sanitize_str(type_name);
+
+        std::string type_name = get_object_name(obj_h);
         auto pos = type_name.rfind("::");
         if (pos != std::string::npos) type_name = type_name.substr(pos + 2);
+
         if (shared.visited_types.find(object) != shared.visited_types.end()) {
             type_string = shared.visited_types[object];
             size_t delimiter_pos = type_string.rfind("::");
@@ -1042,11 +1054,7 @@ AstNode* process_function(vpiHandle obj_h, UhdmShared& shared) {
     AstNodeFTask* taskFuncp = nullptr;
     shared.isFunction = false;
 
-    std::string objectName;
-    if (auto s = vpi_get_str(vpiName, obj_h)) {
-        objectName = s;
-        sanitize_str(objectName);
-    }
+    std::string objectName = get_object_name(obj_h);
 
     auto return_h = vpi_handle(vpiReturn, obj_h);
     if (return_h) {
@@ -1102,11 +1110,8 @@ AstNode* process_function(vpiHandle obj_h, UhdmShared& shared) {
 
 AstNode* process_genScopeArray(vpiHandle obj_h, UhdmShared& shared) {
     AstNode* statementsp = nullptr;
-    std::string objectName;
-    if (auto s = vpi_get_str(vpiName, obj_h)) {
-        objectName = s;
-        sanitize_str(objectName);
-    }
+    std::string objectName = get_object_name(obj_h);
+
     visit_one_to_many({vpiGenScope}, obj_h, shared, [&](AstNode* itemp) {
         if (statementsp == nullptr) {
             statementsp = itemp;
@@ -1147,11 +1152,8 @@ AstNode* process_hierPath(vpiHandle obj_h, UhdmShared& shared) {
 }
 
 AstNode* process_ioDecl(vpiHandle obj_h, UhdmShared& shared) {
-    std::string objectName;
-    if (auto s = vpi_get_str(vpiName, obj_h)) {
-        objectName = s;
-        sanitize_str(objectName);
-    }
+    std::string objectName = get_object_name(obj_h);
+
     VDirection dir;
     if (const int n = vpi_get(vpiDirection, obj_h)) {
         if (n == vpiInput) {
@@ -1185,14 +1187,7 @@ AstNode* process_parameter(vpiHandle obj_h, UhdmShared& shared, bool get_value) 
     AstVar* parameterp = nullptr;
     AstNode* parameterValuep = nullptr;
 
-    std::string objectName;
-    for (auto name : {vpiName, vpiFullName, vpiDefName}) {
-        if (auto s = vpi_get_str(name, obj_h)) {
-            objectName = s;
-            sanitize_str(objectName);
-            break;
-        }
-    }
+    std::string objectName = get_object_name(obj_h);
 
     if (get_value) {
         std::string fullName;
@@ -1282,11 +1277,8 @@ AstVar* process_param_assign(vpiHandle obj_h, UhdmShared& shared) {
 }
 
 AstPackageImport* process_uhdm_import(vpiHandle obj_h, UhdmShared& shared) {
-    std::string objectName;
-    if (auto s = vpi_get_str(vpiName, obj_h)) {
-        objectName = s;
-        sanitize_str(objectName);
-    }
+    std::string objectName = get_object_name(obj_h);
+
     AstPackage* packagep = nullptr;
     auto it = shared.package_map.find(objectName);
     if (it != shared.package_map.end()) { packagep = it->second; }
@@ -1313,8 +1305,8 @@ AstNode* process_typedef(vpiHandle obj_h, UhdmShared& shared) {
         return process_uhdm_import(obj_h, shared);
     }
     
-    std::string objectName = vpi_get_str(vpiName, obj_h);
-    sanitize_str(objectName);
+    std::string objectName = get_object_name(obj_h);
+
     auto pos = objectName.rfind("::");
     if(pos != std::string::npos)
         objectName = objectName.substr(pos + 2);
@@ -1342,24 +1334,19 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
 
     // Current object data
     int lineNo = 0;
-    std::string objectName = "";
-    std::string fullObjectName = "";
 
     // For iterating over child objects
     vpiHandle itr;
 
+    std::string objectName = get_object_name(obj_h);
+
+    std::string fullObjectName = "";
     auto file_name = vpi_get_str(vpiFile, obj_h);
     if (auto s = vpi_get_str(vpiFullName, obj_h)) {
         fullObjectName = s;
         sanitize_str(fullObjectName);
     }
-    for (auto name : {vpiName, vpiFullName, vpiDefName}) {
-        if (auto s = vpi_get_str(name, obj_h)) {
-            objectName = s;
-            sanitize_str(objectName);
-            break;
-        }
-    }
+
     if (unsigned int l = vpi_get(vpiLineNo, obj_h)) { lineNo = l; }
 
     const unsigned int currentLine = vpi_get(vpiLineNo, obj_h);
@@ -1424,11 +1411,8 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         for (auto net : {vpiNet, vpiNetArray, vpiArrayVar, vpiArrayNet, vpiVariables}) {
             vpiHandle itr = vpi_iterate(net, parent_h);
             while (vpiHandle vpi_child_obj = vpi_scan(itr)) {
-                if (auto s = vpi_get_str(vpiName, vpi_child_obj)) {
-                    netName = s;
-                    sanitize_str(netName);
-                    UINFO(7, "Net name is " << netName << std::endl);
-                }
+                netName = get_object_name(vpi_child_obj);
+                UINFO(7, "Net name is " << netName << std::endl);
                 if (netName == objectName) {
                     UINFO(7, "Found matching net for " << objectName << std::endl);
                     dtype = getDType(make_fileline(obj_h), vpi_child_obj, shared);
@@ -1657,8 +1641,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             std::set<std::string> parameter_set;
             while (vpiHandle vpi_child_obj = vpi_scan(itr)) {
                 vpiHandle param_handle = vpi_handle(vpiLhs, vpi_child_obj);
-                std::string param_name = vpi_get_str(vpiName, param_handle);
-                sanitize_str(param_name);
+                std::string param_name = get_object_name(param_handle);
                 UINFO(3, "Got parameter (pin) " << param_name << std::endl);
                 auto is_local = vpi_get(vpiLocalParam, param_handle);
                 AstNode* value = nullptr;
@@ -1819,8 +1802,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             while (vpiHandle vpi_child_obj = vpi_scan(itr)) {
                 vpiHandle highConn = vpi_handle(vpiHighConn, vpi_child_obj);
                 if (highConn) {
-                    std::string portName = vpi_get_str(vpiName, vpi_child_obj);
-                    sanitize_str(portName);
+                    std::string portName = get_object_name(vpi_child_obj);
                     AstParseRef* ref
                         = reinterpret_cast<AstParseRef*>(visit_object(highConn, shared));
                     AstPin* pin = new AstPin(make_fileline(vpi_child_obj), ++np, portName, ref);
@@ -1850,11 +1832,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         // No full visit, just grab name and direction
         auto io_itr = vpi_iterate(vpiIODecl, obj_h);
         while (vpiHandle io_h = vpi_scan(io_itr)) {
-            std::string io_name;
-            if (auto s = vpi_get_str(vpiName, io_h)) {
-                io_name = s;
-                sanitize_str(io_name);
-            }
+            std::string io_name = get_object_name(io_h);
             VDirection dir;
             if (const int n = vpi_get(vpiDirection, io_h)) {
                 if (n == vpiInput) {
@@ -2437,9 +2415,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             });
         auto parent_h = vpi_handle(vpiParent, obj_h);
         if (parent_h != 0) {
-            std::string parent_name;
-            if (auto s = vpi_get_str(vpiName, parent_h)) parent_name = s;
-            sanitize_str(parent_name);
+            std::string parent_name = get_object_name(parent_h);
 
             AstNode* refp = get_class_package_ref_node(make_fileline(obj_h), parent_name, shared);
             size_t colon_pos = parent_name.rfind("::");
@@ -2639,11 +2615,8 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
 
         vpiHandle itr = vpi_iterate(vpiEnumConst, obj_h);
         while (vpiHandle item_h = vpi_scan(itr)) {
-            std::string item_name;
-            if (auto s = vpi_get_str(vpiName, item_h)) {
-                item_name = s;
-                sanitize_str(item_name);
-            }
+            std::string item_name = get_object_name(item_h);
+
             auto* value = get_value_as_node(item_h, false);
             auto* wrapped_item = new AstEnumItem(make_fileline(obj_h), item_name, nullptr, value);
             if (enum_members == nullptr) {
