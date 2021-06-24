@@ -1682,7 +1682,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             return nullptr;  // Skip this net
         }
 
-        auto* v = new AstVar(new FileLine("uhdm"), net_type, objectName, VFlagChildDType(), dtype);
+        auto* v = new AstVar(make_fileline(obj_h), net_type, objectName, VFlagChildDType(), dtype);
         if (v3Global.opt.trace()) { v->trace(true); }
         return v;
     }
