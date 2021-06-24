@@ -1298,6 +1298,19 @@ AstPackageImport* process_uhdm_import(vpiHandle obj_h, UhdmShared& shared) {
     return nullptr;
 }
 
+    AstMemberDType* process_typespec_member(vpiHandle obj_h, UhdmShared& shared) {
+    std::string objectName = get_object_name(obj_h);
+    AstNodeDType* typespec = nullptr;
+    auto typespec_h = vpi_handle(vpiTypespec, obj_h);
+    typespec = getDType(typespec_h, shared);
+    if (typespec != nullptr) {
+        auto* member = new AstMemberDType(new FileLine("uhdm"), objectName, VFlagChildDType(),
+                                          reinterpret_cast<AstNodeDType*>(typespec));
+        return member;
+    }
+    return nullptr;
+}
+
 AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
     std::string objectName = get_object_name(obj_h);
     const unsigned int objectType = vpi_get(vpiType, obj_h);
@@ -1414,9 +1427,14 @@ AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
             packed = VSigning::UNSIGNED;
         }
         auto* struct_dtype = new AstStructDType(new FileLine("uhdm"), packed);
-        visit_one_to_many({vpiTypespecMember}, obj_h, shared, [&](AstNode* item) {
-            if (item != nullptr) { struct_dtype->addMembersp(item); }
-        });
+
+        vpiHandle member_itr = vpi_iterate(vpiTypespecMember, obj_h);
+        while(vpiHandle member_obj = vpi_scan(member_itr)) {
+            AstMemberDType* memberp = process_typespec_member(member_obj, shared);
+            if (memberp != nullptr)
+                struct_dtype->addMembersp(memberp);
+        }
+
         auto* dtype = new AstDefImplicitDType(new FileLine("uhdm"), objectName, nullptr,
                                               VFlagChildDType(), struct_dtype);
         return dtype;
