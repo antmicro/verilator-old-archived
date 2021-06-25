@@ -1455,7 +1455,7 @@ AstNode* process_typedef(vpiHandle obj_h, UhdmShared& shared) {
     } else {
         refp = reinterpret_cast<AstNodeDType*>(process_typespec(obj_h, shared));
         if (refp == nullptr) {
-            UINFO(7, "Typedef revisited: " << objectName << ", skipping" << std::endl;
+            UINFO(7, "Typedef revisited: " << objectName << ", skipping" << std::endl);
             return nullptr;
         }
     }
