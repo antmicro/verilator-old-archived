@@ -1305,10 +1305,10 @@ AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
 
     auto file_name = vpi_get_str(vpiFile, obj_h);
     const unsigned int currentLine = vpi_get(vpiLineNo, obj_h);
-    UINFO(6, "Object: " << objectName << " of type " << objectType << " ("
-                        << UHDM::VpiTypeName(obj_h) << ")"
-                        << " @ " << currentLine << " : " << (file_name != 0 ? file_name : "?")
-                        << std::endl);
+    UINFO(6, __func__ << ": Object: " << objectName << " of type " << objectType << " ("
+                      << UHDM::VpiTypeName(obj_h) << ")"
+                      << " @ " << currentLine << " : " << (file_name != 0 ? file_name : "?")
+                      << std::endl);
     if (file_name) {
         shared.coverage_set.insert({file_name, currentLine, UHDM::VpiTypeName(obj_h)});
     }
