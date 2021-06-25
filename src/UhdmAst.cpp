@@ -54,9 +54,9 @@ void sanitize_str(std::string& s) {
     }
 }
 
-std::string get_object_name(vpiHandle obj_h) {
+    std::string get_object_name(vpiHandle obj_h, const std::vector<int>& name_fields={vpiName}) {
     std::string objectName;
-    for (auto name : {vpiName, vpiFullName, vpiDefName}) {
+    for (auto name : name_fields) {
         if (auto s = vpi_get_str(name, obj_h)) {
             objectName = s;
             sanitize_str(objectName);
@@ -1190,11 +1190,7 @@ AstNode* process_parameter(vpiHandle obj_h, UhdmShared& shared, bool get_value) 
     std::string objectName = get_object_name(obj_h);
 
     if (get_value) {
-        std::string fullName;
-        if (auto s = vpi_get_str(vpiFullName, obj_h)) {
-            fullName = s;
-            sanitize_str(fullName);
-        }
+        std::string fullName = get_object_name(obj_h, {vpiFullName});
         size_t colon_pos = fullName.rfind("::");
         if (colon_pos != std::string::npos) {
             AstNode* class_pkg_refp = get_class_package_ref_node(make_fileline(obj_h), fullName, shared);
@@ -1300,13 +1296,13 @@ AstPackageImport* process_uhdm_import(vpiHandle obj_h, UhdmShared& shared) {
 
     AstMemberDType* process_typespec_member(vpiHandle obj_h, UhdmShared& shared) {
     std::string objectName = get_object_name(obj_h);
-    AstNodeDType* typespec = nullptr;
+    AstNodeDType* typespecp = nullptr;
     auto typespec_h = vpi_handle(vpiTypespec, obj_h);
-    typespec = getDType(typespec_h, shared);
-    if (typespec != nullptr) {
-        auto* member = new AstMemberDType(new FileLine("uhdm"), objectName, VFlagChildDType(),
-                                          reinterpret_cast<AstNodeDType*>(typespec));
-        return member;
+    typespecp = getDType(typespec_h, shared);
+    if (typespecp != nullptr) {
+        auto* memberp = new AstMemberDType(new FileLine("uhdm"), objectName, VFlagChildDType(),
+                                           typespecp);
+        return memberp;
     }
     return nullptr;
 }
@@ -1499,14 +1495,10 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     // For iterating over child objects
     vpiHandle itr;
 
-    std::string objectName = get_object_name(obj_h);
+    std::string objectName = get_object_name(obj_h, {vpiName, vpiFullName, vpiDefName});
+    std::string fullObjectName = get_object_name(obj_h, {vpiFullName});
 
-    std::string fullObjectName = "";
     auto file_name = vpi_get_str(vpiFile, obj_h);
-    if (auto s = vpi_get_str(vpiFullName, obj_h)) {
-        fullObjectName = s;
-        sanitize_str(fullObjectName);
-    }
 
     if (unsigned int l = vpi_get(vpiLineNo, obj_h)) { lineNo = l; }
 
@@ -1641,9 +1633,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         }
     }
     case vpiModule: {
-        std::string modType = vpi_get_str(vpiDefName, obj_h);
-        sanitize_str(modType);
-
+        std::string modType = get_object_name(obj_h, {vpiDefName});
         std::string name = objectName;
         AstModule* module;
 
@@ -1840,8 +1830,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 vpi_free_object(vpi_child_obj);
             }
             vpi_free_object(itr);
-            std::string fullname = vpi_get_str(vpiFullName, obj_h);
-            sanitize_str(fullname);
+            std::string fullname = get_object_name(obj_h, {vpiFullName});
             UINFO(8, "Adding cell " << fullname << std::endl);
             AstCell* cell = new AstCell(make_fileline(obj_h), make_fileline(obj_h), objectName,
                                         name, modPins, modParams, nullptr);
