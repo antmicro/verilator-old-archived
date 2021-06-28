@@ -2559,8 +2559,8 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 }
             });
         auto parent_h = vpi_handle(vpiParent, obj_h);
-        std::string parent_name = vpi_get_str(vpiName, parent_h);
-        sanitize_str(parent_name);
+        std::string parent_name = get_object_name(parent_h, {vpiName, vpiFullName});
+
         fromNode = get_referenceNode(make_fileline(obj_h), parent_name);
 
         auto type = vpi_get(vpiIndexedPartSelectType, obj_h);
