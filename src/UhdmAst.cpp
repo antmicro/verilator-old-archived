@@ -392,6 +392,7 @@ AstBasicDTypeKwd get_kwd_for_type(int vpi_var_type) {
     case vpiStructTypespec:
     case vpiStructNet:
     case vpiStructVar:
+    case vpiArrayTypespec:
     case vpiPackedArrayTypespec:
     case vpiUnionTypespec: {
         // Not a basic dtype, needs further handling
@@ -490,6 +491,25 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
         }
         if (dtype == nullptr) { dtype = basic; }
         break;
+    }
+    case vpiArrayTypespec: {
+        AstRange* rangeNodep = nullptr;
+        std::stack<AstRange*> range_stack;
+        visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* node) {
+            rangeNodep = reinterpret_cast<AstRange*>(node);
+            range_stack.push(rangeNodep);
+        });
+
+        auto elem_typespec_h = vpi_handle(vpiElemTypespec, obj_h);
+        AstNodeDType* dtypep = getDType(fl, elem_typespec_h, shared);
+
+        while (!range_stack.empty()) {
+            rangeNodep = range_stack.top();
+            dtypep = new AstUnpackArrayDType(fl, VFlagChildDType(), dtypep, rangeNodep);
+            range_stack.pop();
+        }
+
+        return dtypep;
     }
     case vpiPackedArrayTypespec: {
         AstRange* rangeNodep = nullptr;
@@ -625,7 +645,7 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
         if (typespec_h) {
             dtype = getDType(fl, typespec_h, shared);
         } else {
-            v3error("Missing typespec for unpacked/packed_array_var");
+            v3error("Missing typespec for packed_array_var");
         }
 
         AstRange* rangeNodep = nullptr;
@@ -642,38 +662,20 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
         break;
     }
     case vpiArrayVar: {
-        auto array_type = vpi_get(vpiArrayType, obj_h);
-        // todo: static/dynamic/assoc/queue
-        auto rand_type = vpi_get(vpiRandType, obj_h);
-        // todo: rand/randc/notrand
-        AstNodeDType* elementDtypep = nullptr;
-
-        vpiHandle itr = vpi_iterate(vpiReg, obj_h);
-        while (vpiHandle member_h = vpi_scan(itr)) {
-            auto type_h = vpi_handle(vpiTypespec, member_h);
-            if (type_h) {
-                elementDtypep = getDType(fl, type_h, shared);
-            } else {
-                auto element_type = vpi_get(vpiType, member_h);
-                if (element_type) {
-                    AstBasicDTypeKwd keyword = get_kwd_for_type(element_type);
-                    elementDtypep = new AstBasicDType(fl, keyword);
-                }
-            }
-            vpi_free_object(member_h);
+        auto typespec_h = vpi_handle(vpiTypespec, obj_h);
+        if (typespec_h) {
+            dtype = getDType(fl, typespec_h, shared);
+        } else {
+            v3error("Missing typespec for unpacked_array_var");
         }
-        vpi_free_object(itr);
-
         std::vector<AstRange*> ranges;
         visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* itemp) {
             if (itemp != nullptr) { ranges.push_back(reinterpret_cast<AstRange*>(itemp)); }
         });
 
         for (auto rangep_it = ranges.rbegin(); rangep_it != ranges.rend(); rangep_it++) {
-            elementDtypep
-                = new AstUnpackArrayDType(fl, VFlagChildDType(), elementDtypep, *rangep_it);
+            dtype = new AstUnpackArrayDType(fl, VFlagChildDType(), dtype, *rangep_it);
         }
-        dtype = elementDtypep;
         break;
     }
     case vpiArrayNet: {
@@ -1413,6 +1415,9 @@ AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
         auto* dtype
             = new AstDefImplicitDType(fl, objectName, nullptr, VFlagChildDType(), struct_dtype);
         return dtype;
+    }
+    case vpiArrayTypespec: {
+        return getDType(fl, obj_h, shared);
     }
     case vpiPackedArrayTypespec: {
         AstNodeDType* dtypep = nullptr;
