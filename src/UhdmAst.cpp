@@ -1416,48 +1416,9 @@ AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
             = new AstDefImplicitDType(fl, objectName, nullptr, VFlagChildDType(), struct_dtype);
         return dtype;
     }
+    case vpiPackedArrayTypespec:
     case vpiArrayTypespec: {
         return getDType(fl, obj_h, shared);
-    }
-    case vpiPackedArrayTypespec: {
-        AstNodeDType* dtypep = nullptr;
-        AstRange* rangeNodep = nullptr;
-        std::stack<AstRange*> range_stack;
-        visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* node) {
-            rangeNodep = reinterpret_cast<AstRange*>(node);
-            range_stack.push(rangeNodep);
-        });
-
-        auto elem_typespec_h = vpi_handle(vpiElemTypespec, obj_h);
-        if (elem_typespec_h) {
-            dtypep = getDType(fl, elem_typespec_h, shared);
-        } else {
-            UINFO(7, "No elem_typespec found in vpiPackedArrayTypespec, trying IndexTypespec"
-                         << std::endl);
-            auto index_typespec_h = vpi_handle(vpiIndexTypespec, obj_h);
-            if (index_typespec_h) {
-                dtypep = getDType(fl, index_typespec_h, shared);
-
-                // Workaround for implicit function argument types
-                // They are stored in UHDM as PackedArrays, but parsed by Verilator
-                // like the simple types above
-                AstBasicDType* basicDTypep = VN_CAST(dtypep, BasicDType);
-                if (range_stack.size() == 1 && basicDTypep) {
-                    basicDTypep->rangep(range_stack.top());
-                    range_stack.pop();
-                }
-            } else {
-                v3error("\t! Failed to get typespec handle for PackedArrayTypespec");
-            }
-        }
-
-        while (!range_stack.empty()) {
-            rangeNodep = range_stack.top();
-            dtypep = new AstPackArrayDType(fl, VFlagChildDType(), dtypep, rangeNodep);
-            range_stack.pop();
-        }
-
-        return dtypep;
     }
     case vpiUnsupportedTypespec: {
         v3info("\t! This typespec is unsupported in UHDM: " << file_name << ":" << currentLine);
