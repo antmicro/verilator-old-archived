@@ -1,9 +1,9 @@
 [submodule "Surelog"]
 	path = Surelog
-	url = https://github.com/alainmarcel/Surelog.git
+	url = https://github.com/chipsalliance/Surelog.git
 [submodule "uhdm-integration"]
 	path = uhdm-integration
-	url = https://github.com/alainmarcel/uhdm-integration.git
+	url = https://github.com/chipsalliance/UHDM-integration-tests.git
 [submodule "vcddiff"]
 	path = vcddiff
 	url = https://github.com/veripool/vcddiff.git
