@@ -642,6 +642,12 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
     case vpiPackedArrayNet:
     case vpiPackedArrayVar: {
         auto typespec_h = vpi_handle(vpiTypespec, obj_h);
+        if (typespec_h == 0) {  // Try to get the type from one of the elements
+            auto itr = vpi_iterate(vpiElement, obj_h);
+            auto element_h = vpi_scan(itr);
+            typespec_h = vpi_handle(vpiTypespec, element_h);
+        }
+
         if (typespec_h) {
             dtype = getDType(fl, typespec_h, shared);
         } else {
@@ -665,9 +671,23 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
         auto typespec_h = vpi_handle(vpiTypespec, obj_h);
         if (typespec_h) {
             dtype = getDType(fl, typespec_h, shared);
-        } else {
-            v3error("Missing typespec for unpacked_array_var");
+        } else {  // Try to get the type from one of the elements
+            auto itr = vpi_iterate(vpiReg, obj_h);
+            auto member_h = vpi_scan(itr);
+            typespec_h = vpi_handle(vpiTypespec, member_h);
+            if (typespec_h) {
+                dtype = getDType(fl, typespec_h, shared);
+            } else {
+                auto element_type = vpi_get(vpiType, member_h);
+                if (element_type) {
+                    AstBasicDTypeKwd keyword = get_kwd_for_type(element_type);
+                    dtype = new AstBasicDType(fl, keyword);
+                } else {
+                    v3error("Missing typespec for unpacked_array_var");
+                }
+            }
         }
+
         std::vector<AstRange*> ranges;
         visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* itemp) {
             if (itemp != nullptr) { ranges.push_back(reinterpret_cast<AstRange*>(itemp)); }
