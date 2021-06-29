@@ -698,28 +698,21 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
         break;
     }
     case vpiArrayNet: {
-        AstRange* unpacked_range = nullptr;
-        AstNodeDType* subDTypep = nullptr;
-
         vpiHandle itr = vpi_iterate(vpiNet, obj_h);
-        while (vpiHandle vpi_child_obj = vpi_scan(itr)) {
-            subDTypep = getDType(fl, vpi_child_obj, shared);
+        if (vpiHandle vpi_child_obj = vpi_scan(itr)) {
+            dtypep = getDType(fl, vpi_child_obj, shared);
             vpi_free_object(vpi_child_obj);
         }
         vpi_free_object(itr);
 
-        visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* node) {
-            if ((node != nullptr) && (unpacked_range == nullptr)) {
-                unpacked_range = reinterpret_cast<AstRange*>(node);
-            }
+        std::vector<AstRange*> ranges;
+        visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* itemp) {
+            if (itemp != nullptr) { ranges.push_back(reinterpret_cast<AstRange*>(itemp)); }
         });
 
-        if ((subDTypep == nullptr) || (unpacked_range == nullptr)) {
-            v3error("Missing net and/or unpacked range");
-            return nullptr;
+        for (auto rangep_it = ranges.rbegin(); rangep_it != ranges.rend(); rangep_it++) {
+            dtypep = new AstUnpackArrayDType(fl, VFlagChildDType(), dtypep, *rangep_it);
         }
-
-        dtypep = new AstUnpackArrayDType(fl, VFlagChildDType(), subDTypep, unpacked_range);
         break;
     }
     default: v3error("Unknown object type: " << UHDM::VpiTypeName(obj_h));
