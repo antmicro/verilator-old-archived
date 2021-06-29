@@ -392,6 +392,7 @@ AstBasicDTypeKwd get_kwd_for_type(int vpi_var_type) {
     case vpiStructTypespec:
     case vpiStructNet:
     case vpiStructVar:
+    case vpiArrayTypespec:
     case vpiPackedArrayTypespec:
     case vpiUnionTypespec: {
         // Not a basic dtype, needs further handling
@@ -403,7 +404,11 @@ AstBasicDTypeKwd get_kwd_for_type(int vpi_var_type) {
 }
 
 AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
-    AstNodeDType* dtype = nullptr;
+    if (vpiHandle alias_h = vpi_handle(vpiTypedefAlias, obj_h)) {
+        return getDType(fl, alias_h, shared);
+    }
+
+    AstNodeDType* dtypep = nullptr;
     auto type = vpi_get(vpiType, obj_h);
     if (type == vpiPort) {
         auto ref_h = vpi_handle(vpiLowConn, obj_h);
@@ -476,39 +481,57 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
                 // Last node serves for basic type
                 rangeNode = range_stack.top();
                 basic->rangep(rangeNode);
-                dtype = basic;
+                dtypep = basic;
             } else {
                 // For other levels create a PackedArray
                 rangeNode = range_stack.top();
-                dtype = new AstPackArrayDType(fl, VFlagChildDType(), dtype, rangeNode);
+                dtypep = new AstPackArrayDType(fl, VFlagChildDType(), dtypep, rangeNode);
             }
             range_stack.pop();
         }
-        if (dtype == nullptr) { dtype = basic; }
+        if (dtypep == nullptr) { dtypep = basic; }
+        break;
+    }
+    case vpiArrayTypespec: {
+        AstRange* rangeNodep = nullptr;
+        std::stack<AstRange*> range_stack;
+        visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* nodep) {
+            rangeNodep = reinterpret_cast<AstRange*>(nodep);
+            range_stack.push(rangeNodep);
+        });
+
+        auto elem_typespec_h = vpi_handle(vpiElemTypespec, obj_h);
+        dtypep = getDType(fl, elem_typespec_h, shared);
+
+        while (!range_stack.empty()) {
+            rangeNodep = range_stack.top();
+            dtypep = new AstUnpackArrayDType(fl, VFlagChildDType(), dtypep, rangeNodep);
+            range_stack.pop();
+        }
         break;
     }
     case vpiPackedArrayTypespec: {
         AstRange* rangeNodep = nullptr;
         std::stack<AstRange*> range_stack;
-        visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* node) {
-            rangeNodep = reinterpret_cast<AstRange*>(node);
+        visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* nodep) {
+            rangeNodep = reinterpret_cast<AstRange*>(nodep);
             range_stack.push(rangeNodep);
         });
 
         auto elem_typespec_h = vpi_handle(vpiElemTypespec, obj_h);
         if (elem_typespec_h) {
-            dtype = getDType(fl, elem_typespec_h, shared);
+            dtypep = getDType(fl, elem_typespec_h, shared);
         } else {
             UINFO(7, "No elem_typespec found in vpiPackedArrayTypespec, trying IndexTypespec"
                          << std::endl);
             auto index_typespec_h = vpi_handle(vpiIndexTypespec, obj_h);
             if (index_typespec_h) {
-                dtype = getDType(fl, index_typespec_h, shared);
+                dtypep = getDType(fl, index_typespec_h, shared);
 
                 // Workaround for implicit function argument types
                 // They are stored in UHDM as PackedArrays, but parsed by Verilator
                 // like the simple types above
-                AstBasicDType* basicDTypep = VN_CAST(dtype, BasicDType);
+                AstBasicDType* basicDTypep = VN_CAST(dtypep, BasicDType);
                 if (range_stack.size() == 1 && basicDTypep) {
                     basicDTypep->rangep(range_stack.top());
                     range_stack.pop();
@@ -520,7 +543,7 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
 
         while (!range_stack.empty()) {
             rangeNodep = range_stack.top();
-            dtype = new AstPackArrayDType(fl, VFlagChildDType(), dtype, rangeNodep);
+            dtypep = new AstPackArrayDType(fl, VFlagChildDType(), dtypep, rangeNodep);
             range_stack.pop();
         }
         break;
@@ -544,7 +567,7 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
     case vpiChandleTypespec:
     case vpiTimeTypespec: {
         AstBasicDTypeKwd keyword = get_kwd_for_type(type);
-        dtype = new AstBasicDType(fl, keyword);
+        dtypep = new AstBasicDType(fl, keyword);
         break;
     }
     case vpiEnumNet:
@@ -568,7 +591,7 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
             size_t prefix_pos = type_string.find("::");
             if (delimiter_pos == string::npos) {
                 UINFO(7, "No package prefix found, creating ref" << std::endl);
-                dtype = new AstRefDType(fl, type_string);
+                dtypep = new AstRefDType(fl, type_string);
             } else {
                 std::string classpackageName = "";
                 if (prefix_pos < delimiter_pos) {
@@ -588,7 +611,7 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
                 if (classpackageName
                     == shared.package_prefix.substr(0, shared.package_prefix.length() - 2)) {
                     UINFO(7, "In the same package, creating simple ref" << std::endl);
-                    dtype = new AstRefDType(fl, type_name);
+                    dtypep = new AstRefDType(fl, type_name);
                 } else {
                     UINFO(7, "Creating ClassOrPackageRef" << std::endl);
                     AstPackage* classpackagep = nullptr;
@@ -597,7 +620,7 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
                     AstNode* classpackageref
                         = new AstClassOrPackageRef(fl, classpackageName, classpackagep, nullptr);
                     shared.m_symp->nextId(classpackagep);
-                    dtype = new AstRefDType(fl, type_name, classpackageref, nullptr);
+                    dtypep = new AstRefDType(fl, type_name, classpackageref, nullptr);
                 }
             }
         } else if (type_name != "") {
@@ -605,67 +628,64 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
             // to be resolved later
             // Simple reference only, prefix is not stored in name
             UINFO(7, "No match found, creating ref to name" << type_name << std::endl);
-            dtype = new AstRefDType(fl, type_name);
+            dtypep = new AstRefDType(fl, type_name);
         } else {
             // Typedefed types were visited earlier, probably anonymous struct
             // Get the typespec here
             UINFO(7, "Encountered anonymous struct");
             AstNode* typespec_p = visit_object(obj_h, shared);
-            dtype = typespec_p->getChildDTypep()->cloneTree(false);
+            dtypep = typespec_p->getChildDTypep()->cloneTree(false);
         }
         break;
     }
     case vpiPackedArrayNet:
     case vpiPackedArrayVar: {
-        // Get the typespec
-        vpiHandle element_h;
-        auto itr = vpi_iterate(vpiElement, obj_h);
-        while (vpiHandle vpi_child_obj = vpi_scan(itr)) {
-            // Expect all elements to be the same - grab just one
-            element_h = vpi_child_obj;
+        auto typespec_h = vpi_handle(vpiTypespec, obj_h);
+        if (typespec_h == 0) {  // Try to get the type from one of the elements
+            auto itr = vpi_iterate(vpiElement, obj_h);
+            auto element_h = vpi_scan(itr);
+            typespec_h = vpi_handle(vpiTypespec, element_h);
         }
-        auto typespec_h = vpi_handle(vpiTypespec, element_h);
+
         if (typespec_h) {
-            dtype = getDType(fl, element_h, shared);
+            dtypep = getDType(fl, typespec_h, shared);
         } else {
-            v3error("Missing typespec for unpacked/packed_array_var");
+            v3error("Missing typespec for packed_array_var");
         }
 
         AstRange* rangeNodep = nullptr;
         std::stack<AstRange*> range_stack;
-        visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* node) {
-            rangeNodep = reinterpret_cast<AstRange*>(node);
+        visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* nodep) {
+            rangeNodep = reinterpret_cast<AstRange*>(nodep);
             range_stack.push(rangeNodep);
         });
         while (!range_stack.empty()) {
             rangeNodep = range_stack.top();
-            dtype = new AstPackArrayDType(fl, VFlagChildDType(), dtype, rangeNodep);
+            dtypep = new AstPackArrayDType(fl, VFlagChildDType(), dtypep, rangeNodep);
             range_stack.pop();
         }
         break;
     }
     case vpiArrayVar: {
-        auto array_type = vpi_get(vpiArrayType, obj_h);
-        // todo: static/dynamic/assoc/queue
-        auto rand_type = vpi_get(vpiRandType, obj_h);
-        // todo: rand/randc/notrand
-        AstNodeDType* elementDtypep = nullptr;
-
-        vpiHandle itr = vpi_iterate(vpiReg, obj_h);
-        while (vpiHandle member_h = vpi_scan(itr)) {
-            auto type_h = vpi_handle(vpiTypespec, member_h);
-            if (type_h) {
-                elementDtypep = getDType(fl, type_h, shared);
+        auto typespec_h = vpi_handle(vpiTypespec, obj_h);
+        if (typespec_h) {
+            dtypep = getDType(fl, typespec_h, shared);
+        } else {  // Try to get the type from one of the elements
+            auto itr = vpi_iterate(vpiReg, obj_h);
+            auto member_h = vpi_scan(itr);
+            typespec_h = vpi_handle(vpiTypespec, member_h);
+            if (typespec_h) {
+                dtypep = getDType(fl, typespec_h, shared);
             } else {
                 auto element_type = vpi_get(vpiType, member_h);
                 if (element_type) {
                     AstBasicDTypeKwd keyword = get_kwd_for_type(element_type);
-                    elementDtypep = new AstBasicDType(fl, keyword);
+                    dtypep = new AstBasicDType(fl, keyword);
+                } else {
+                    v3error("Missing typespec for array_var");
                 }
             }
-            vpi_free_object(member_h);
         }
-        vpi_free_object(itr);
 
         std::vector<AstRange*> ranges;
         visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* itemp) {
@@ -673,10 +693,8 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
         });
 
         for (auto rangep_it = ranges.rbegin(); rangep_it != ranges.rend(); rangep_it++) {
-            elementDtypep
-                = new AstUnpackArrayDType(fl, VFlagChildDType(), elementDtypep, *rangep_it);
+            dtypep = new AstUnpackArrayDType(fl, VFlagChildDType(), dtypep, *rangep_it);
         }
-        dtype = elementDtypep;
         break;
     }
     case vpiArrayNet: {
@@ -701,12 +719,12 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
             return nullptr;
         }
 
-        dtype = new AstUnpackArrayDType(fl, VFlagChildDType(), subDTypep, unpacked_range);
+        dtypep = new AstUnpackArrayDType(fl, VFlagChildDType(), subDTypep, unpacked_range);
         break;
     }
     default: v3error("Unknown object type: " << UHDM::VpiTypeName(obj_h));
     }
-    return dtype;
+    return dtypep;
 }
 
 AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared,
@@ -1417,16 +1435,9 @@ AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
             = new AstDefImplicitDType(fl, objectName, nullptr, VFlagChildDType(), struct_dtype);
         return dtype;
     }
-    case vpiPackedArrayTypespec: {
-        vpiHandle index_typespec_h = vpi_handle(vpiIndexTypespec, obj_h);
-        const unsigned int index_type = vpi_get(vpiType, index_typespec_h);
-        AstBasicDTypeKwd typeKwd = get_kwd_for_type(index_type);
-        AstRange* rangeNodep = nullptr;
-        visit_one_to_many({vpiRange}, obj_h, shared,
-                          [&](AstNode* node) { rangeNodep = reinterpret_cast<AstRange*>(node); });
-        auto* dtypep = new AstBasicDType(fl, typeKwd);
-        dtypep->rangep(rangeNodep);
-        return dtypep;
+    case vpiPackedArrayTypespec:
+    case vpiArrayTypespec: {
+        return getDType(fl, obj_h, shared);
     }
     case vpiUnsupportedTypespec: {
         v3info("\t! This typespec is unsupported in UHDM: " << file_name << ":" << currentLine);
