@@ -14,6 +14,7 @@ OPEN_TITAN_INCLUDE = \
 
 # Working set of Opentitan files
 SURELOG_FILE_LIST='/ibex_pkg.sv \
+flash_ctrl_pkg.sv \
 otbn_pkg.sv \
 tlul_pkg.sv \
 spi_device_pkg.sv \
@@ -179,6 +180,25 @@ alert_handler_class.sv \
 alert_handler_accu.sv \
 spi_fwmode.sv \
 sram2tlul.sv \
+alert_handler_esc_timer.sv \
+tlul_err_resp.sv \
+otbn_rf_bignum_fpga.sv \
+keymgr_kmac_if.sv \
+otbn_decoder.sv \
+keymgr_input_checks.sv \
+otbn_instruction_fetch.sv \
+keymgr_sideload_key.sv \
+otbn_core_model.sv \
+otbn_rf_base_ff.sv \
+otbn_rf_base_fpga.sv \
+otbn_alu_bignum.sv \
+otbn_trace_if.sv \
+otbn_rf_snooper_if.sv \
+otbn_tracer.sv \
+otbn_rf_bignum_ff.sv \
+otbn_stack.sv \
+otbn_lsu.sv \
+keymgr_sideload_key_ctrl.sv \
 usbdpi.sv'
 
 TO_SURELOG = \
