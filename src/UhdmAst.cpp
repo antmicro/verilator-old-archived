@@ -921,30 +921,8 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared,
     }
     case vpiCastOp: {
         auto typespec_h = vpi_handle(vpiTypespec, obj_h);
-        std::set<int> typespec_types = {
-            vpiClassTypespec, vpiEnumTypespec, vpiStructTypespec,
-            vpiUnionTypespec, vpiVoidTypespec,
-        };
-        if (typespec_types.count(vpi_get(vpiType, typespec_h)) != 0) {
-            // Custom type, create reference only
-            std::string name;
-            if (auto s = vpi_get_str(vpiName, typespec_h)) {
-                name = s;
-                sanitize_str(name);
-            } else {
-                v3error("Encountered custom, but unnamed typespec in cast operation");
-            }
-            AstPackage* packagep = get_package(shared, name);
-            remove_scope(name);
-            auto* refDtypep = new AstRefDType(make_fileline(obj_h), name);
-            refDtypep->packagep(packagep);
-            return new AstCast(make_fileline(obj_h), operands[0], refDtypep);
-        } else {
-            AstNode* typespecp;
-            visit_one_to_one({vpiTypespec}, obj_h, shared,
-                             [&](AstNode* nodep) { typespecp = nodep; });
-            return new AstCastParse(make_fileline(obj_h), operands[0], typespecp);
-        }
+        AstNodeDType* dtypep = getDType(make_fileline(obj_h), typespec_h, shared);
+        return new AstCast(make_fileline(obj_h), operands[0], dtypep);
     }
     case vpiStreamRLOp: {
         // Verilog {op1{op0}} - Note op1 is the slice size, not the op0
