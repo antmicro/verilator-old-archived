@@ -14,6 +14,7 @@ OPEN_TITAN_INCLUDE = \
 
 # Working set of Opentitan files
 SURELOG_FILE_LIST='/ibex_pkg.sv \
+flash_phy_pkg.sv \
 flash_ctrl_pkg.sv \
 otbn_pkg.sv \
 tlul_pkg.sv \
@@ -199,6 +200,13 @@ otbn_rf_bignum_ff.sv \
 otbn_stack.sv \
 otbn_lsu.sv \
 keymgr_sideload_key_ctrl.sv \
+flash_ctrl_prog.sv \
+flash_phy_prog.sv \
+otbn_stack_snooper_if.sv \
+flash_ctrl_rd.sv \
+flash_phy_rd_buffers.sv \
+flash_ctrl_arb.sv \
+flash_phy_erase.sv \
 usbdpi.sv'
 
 TO_SURELOG = \
