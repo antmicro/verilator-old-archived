@@ -2528,7 +2528,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             });
         auto parent_h = vpi_handle(vpiParent, obj_h);
         if (parent_h != 0) {
-            std::string parent_name = get_object_name(parent_h);
+            std::string parent_name = get_object_name(parent_h, {vpiName, vpiFullName});
 
             AstNode* refp = get_class_package_ref_node(make_fileline(obj_h), parent_name, shared);
             size_t colon_pos = parent_name.rfind("::");
