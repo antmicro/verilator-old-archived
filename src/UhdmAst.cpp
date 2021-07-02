@@ -921,13 +921,23 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared,
     }
     case vpiCastOp: {
         auto typespec_h = vpi_handle(vpiTypespec, obj_h);
-        if (vpi_get(vpiType, typespec_h) == vpiIntegerTypespec) {
-            AstNode* constNode = get_value_as_node(typespec_h);
-            if (constNode != nullptr)
-                return new AstCastParse(make_fileline(obj_h), operands[0], constNode);
+        auto type = vpi_get(vpiType, typespec_h);
+        AstNode* sizeNodep = nullptr;
+        if (type == vpiIntTypespec) {
+            auto* namep = vpi_get_str(vpiName, typespec_h);
+            if (namep != nullptr)
+                sizeNodep = new AstParseRef(make_fileline(typespec_h), VParseRefExp::en::PX_TEXT,
+                                            namep, nullptr, nullptr);
+        } else if (type == vpiIntegerTypespec) {
+            sizeNodep = get_value_as_node(typespec_h);
         }
-        AstNodeDType* dtypep = getDType(make_fileline(obj_h), typespec_h, shared);
-        return new AstCast(make_fileline(obj_h), operands[0], dtypep);
+
+        if (sizeNodep != nullptr) {
+            return new AstCastParse(make_fileline(obj_h), operands[0], sizeNodep);
+        } else {
+            AstNodeDType* dtypep = getDType(make_fileline(obj_h), typespec_h, shared);
+            return new AstCast(make_fileline(obj_h), operands[0], dtypep);
+        }
     }
     case vpiStreamRLOp: {
         // Verilog {op1{op0}} - Note op1 is the slice size, not the op0
