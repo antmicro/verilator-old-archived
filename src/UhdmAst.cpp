@@ -921,6 +921,11 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared,
     }
     case vpiCastOp: {
         auto typespec_h = vpi_handle(vpiTypespec, obj_h);
+        if (vpi_get(vpiType, typespec_h) == vpiIntegerTypespec) {
+            AstNode* constNode = get_value_as_node(typespec_h);
+            if (constNode != nullptr)
+                return new AstCastParse(make_fileline(obj_h), operands[0], constNode);
+        }
         AstNodeDType* dtypep = getDType(make_fileline(obj_h), typespec_h, shared);
         return new AstCast(make_fileline(obj_h), operands[0], dtypep);
     }
