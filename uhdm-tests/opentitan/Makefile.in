@@ -207,6 +207,9 @@ flash_ctrl_rd.sv \
 flash_phy_rd_buffers.sv \
 flash_ctrl_arb.sv \
 flash_phy_erase.sv \
+otbn_alu_base.sv \
+otbn_mac_bignum.sv \
+tlul_err.sv \
 usbdpi.sv'
 
 TO_SURELOG = \
