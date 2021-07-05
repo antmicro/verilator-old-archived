@@ -210,6 +210,9 @@ flash_phy_erase.sv \
 otbn_alu_base.sv \
 otbn_mac_bignum.sv \
 tlul_err.sv \
+tlul_adapter_host.sv \
+usb_fs_nb_in_pe.sv \
+dm_sba.sv \
 usbdpi.sv'
 
 TO_SURELOG = \
