@@ -207,20 +207,6 @@ FileLine* make_fileline(vpiHandle obj_h) {
     return fl;
 }
 
-AstNode* get_referenceNode(FileLine* fl, const string& name) {
-    size_t dot_pos = name.find('.');
-    if (dot_pos != std::string::npos) {
-        std::string lhs = name.substr(0, dot_pos);
-        std::string rhs = name.substr(dot_pos + 1, name.length());
-        AstParseRef* lhsNode
-            = new AstParseRef(fl, VParseRefExp::en::PX_TEXT, lhs, nullptr, nullptr);
-        AstNode* rhsNode = get_referenceNode(fl, rhs);
-        return new AstDot(fl, false, lhsNode, rhsNode);
-    } else {
-        return new AstParseRef(fl, VParseRefExp::en::PX_TEXT, name, nullptr, nullptr);
-    }
-}
-
 AstNode* get_class_package_ref_node(FileLine* fl, std::string objectName, UhdmShared& shared) {
     AstNode* refp = nullptr;
     size_t colon_pos = objectName.find("::");
@@ -243,6 +229,27 @@ AstNode* get_class_package_ref_node(FileLine* fl, std::string objectName, UhdmSh
         colon_pos = objectName.find("::");
     }
     return refp;
+}
+
+AstNode* get_referenceNode(FileLine* fl, string name, UhdmShared& shared) {
+    AstNode* colon_refp = get_class_package_ref_node(fl, name, shared);
+    size_t colon_pos = name.rfind("::");
+    if (colon_pos != std::string::npos) name = name.substr(colon_pos + 2);
+
+    AstNode* dot_refp = nullptr;
+
+    size_t dot_pos = name.find('.');
+    if (dot_pos != std::string::npos) {
+        std::string lhs = name.substr(0, dot_pos);
+        std::string rhs = name.substr(dot_pos + 1, name.length());
+        AstParseRef* lhsNode
+            = new AstParseRef(fl, VParseRefExp::en::PX_TEXT, lhs, nullptr, nullptr);
+        AstNode* rhsNode = get_referenceNode(fl, rhs, shared);
+        dot_refp = new AstDot(fl, false, lhsNode, rhsNode);
+    } else {
+        dot_refp = new AstParseRef(fl, VParseRefExp::en::PX_TEXT, name, nullptr, nullptr);
+    }
+    return AstDot::newIfPkg(fl, colon_refp, dot_refp);
 }
 
 AstNode* get_value_as_node(vpiHandle obj_h, bool need_decompile = false) {
@@ -760,7 +767,7 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared,
         } else if (operation == vpiPostDecOp) {
             op = new AstSub(make_fileline(obj_h), operands[0], onep);
         }
-        auto* varp = get_referenceNode(make_fileline(obj_h), operands[0]->name());
+        auto* varp = get_referenceNode(make_fileline(obj_h), operands[0]->name(), shared);
         return new AstAssign(make_fileline(obj_h), varp, op);
     }
     case vpiAssignmentOp: {
@@ -1429,7 +1436,7 @@ AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
     case vpiUnsupportedTypespec: {
         v3info("\t! This typespec is unsupported in UHDM: " << file_name << ":" << currentLine);
         // Create a reference and try to resolve later
-        return get_referenceNode(make_fileline(obj_h), objectName);
+        return get_referenceNode(make_fileline(obj_h), objectName, shared);
     }
     }
     return nullptr;
@@ -1809,7 +1816,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return process_hierPath(obj_h, shared);
     }
     case vpiRefObj: {
-        return get_referenceNode(make_fileline(obj_h), objectName);
+        return get_referenceNode(make_fileline(obj_h), objectName, shared);
     }
     case vpiNetArray: {  // also defined as vpiArrayNet
         // vpiNetArray is used for unpacked arrays
@@ -2175,11 +2182,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return get_value_as_node(obj_h, true);
     }
     case vpiBitSelect: {
-        AstNode* refp = get_class_package_ref_node(make_fileline(obj_h), objectName, shared);
-        size_t colon_pos = objectName.rfind("::");
-        if (colon_pos != std::string::npos) objectName = objectName.substr(colon_pos + 2);
-
-        auto* fromp = get_referenceNode(make_fileline(obj_h), objectName);
+        auto* fromp = get_referenceNode(make_fileline(obj_h), objectName, shared);
         AstNode* bitp = nullptr;
         visit_one_to_one({vpiIndex}, obj_h, shared, [&](AstNode* item) {
             if (item) { bitp = item; }
@@ -2187,14 +2190,10 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
 
         AstNode* selbitp = new AstSelBit(make_fileline(obj_h), fromp, bitp);
 
-        return AstDot::newIfPkg(make_fileline(obj_h), refp, selbitp);
+        return selbitp;
     }
     case vpiVarSelect: {
-        AstNode* refp = get_class_package_ref_node(make_fileline(obj_h), objectName, shared);
-        size_t colon_pos = objectName.rfind("::");
-        if (colon_pos != std::string::npos) objectName = objectName.substr(colon_pos + 2);
-
-        auto* fromp = get_referenceNode(make_fileline(obj_h), objectName);
+        auto* fromp = get_referenceNode(make_fileline(obj_h), objectName, shared);
         AstNode* bitp = nullptr;
         AstNode* select = nullptr;
         visit_one_to_many({vpiIndex}, obj_h, shared, [&](AstNode* item) {
@@ -2221,7 +2220,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             }
             fromp = select;
         });
-        return AstDot::newIfPkg(make_fileline(obj_h), refp, select);
+        return select;
     }
     case vpiTask: {
         AstNode* statements = nullptr;
@@ -2283,7 +2282,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             // TODO: Handle >1 dot, currently all goes into prefix
             std::string lhs = objectName.substr(0, dot_pos);
             std::string rhs = objectName.substr(dot_pos + 1, objectName.length());
-            AstNode* from = get_referenceNode(make_fileline(obj_h), lhs);
+            AstNode* from = get_referenceNode(make_fileline(obj_h), lhs, shared);
             func_refp = new AstMethodCall(make_fileline(obj_h), from, rhs, arguments);
         } else {
             // Functions can be called as tasks, depending on context
@@ -2524,12 +2523,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         if (parent_h != 0) {
             std::string parent_name = get_object_name(parent_h, {vpiName, vpiFullName});
 
-            AstNode* refp = get_class_package_ref_node(make_fileline(obj_h), parent_name, shared);
-            size_t colon_pos = parent_name.rfind("::");
-            if (colon_pos != std::string::npos) parent_name = parent_name.substr(colon_pos + 2);
-
-            fromNode = get_referenceNode(make_fileline(obj_h), parent_name);
-            if (refp != nullptr) fromNode = new AstDot(make_fileline(obj_h), true, refp, fromNode);
+            fromNode = get_referenceNode(make_fileline(obj_h), parent_name, shared);
         }
         return new AstSelExtract(make_fileline(obj_h), fromNode, msbNode, lsbNode);
     }
@@ -2555,7 +2549,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         auto parent_h = vpi_handle(vpiParent, obj_h);
         std::string parent_name = get_object_name(parent_h, {vpiName, vpiFullName});
 
-        fromNode = get_referenceNode(make_fileline(obj_h), parent_name);
+        fromNode = get_referenceNode(make_fileline(obj_h), parent_name, shared);
 
         auto type = vpi_get(vpiIndexedPartSelectType, obj_h);
         if (type == vpiPosIndexed) {
