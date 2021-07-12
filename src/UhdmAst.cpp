@@ -313,15 +313,16 @@ AstNode* get_value_as_node(vpiHandle obj_h, bool need_decompile = false) {
     case vpiDecStrVal:
     case vpiHexStrVal: {
         // if vpiDecompile is unavailable i.e. in EnumConst, cast the string
-        // size is stored in enum typespec
+        std::string size = "";
+        if (auto s = vpi_get(vpiSize, obj_h)) size = std::to_string(s);
         if (val.format == vpiBinStrVal)
-            valStr = "'b" + std::string(val.value.str);
+            valStr = size + "'b" + std::string(val.value.str);
         else if (val.format == vpiOctStrVal)
-            valStr = "'o" + std::string(val.value.str);
+            valStr = size + "'o" + std::string(val.value.str);
         else if (val.format == vpiDecStrVal)
-            valStr = "'d" + std::string(val.value.str);
+            valStr = size + "'d" + std::string(val.value.str);
         else if (val.format == vpiHexStrVal)
-            valStr = "'h" + std::string(val.value.str);
+            valStr = size + "'h" + std::string(val.value.str);
         V3Number value(valueNodep, valStr.c_str());
         valueNodep = new AstConst(make_fileline(obj_h), value);
         break;
