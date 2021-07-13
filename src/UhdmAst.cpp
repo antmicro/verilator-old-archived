@@ -113,7 +113,8 @@ bool is_expr_context(vpiHandle obj_h) {
         case vpiIfElse:
         case vpiAssignStmt:
         case vpiAssignment:
-        case vpiContAssign: {
+        case vpiContAssign:
+        case vpiReturn: {
             return true;
         }
         case vpiBegin:
