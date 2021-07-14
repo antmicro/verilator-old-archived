@@ -948,13 +948,13 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared,
         }
     }
     case vpiStreamRLOp: {
-        // Verilog {op1{op0}} - Note op1 is the slice size, not the op0
+        // Verilog {op0{op1}} - Note op0 is the slice size, not the op1
         // IEEE 11.4.14.2: If a slice_size is not specified, the default is 1.
         if (operands.size() == 1) {
             return new AstStreamL(make_fileline(obj_h), operands[0],
                                   new AstConst(make_fileline(obj_h), 1));
         } else {
-            return new AstStreamL(make_fileline(obj_h), operands[0], operands[1]);
+            return new AstStreamL(make_fileline(obj_h), operands[1], operands[0]);
         }
     }
     case vpiStreamLROp: {
@@ -963,7 +963,7 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared,
             return new AstStreamR(make_fileline(obj_h), operands[0],
                                   new AstConst(make_fileline(obj_h), 1));
         } else {
-            return new AstStreamR(make_fileline(obj_h), operands[0], operands[1]);
+            return new AstStreamR(make_fileline(obj_h), operands[1], operands[0]);
         }
     }
     case vpiPowerOp: {
