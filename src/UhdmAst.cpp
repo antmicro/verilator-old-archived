@@ -706,6 +706,10 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
         dtypep = applyUnpackedRanges(make_fileline(obj_h), obj_h, dtypep, shared);
         break;
     }
+    case vpiRefVar: {
+        auto* name = vpi_get_str(vpiName, obj_h);
+        return new AstRefDType(fl, name);
+    }
     default: v3error("Unknown object type: " << UHDM::VpiTypeName(obj_h));
     }
     return dtypep;
