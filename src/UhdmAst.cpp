@@ -1053,11 +1053,9 @@ AstNode* process_assignment(vpiHandle obj_h, UhdmShared& shared) {
     return nullptr;
 }
 
-AstNode* process_function(vpiHandle obj_h, UhdmShared& shared) {
+AstNode* process_function_task(vpiHandle obj_h, UhdmShared& shared) {
     AstNode* statementsp = nullptr;
-    AstNodeDType* functionReturnDTypep = nullptr;
     AstNodeFTask* taskFuncp = nullptr;
-    shared.isFunction = true;
 
     std::string objectName = get_object_name(obj_h);
 
@@ -1068,9 +1066,6 @@ AstNode* process_function(vpiHandle obj_h, UhdmShared& shared) {
         return nullptr;
     }
     shared.visited_objects.insert(object);
-
-    auto return_h = vpi_handle(vpiReturn, obj_h);
-    if (return_h) functionReturnDTypep = getDType(make_fileline(obj_h), return_h, shared);
 
     visit_one_to_many({vpiIODecl, vpiVariables}, obj_h, shared, [&](AstNode* itemp) {
         if (itemp) {
@@ -1089,12 +1084,13 @@ AstNode* process_function(vpiHandle obj_h, UhdmShared& shared) {
         }
     });
 
-    if (shared.isFunction) {
-        taskFuncp
-            = new AstFunc(make_fileline(obj_h), objectName, statementsp, functionReturnDTypep);
+    if (auto return_h = vpi_handle(vpiReturn, obj_h)) {
+        AstNodeDType* returnDTypep = getDType(make_fileline(obj_h), return_h, shared);
+        taskFuncp = new AstFunc(make_fileline(obj_h), objectName, statementsp, returnDTypep);
     } else {
         taskFuncp = new AstTask(make_fileline(obj_h), objectName, statementsp);
     }
+
     auto accessType = vpi_get(vpiAccessType, obj_h);
     if (accessType == vpiDPIExportAcc) {
         AstDpiExport* exportp = new AstDpiExport(make_fileline(obj_h), objectName, objectName);
@@ -2221,28 +2217,9 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         });
         return selectp;
     }
-    case vpiTask: {
-        AstNode* statementsp = nullptr;
-        visit_one_to_many({vpiIODecl, vpiVariables}, obj_h, shared, [&](AstNode* itemp) {
-            if (itemp) {
-                if (statementsp)
-                    statementsp->addNextNull(itemp);
-                else
-                    statementsp = itemp;
-            }
-        });
-        visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* itemp) {
-            if (itemp) {
-                if (statementsp)
-                    statementsp->addNextNull(itemp);
-                else
-                    statementsp = itemp;
-            }
-        });
-        return new AstTask(make_fileline(obj_h), objectName, statementsp);
-    }
+    case vpiTask:
     case vpiFunction: {
-        return process_function(obj_h, shared);
+        return process_function_task(obj_h, shared);
     }
     case vpiReturn:
     case vpiReturnStmt: {
@@ -2253,7 +2230,6 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         if (conditionp) {
             return new AstReturn(make_fileline(obj_h), conditionp);
         } else {
-            shared.isFunction = false;
             return new AstReturn(make_fileline(obj_h));
         }
     }
