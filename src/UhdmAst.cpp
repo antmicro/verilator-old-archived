@@ -1791,6 +1791,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     case vpiHierPath: {
         return process_hierPath(obj_h, shared);
     }
+    case vpiRefVar:
     case vpiRefObj: {
         return get_referenceNode(make_fileline(obj_h), objectName, shared);
     }
