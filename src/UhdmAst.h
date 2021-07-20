@@ -18,6 +18,7 @@ struct UhdmShared {
     std::string package_prefix;
     NameNodeMap partial_modules;
     std::unordered_map<const UHDM::BaseClass*, std::string> visited_types;
+    std::unordered_map<const UHDM::BaseClass*, std::string> visited_variables;
     // Store parameters here (values can be updated for each instance)
     // Final values will be added in respective module/package
     std::map<std::string, NameNodeMap> top_param_map;
