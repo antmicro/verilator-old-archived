@@ -1091,6 +1091,11 @@ AstNode* process_function_task(vpiHandle obj_h, UhdmShared& shared) {
         taskFuncp = new AstTask(make_fileline(obj_h), objectName, statementsp);
     }
 
+    if (vpi_get(vpiDPIContext, obj_h))
+        taskFuncp->dpiContext(true);
+    if (vpi_get(vpiDPIPure, obj_h))
+        taskFuncp->pure(true);
+
     auto accessType = vpi_get(vpiAccessType, obj_h);
     if (accessType == vpiDPIExportAcc) {
         AstDpiExport* exportp = new AstDpiExport(make_fileline(obj_h), objectName, objectName);
@@ -1100,6 +1105,10 @@ AstNode* process_function_task(vpiHandle obj_h, UhdmShared& shared) {
     } else if (accessType == vpiDPIImportAcc) {
         taskFuncp->dpiImport(true);
         v3Global.dpi(true);
+        if (vpi_get(vpiType, obj_h) == vpiTask) {
+            AstTask* taskp = reinterpret_cast<AstTask*>(taskFuncp);
+            taskp->dpiTask(true);
+        }
         if (taskFuncp->prettyName()[0] == '$')
             shared.m_symp->reinsert(taskFuncp, nullptr, taskFuncp->prettyName());
         shared.m_symp->reinsert(taskFuncp);
