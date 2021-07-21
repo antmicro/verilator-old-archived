@@ -1837,6 +1837,15 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return v;
     }
     case vpiStructVar: {
+        const uhdm_handle* const handle = (const uhdm_handle*)obj_h;
+        const UHDM::BaseClass* const object = (const UHDM::BaseClass*)handle->object;
+        if (shared.visited_variables.find(object) != shared.visited_variables.end()) {
+            // Already seen this, create reference
+            return new AstParseRef(make_fileline(obj_h), VParseRefExp::en::PX_TEXT, objectName,
+                                   nullptr, nullptr);
+        }
+        shared.visited_variables[object] = objectName;
+
         AstNodeDType* dtype = getDType(make_fileline(obj_h), obj_h, shared);
 
         auto* v = new AstVar(make_fileline(obj_h), AstVarType::VAR, objectName, VFlagChildDType(),
@@ -2693,6 +2702,15 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     }
     case vpiPackedArrayVar:
     case vpiArrayVar: {
+        const uhdm_handle* const handle = (const uhdm_handle*)obj_h;
+        const UHDM::BaseClass* const object = (const UHDM::BaseClass*)handle->object;
+        if (shared.visited_variables.find(object) != shared.visited_variables.end()) {
+            // Already seen this, create reference
+            return new AstParseRef(make_fileline(obj_h), VParseRefExp::en::PX_TEXT, objectName,
+                                   nullptr, nullptr);
+        }
+        shared.visited_variables[object] = objectName;
+
         auto dtype = getDType(make_fileline(obj_h), obj_h, shared);
 
         auto* var = new AstVar(make_fileline(obj_h), AstVarType::VAR, objectName,
@@ -2702,6 +2720,15 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return var;
     }
     case vpiChandleVar: {
+        const uhdm_handle* const handle = (const uhdm_handle*)obj_h;
+        const UHDM::BaseClass* const object = (const UHDM::BaseClass*)handle->object;
+        if (shared.visited_variables.find(object) != shared.visited_variables.end()) {
+            // Already seen this, create reference
+            return new AstParseRef(make_fileline(obj_h), VParseRefExp::en::PX_TEXT, objectName,
+                                   nullptr, nullptr);
+        }
+        shared.visited_variables[object] = objectName;
+
         auto* dtype = new AstBasicDType(make_fileline(obj_h), AstBasicDTypeKwd::CHANDLE);
         auto* var = new AstVar(make_fileline(obj_h), AstVarType::VAR, objectName,
                                VFlagChildDType(), dtype);
