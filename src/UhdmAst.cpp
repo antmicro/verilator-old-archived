@@ -2200,21 +2200,24 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return process_operation(obj_h, shared, operands);
     }
     case vpiTaggedPattern: {
-        AstNode* typespec = nullptr;
-        AstNode* pattern = nullptr;
+        AstNode* typespecp = nullptr;
+        AstNode* patternp = nullptr;
         auto typespec_h = vpi_handle(vpiTypespec, obj_h);
         std::string pattern_name;
-        if (auto s = vpi_get_str(vpiName, typespec_h)) { pattern_name = s; }
-        sanitize_str(pattern_name);
-        typespec = new AstText(make_fileline(obj_h), pattern_name);
-
-        visit_one_to_one({vpiPattern}, obj_h, shared, [&](AstNode* node) { pattern = node; });
-        if (pattern_name == "default") {
-            auto* patm = new AstPatMember(make_fileline(obj_h), pattern, nullptr, nullptr);
-            patm->isDefault(true);
-            return patm;
+        if (auto s = vpi_get_str(vpiName, typespec_h)) {
+            pattern_name = s;
+            sanitize_str(pattern_name);
         } else {
-            return new AstPatMember(make_fileline(obj_h), pattern, typespec, nullptr);
+            typespecp = process_typespec(typespec_h, shared);
+        }
+
+        visit_one_to_one({vpiPattern}, obj_h, shared, [&](AstNode* nodep) { patternp = nodep; });
+        if (pattern_name == "default") {
+            auto* patmp = new AstPatMember(make_fileline(obj_h), patternp, nullptr, nullptr);
+            patmp->isDefault(true);
+            return patmp;
+        } else {
+            return new AstPatMember(make_fileline(obj_h), patternp, typespecp, nullptr);
         }
     }
     case vpiEnumConst: {
