@@ -1212,9 +1212,10 @@ AstNode* process_parameter(vpiHandle obj_h, UhdmShared& shared, bool get_value) 
         return nullptr;
     }
 
-    AstRange* rangeNodep = nullptr;
+    std::stack<AstRange*> range_stack;
     visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* nodep) {
-        if (nodep) rangeNodep = reinterpret_cast<AstRange*>(nodep);
+        AstRange* rangeNodep = reinterpret_cast<AstRange*>(nodep);
+        range_stack.push(rangeNodep);
     });
 
     AstNodeDType* dtypep = nullptr;
@@ -1229,9 +1230,10 @@ AstNode* process_parameter(vpiHandle obj_h, UhdmShared& shared, bool get_value) 
     if (dtypep == nullptr) {
         dtypep = new AstBasicDType(make_fileline(obj_h), AstBasicDTypeKwd::LOGIC_IMPLICIT);
     }
-    if (rangeNodep) {
+    while (!range_stack.empty()) {
         dtypep
-            = new AstUnpackArrayDType(make_fileline(obj_h), VFlagChildDType(), dtypep, rangeNodep);
+            = new AstUnpackArrayDType(make_fileline(obj_h), VFlagChildDType(), dtypep, range_stack.top());
+        range_stack.pop();
     }
 
     if (get_value) { parameterValuep = get_value_as_node(obj_h); }
