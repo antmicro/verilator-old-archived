@@ -208,6 +208,23 @@ FileLine* make_fileline(vpiHandle obj_h) {
     return fl;
 }
 
+
+AstNodeDType* apply_unpacked_ranges(FileLine* fl, vpiHandle obj_h, AstNodeDType* dtypep,
+                                    UhdmShared& shared) {
+    std::stack<AstRange*> range_stack;
+    visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* nodep) {
+        AstRange* rangeNodep = reinterpret_cast<AstRange*>(nodep);
+        range_stack.push(rangeNodep);
+    });
+
+    while (!range_stack.empty()) {
+        dtypep = new AstUnpackArrayDType(make_fileline(obj_h), VFlagChildDType(), dtypep,
+                                         range_stack.top());
+        range_stack.pop();
+    }
+    return dtypep;
+}
+
 AstNode* get_class_package_ref_node(FileLine* fl, std::string objectName, UhdmShared& shared) {
     AstNode* refp = nullptr;
     size_t colon_pos = objectName.find("::");
@@ -502,21 +519,9 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
         break;
     }
     case vpiArrayTypespec: {
-        AstRange* rangeNodep = nullptr;
-        std::stack<AstRange*> range_stack;
-        visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* nodep) {
-            rangeNodep = reinterpret_cast<AstRange*>(nodep);
-            range_stack.push(rangeNodep);
-        });
-
         auto elem_typespec_h = vpi_handle(vpiElemTypespec, obj_h);
         dtypep = getDType(fl, elem_typespec_h, shared);
-
-        while (!range_stack.empty()) {
-            rangeNodep = range_stack.top();
-            dtypep = new AstUnpackArrayDType(fl, VFlagChildDType(), dtypep, rangeNodep);
-            range_stack.pop();
-        }
+        dtypep = apply_unpacked_ranges(make_fileline(obj_h), obj_h, dtypep, shared);
         break;
     }
     case vpiPackedArrayTypespec: {
@@ -696,14 +701,7 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
             }
         }
 
-        std::vector<AstRange*> ranges;
-        visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* itemp) {
-            if (itemp != nullptr) { ranges.push_back(reinterpret_cast<AstRange*>(itemp)); }
-        });
-
-        for (auto rangep_it = ranges.rbegin(); rangep_it != ranges.rend(); rangep_it++) {
-            dtypep = new AstUnpackArrayDType(fl, VFlagChildDType(), dtypep, *rangep_it);
-        }
+        dtypep = apply_unpacked_ranges(make_fileline(obj_h), obj_h, dtypep, shared);
         break;
     }
     case vpiArrayNet: {
@@ -714,14 +712,7 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
         }
         vpi_free_object(itr);
 
-        std::vector<AstRange*> ranges;
-        visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* itemp) {
-            if (itemp != nullptr) { ranges.push_back(reinterpret_cast<AstRange*>(itemp)); }
-        });
-
-        for (auto rangep_it = ranges.rbegin(); rangep_it != ranges.rend(); rangep_it++) {
-            dtypep = new AstUnpackArrayDType(fl, VFlagChildDType(), dtypep, *rangep_it);
-        }
+        dtypep = apply_unpacked_ranges(make_fileline(obj_h), obj_h, dtypep, shared);
         break;
     }
     default: v3error("Unknown object type: " << UHDM::VpiTypeName(obj_h));
@@ -1212,12 +1203,6 @@ AstNode* process_parameter(vpiHandle obj_h, UhdmShared& shared, bool get_value) 
         return nullptr;
     }
 
-    std::stack<AstRange*> range_stack;
-    visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* nodep) {
-        AstRange* rangeNodep = reinterpret_cast<AstRange*>(nodep);
-        range_stack.push(rangeNodep);
-    });
-
     AstNodeDType* dtypep = nullptr;
     auto typespec_h = vpi_handle(vpiTypespec, obj_h);
     if (typespec_h) {
@@ -1230,11 +1215,8 @@ AstNode* process_parameter(vpiHandle obj_h, UhdmShared& shared, bool get_value) 
     if (dtypep == nullptr) {
         dtypep = new AstBasicDType(make_fileline(obj_h), AstBasicDTypeKwd::LOGIC_IMPLICIT);
     }
-    while (!range_stack.empty()) {
-        dtypep
-            = new AstUnpackArrayDType(make_fileline(obj_h), VFlagChildDType(), dtypep, range_stack.top());
-        range_stack.pop();
-    }
+
+    dtypep = apply_unpacked_ranges(make_fileline(obj_h), obj_h, dtypep, shared);
 
     if (get_value) { parameterValuep = get_value_as_node(obj_h); }
 
