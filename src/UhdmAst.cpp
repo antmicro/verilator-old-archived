@@ -208,8 +208,8 @@ FileLine* make_fileline(vpiHandle obj_h) {
     return fl;
 }
 
-AstNodeDType* apply_packed_ranges(FileLine* fl, vpiHandle obj_h, AstNodeDType* dtypep,
-                                  UhdmShared& shared) {
+AstNodeDType* applyPackedRanges(FileLine* fl, vpiHandle obj_h, AstNodeDType* dtypep,
+                                UhdmShared& shared) {
     std::stack<AstRange*> range_stack;
     visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* nodep) {
         AstRange* rangeNodep = reinterpret_cast<AstRange*>(nodep);
@@ -229,8 +229,8 @@ AstNodeDType* apply_packed_ranges(FileLine* fl, vpiHandle obj_h, AstNodeDType* d
     return dtypep;
 }
 
-AstNodeDType* apply_unpacked_ranges(FileLine* fl, vpiHandle obj_h, AstNodeDType* dtypep,
-                                    UhdmShared& shared) {
+AstNodeDType* applyUnpackedRanges(FileLine* fl, vpiHandle obj_h, AstNodeDType* dtypep,
+                                  UhdmShared& shared) {
     std::stack<AstRange*> range_stack;
     visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* nodep) {
         AstRange* rangeNodep = reinterpret_cast<AstRange*>(nodep);
@@ -514,13 +514,13 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
     case vpiBitTypespec: {
         AstBasicDTypeKwd keyword = get_kwd_for_type(type);
         auto basicp = new AstBasicDType(fl, keyword);
-        dtypep = apply_packed_ranges(fl, obj_h, basicp, shared);
+        dtypep = applyPackedRanges(fl, obj_h, basicp, shared);
         break;
     }
     case vpiArrayTypespec: {
         auto elem_typespec_h = vpi_handle(vpiElemTypespec, obj_h);
         dtypep = getDType(fl, elem_typespec_h, shared);
-        dtypep = apply_unpacked_ranges(fl, obj_h, dtypep, shared);
+        dtypep = applyUnpackedRanges(fl, obj_h, dtypep, shared);
         break;
     }
     case vpiPackedArrayTypespec: {
@@ -537,7 +537,7 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
                 v3error("\t! Failed to get typespec handle for PackedArrayTypespec");
             }
         }
-        dtypep = apply_packed_ranges(fl, obj_h, dtypep, shared);
+        dtypep = applyPackedRanges(fl, obj_h, dtypep, shared);
         break;
     }
     case vpiIntegerNet:
@@ -645,7 +645,7 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
             v3error("Missing typespec for packed_array_var");
         }
 
-        dtypep = apply_packed_ranges(fl, obj_h, dtypep, shared);
+        dtypep = applyPackedRanges(fl, obj_h, dtypep, shared);
         break;
     }
     case vpiArrayVar: {
@@ -669,7 +669,7 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
             }
         }
 
-        dtypep = apply_unpacked_ranges(make_fileline(obj_h), obj_h, dtypep, shared);
+        dtypep = applyUnpackedRanges(make_fileline(obj_h), obj_h, dtypep, shared);
         break;
     }
     case vpiArrayNet: {
@@ -680,7 +680,7 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
         }
         vpi_free_object(itr);
 
-        dtypep = apply_unpacked_ranges(make_fileline(obj_h), obj_h, dtypep, shared);
+        dtypep = applyUnpackedRanges(make_fileline(obj_h), obj_h, dtypep, shared);
         break;
     }
     default: v3error("Unknown object type: " << UHDM::VpiTypeName(obj_h));
@@ -1184,7 +1184,7 @@ AstNode* process_parameter(vpiHandle obj_h, UhdmShared& shared, bool get_value) 
         dtypep = new AstBasicDType(make_fileline(obj_h), AstBasicDTypeKwd::LOGIC_IMPLICIT);
     }
 
-    dtypep = apply_unpacked_ranges(make_fileline(obj_h), obj_h, dtypep, shared);
+    dtypep = applyUnpackedRanges(make_fileline(obj_h), obj_h, dtypep, shared);
 
     if (get_value) { parameterValuep = get_value_as_node(obj_h); }
 
