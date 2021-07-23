@@ -208,6 +208,42 @@ FileLine* make_fileline(vpiHandle obj_h) {
     return fl;
 }
 
+AstNodeDType* applyPackedRanges(FileLine* fl, vpiHandle obj_h, AstNodeDType* dtypep,
+                                UhdmShared& shared) {
+    std::stack<AstRange*> range_stack;
+    visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* nodep) {
+        AstRange* rangeNodep = reinterpret_cast<AstRange*>(nodep);
+        range_stack.push(rangeNodep);
+    });
+
+    AstBasicDType* basicp = VN_CAST(dtypep, BasicDType);
+    if (basicp && !range_stack.empty()) {
+        basicp->rangep(range_stack.top());
+        range_stack.pop();
+        dtypep = basicp;
+    }
+    while (!range_stack.empty()) {
+        dtypep = new AstPackArrayDType(fl, VFlagChildDType(), dtypep, range_stack.top());
+        range_stack.pop();
+    }
+    return dtypep;
+}
+
+AstNodeDType* applyUnpackedRanges(FileLine* fl, vpiHandle obj_h, AstNodeDType* dtypep,
+                                  UhdmShared& shared) {
+    std::stack<AstRange*> range_stack;
+    visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* nodep) {
+        AstRange* rangeNodep = reinterpret_cast<AstRange*>(nodep);
+        range_stack.push(rangeNodep);
+    });
+
+    while (!range_stack.empty()) {
+        dtypep = new AstUnpackArrayDType(fl, VFlagChildDType(), dtypep, range_stack.top());
+        range_stack.pop();
+    }
+    return dtypep;
+}
+
 AstNode* get_class_package_ref_node(FileLine* fl, std::string objectName, UhdmShared& shared) {
     AstNode* refp = nullptr;
     size_t colon_pos = objectName.find("::");
@@ -477,56 +513,17 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
     case vpiBitVar:
     case vpiBitTypespec: {
         AstBasicDTypeKwd keyword = get_kwd_for_type(type);
-        auto basic = new AstBasicDType(fl, keyword);
-        AstRange* rangeNode = nullptr;
-        std::stack<AstRange*> range_stack;
-        visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* node) {
-            rangeNode = reinterpret_cast<AstRange*>(node);
-            range_stack.push(rangeNode);
-        });
-        rangeNode = nullptr;
-        while (!range_stack.empty()) {
-            if (rangeNode == nullptr) {
-                // Last node serves for basic type
-                rangeNode = range_stack.top();
-                basic->rangep(rangeNode);
-                dtypep = basic;
-            } else {
-                // For other levels create a PackedArray
-                rangeNode = range_stack.top();
-                dtypep = new AstPackArrayDType(fl, VFlagChildDType(), dtypep, rangeNode);
-            }
-            range_stack.pop();
-        }
-        if (dtypep == nullptr) { dtypep = basic; }
+        auto basicp = new AstBasicDType(fl, keyword);
+        dtypep = applyPackedRanges(fl, obj_h, basicp, shared);
         break;
     }
     case vpiArrayTypespec: {
-        AstRange* rangeNodep = nullptr;
-        std::stack<AstRange*> range_stack;
-        visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* nodep) {
-            rangeNodep = reinterpret_cast<AstRange*>(nodep);
-            range_stack.push(rangeNodep);
-        });
-
         auto elem_typespec_h = vpi_handle(vpiElemTypespec, obj_h);
         dtypep = getDType(fl, elem_typespec_h, shared);
-
-        while (!range_stack.empty()) {
-            rangeNodep = range_stack.top();
-            dtypep = new AstUnpackArrayDType(fl, VFlagChildDType(), dtypep, rangeNodep);
-            range_stack.pop();
-        }
+        dtypep = applyUnpackedRanges(fl, obj_h, dtypep, shared);
         break;
     }
     case vpiPackedArrayTypespec: {
-        AstRange* rangeNodep = nullptr;
-        std::stack<AstRange*> range_stack;
-        visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* nodep) {
-            rangeNodep = reinterpret_cast<AstRange*>(nodep);
-            range_stack.push(rangeNodep);
-        });
-
         auto elem_typespec_h = vpi_handle(vpiElemTypespec, obj_h);
         if (elem_typespec_h) {
             dtypep = getDType(fl, elem_typespec_h, shared);
@@ -536,25 +533,11 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
             auto index_typespec_h = vpi_handle(vpiIndexTypespec, obj_h);
             if (index_typespec_h) {
                 dtypep = getDType(fl, index_typespec_h, shared);
-
-                // Workaround for implicit function argument types
-                // They are stored in UHDM as PackedArrays, but parsed by Verilator
-                // like the simple types above
-                AstBasicDType* basicDTypep = VN_CAST(dtypep, BasicDType);
-                if (range_stack.size() == 1 && basicDTypep) {
-                    basicDTypep->rangep(range_stack.top());
-                    range_stack.pop();
-                }
             } else {
                 v3error("\t! Failed to get typespec handle for PackedArrayTypespec");
             }
         }
-
-        while (!range_stack.empty()) {
-            rangeNodep = range_stack.top();
-            dtypep = new AstPackArrayDType(fl, VFlagChildDType(), dtypep, rangeNodep);
-            range_stack.pop();
-        }
+        dtypep = applyPackedRanges(fl, obj_h, dtypep, shared);
         break;
     }
     case vpiIntegerNet:
@@ -662,17 +645,7 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
             v3error("Missing typespec for packed_array_var");
         }
 
-        AstRange* rangeNodep = nullptr;
-        std::stack<AstRange*> range_stack;
-        visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* nodep) {
-            rangeNodep = reinterpret_cast<AstRange*>(nodep);
-            range_stack.push(rangeNodep);
-        });
-        while (!range_stack.empty()) {
-            rangeNodep = range_stack.top();
-            dtypep = new AstPackArrayDType(fl, VFlagChildDType(), dtypep, rangeNodep);
-            range_stack.pop();
-        }
+        dtypep = applyPackedRanges(fl, obj_h, dtypep, shared);
         break;
     }
     case vpiArrayVar: {
@@ -696,14 +669,7 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
             }
         }
 
-        std::vector<AstRange*> ranges;
-        visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* itemp) {
-            if (itemp != nullptr) { ranges.push_back(reinterpret_cast<AstRange*>(itemp)); }
-        });
-
-        for (auto rangep_it = ranges.rbegin(); rangep_it != ranges.rend(); rangep_it++) {
-            dtypep = new AstUnpackArrayDType(fl, VFlagChildDType(), dtypep, *rangep_it);
-        }
+        dtypep = applyUnpackedRanges(make_fileline(obj_h), obj_h, dtypep, shared);
         break;
     }
     case vpiArrayNet: {
@@ -714,14 +680,7 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
         }
         vpi_free_object(itr);
 
-        std::vector<AstRange*> ranges;
-        visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* itemp) {
-            if (itemp != nullptr) { ranges.push_back(reinterpret_cast<AstRange*>(itemp)); }
-        });
-
-        for (auto rangep_it = ranges.rbegin(); rangep_it != ranges.rend(); rangep_it++) {
-            dtypep = new AstUnpackArrayDType(fl, VFlagChildDType(), dtypep, *rangep_it);
-        }
+        dtypep = applyUnpackedRanges(make_fileline(obj_h), obj_h, dtypep, shared);
         break;
     }
     default: v3error("Unknown object type: " << UHDM::VpiTypeName(obj_h));
@@ -1212,11 +1171,6 @@ AstNode* process_parameter(vpiHandle obj_h, UhdmShared& shared, bool get_value) 
         return nullptr;
     }
 
-    AstRange* rangeNodep = nullptr;
-    visit_one_to_many({vpiRange}, obj_h, shared, [&](AstNode* nodep) {
-        if (nodep) rangeNodep = reinterpret_cast<AstRange*>(nodep);
-    });
-
     AstNodeDType* dtypep = nullptr;
     auto typespec_h = vpi_handle(vpiTypespec, obj_h);
     if (typespec_h) {
@@ -1229,10 +1183,8 @@ AstNode* process_parameter(vpiHandle obj_h, UhdmShared& shared, bool get_value) 
     if (dtypep == nullptr) {
         dtypep = new AstBasicDType(make_fileline(obj_h), AstBasicDTypeKwd::LOGIC_IMPLICIT);
     }
-    if (rangeNodep) {
-        dtypep
-            = new AstUnpackArrayDType(make_fileline(obj_h), VFlagChildDType(), dtypep, rangeNodep);
-    }
+
+    dtypep = applyUnpackedRanges(make_fileline(obj_h), obj_h, dtypep, shared);
 
     if (get_value) { parameterValuep = get_value_as_node(obj_h); }
 
