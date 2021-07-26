@@ -54,11 +54,27 @@ void sanitize_str(std::string& s) {
     }
 }
 
-void remove_last_sanitized_index(std::string& s) {
+std::string remove_last_sanitized_index(const std::string& s) {
     if (s.size() > 7 && s.substr(s.size() - 7) == "__KET__") {
         auto pos = s.rfind("__BRA__");
-        s = s.substr(0, pos);
+        return s.substr(0, pos);
     }
+    return s;
+}
+
+FileLine* make_fileline(vpiHandle obj_h) {
+    std::string filename = "uhdm";
+    if (auto* s = vpi_get_str(vpiFile, obj_h)) { filename = s; }
+    const int lineNo = vpi_get(vpiLineNo, obj_h);
+    const int endLineNo = vpi_get(vpiEndLineNo, obj_h);
+    const int columnNo = vpi_get(vpiColumnNo, obj_h);
+    const int endColumnNo = vpi_get(vpiEndColumnNo, obj_h);
+    auto* fl = new FileLine(filename);
+    fl->firstLineno(lineNo);
+    fl->lastLineno(endLineNo);
+    fl->firstColumn(columnNo);
+    fl->lastColumn(endColumnNo);
+    return fl;
 }
 
 std::string get_object_name(vpiHandle obj_h, const std::vector<int>& name_fields = {vpiName}) {
@@ -84,6 +100,19 @@ bool is_imported(vpiHandle obj_h) {
 void remove_scope(std::string& s) {
     auto pos = s.rfind("::");
     if (pos != std::string::npos) s = s.substr(pos + 2);
+}
+
+AstParseRef* getVarRefIfAlreadyDeclared(vpiHandle obj_h, UhdmShared& shared) {
+    std::string objectName = get_object_name(obj_h);
+    const uhdm_handle* const handle = (const uhdm_handle*)obj_h;
+    const UHDM::BaseClass* const object = (const UHDM::BaseClass*)handle->object;
+    if (shared.visited_objects.find(object) != shared.visited_objects.end()) {
+        // Already seen this, create reference
+        return new AstParseRef(make_fileline(obj_h), VParseRefExp::en::PX_TEXT, objectName,
+                               nullptr, nullptr);
+    }
+    shared.visited_objects.insert(object);
+    return nullptr;
 }
 
 AstPackage* get_package(UhdmShared& shared, const std::string& objectName) {
@@ -198,21 +227,6 @@ string deQuote(FileLine* fileline, string text) {
         }
     }
     return newtext;
-}
-
-FileLine* make_fileline(vpiHandle obj_h) {
-    std::string filename = "uhdm";
-    if (auto* s = vpi_get_str(vpiFile, obj_h)) { filename = s; }
-    const int lineNo = vpi_get(vpiLineNo, obj_h);
-    const int endLineNo = vpi_get(vpiEndLineNo, obj_h);
-    const int columnNo = vpi_get(vpiColumnNo, obj_h);
-    const int endColumnNo = vpi_get(vpiEndColumnNo, obj_h);
-    auto* fl = new FileLine(filename);
-    fl->firstLineno(lineNo);
-    fl->lastLineno(endLineNo);
-    fl->firstColumn(columnNo);
-    fl->lastColumn(endColumnNo);
-    return fl;
 }
 
 AstNodeDType* applyPackedRanges(FileLine* fl, vpiHandle obj_h, AstNodeDType* dtypep,
@@ -620,8 +634,8 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
         auto pos = type_name.rfind("::");
         if (pos != std::string::npos) type_name = type_name.substr(pos + 2);
 
-        if (shared.visited_types.find(object) != shared.visited_types.end()) {
-            type_string = shared.visited_types[object];
+        if (shared.visited_types_map.find(object) != shared.visited_types_map.end()) {
+            type_string = shared.visited_types_map[object];
             dtypep = get_type_reference(fl, type_name, type_string, shared);
         } else {
             // Type not found or object pointer mismatch, but let's try to create a reference
@@ -1049,11 +1063,11 @@ AstNode* process_function(vpiHandle obj_h, UhdmShared& shared) {
 
     const uhdm_handle* const handle = (const uhdm_handle*)obj_h;
     const UHDM::BaseClass* const object = (const UHDM::BaseClass*)handle->object;
-    if (shared.visited_variables.find(object) != shared.visited_variables.end()) {
+    if (shared.visited_objects.find(object) != shared.visited_objects.end()) {
         // Surelog sometimes copies function instead of creating reference under vpiImport node
         return nullptr;
     }
-    shared.visited_variables[object] = objectName;
+    shared.visited_objects.insert(object);
 
     auto return_h = vpi_handle(vpiReturn, obj_h);
     if (return_h) {
@@ -1341,13 +1355,13 @@ AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
     case vpiEnumTypespec: {
         const uhdm_handle* const handle = (const uhdm_handle*)obj_h;
         const UHDM::BaseClass* const object = (const UHDM::BaseClass*)handle->object;
-        if (shared.visited_types.find(object) != shared.visited_types.end()) {
+        if (shared.visited_types_map.find(object) != shared.visited_types_map.end()) {
             // Already seen this, do not create a duplicate
             // References are handled using getDType, not in visit_object
             return nullptr;
         }
 
-        shared.visited_types[object] = objectName;
+        shared.visited_types_map[object] = objectName;
 
         // Use bare name for typespec itself, hierarchy was stored above
         auto pos = objectName.rfind("::");
@@ -1386,12 +1400,12 @@ AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
     case vpiStructTypespec: {
         const uhdm_handle* const handle = (const uhdm_handle*)obj_h;
         const UHDM::BaseClass* const object = (const UHDM::BaseClass*)handle->object;
-        if (shared.visited_types.find(object) != shared.visited_types.end()) {
+        if (shared.visited_types_map.find(object) != shared.visited_types_map.end()) {
             UINFO(6, "Object " << objectName << " was already visited" << std::endl);
             return nullptr;
         }
 
-        shared.visited_types[object] = objectName;
+        shared.visited_types_map[object] = objectName;
 
         // Use bare name for typespec itself, hierarchy was stored above
         auto pos = objectName.rfind("::");
@@ -1845,14 +1859,8 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return v;
     }
     case vpiStructVar: {
-        const uhdm_handle* const handle = (const uhdm_handle*)obj_h;
-        const UHDM::BaseClass* const object = (const UHDM::BaseClass*)handle->object;
-        if (shared.visited_variables.find(object) != shared.visited_variables.end()) {
-            // Already seen this, create reference
-            return new AstParseRef(make_fileline(obj_h), VParseRefExp::en::PX_TEXT, objectName,
-                                   nullptr, nullptr);
-        }
-        shared.visited_variables[object] = objectName;
+        AstParseRef* refp = getVarRefIfAlreadyDeclared(obj_h, shared);
+        if (refp) return refp;
 
         AstNodeDType* dtype = getDType(make_fileline(obj_h), obj_h, shared);
 
@@ -2180,7 +2188,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return get_value_as_node(obj_h, true);
     }
     case vpiBitSelect: {
-        remove_last_sanitized_index(objectName);
+        objectName = remove_last_sanitized_index(objectName);
 
         auto* fromp = get_referenceNode(make_fileline(obj_h), objectName, shared);
 
@@ -2692,14 +2700,8 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     case vpiEnumVar:
     case vpiBitVar:
     case vpiByteVar: {
-        const uhdm_handle* const handle = (const uhdm_handle*)obj_h;
-        const UHDM::BaseClass* const object = (const UHDM::BaseClass*)handle->object;
-        if (shared.visited_variables.find(object) != shared.visited_variables.end()) {
-            // Already seen this, create reference
-            return new AstParseRef(make_fileline(obj_h), VParseRefExp::en::PX_TEXT, objectName,
-                                   nullptr, nullptr);
-        }
-        shared.visited_variables[object] = objectName;
+        AstParseRef* refp = getVarRefIfAlreadyDeclared(obj_h, shared);
+        if (refp) return refp;
 
         AstNodeDType* dtype = getDType(make_fileline(obj_h), obj_h, shared);
         auto* var = new AstVar(make_fileline(obj_h), AstVarType::VAR, objectName,
@@ -2710,14 +2712,8 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     }
     case vpiPackedArrayVar:
     case vpiArrayVar: {
-        const uhdm_handle* const handle = (const uhdm_handle*)obj_h;
-        const UHDM::BaseClass* const object = (const UHDM::BaseClass*)handle->object;
-        if (shared.visited_variables.find(object) != shared.visited_variables.end()) {
-            // Already seen this, create reference
-            return new AstParseRef(make_fileline(obj_h), VParseRefExp::en::PX_TEXT, objectName,
-                                   nullptr, nullptr);
-        }
-        shared.visited_variables[object] = objectName;
+        AstParseRef* refp = getVarRefIfAlreadyDeclared(obj_h, shared);
+        if (refp) return refp;
 
         auto dtype = getDType(make_fileline(obj_h), obj_h, shared);
 
@@ -2728,14 +2724,8 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return var;
     }
     case vpiChandleVar: {
-        const uhdm_handle* const handle = (const uhdm_handle*)obj_h;
-        const UHDM::BaseClass* const object = (const UHDM::BaseClass*)handle->object;
-        if (shared.visited_variables.find(object) != shared.visited_variables.end()) {
-            // Already seen this, create reference
-            return new AstParseRef(make_fileline(obj_h), VParseRefExp::en::PX_TEXT, objectName,
-                                   nullptr, nullptr);
-        }
-        shared.visited_variables[object] = objectName;
+        AstParseRef* refp = getVarRefIfAlreadyDeclared(obj_h, shared);
+        if (refp) return refp;
 
         auto* dtype = new AstBasicDType(make_fileline(obj_h), AstBasicDTypeKwd::CHANDLE);
         auto* var = new AstVar(make_fileline(obj_h), AstVarType::VAR, objectName,
