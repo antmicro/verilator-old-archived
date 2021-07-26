@@ -217,6 +217,7 @@ usb_fs_nb_in_pe.sv \
 dm_sba.sv \
 usb_fs_nb_pe.sv \
 kmac_entropy.sv \
+kmac_keymgr.sv \
 usbdpi.sv'
 
 TO_SURELOG = \
