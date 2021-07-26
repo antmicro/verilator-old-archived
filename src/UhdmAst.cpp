@@ -1047,6 +1047,14 @@ AstNode* process_function(vpiHandle obj_h, UhdmShared& shared) {
 
     std::string objectName = get_object_name(obj_h);
 
+    const uhdm_handle* const handle = (const uhdm_handle*)obj_h;
+    const UHDM::BaseClass* const object = (const UHDM::BaseClass*)handle->object;
+    if (shared.visited_variables.find(object) != shared.visited_variables.end()) {
+        // Surelog sometimes copies function instead of creating reference under vpiImport node
+        return nullptr;
+    }
+    shared.visited_variables[object] = objectName;
+
     auto return_h = vpi_handle(vpiReturn, obj_h);
     if (return_h) {
         AstNodeDType* dtypep = getDType(make_fileline(obj_h), return_h, shared);
