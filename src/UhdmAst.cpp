@@ -592,7 +592,16 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
     }
     AstBasicDTypeKwd keyword = AstBasicDTypeKwd::UNKNOWN;
     switch (type) {
-    case vpiLogicNet:
+    case vpiLogicNet: {
+        if (auto typespec_h = vpi_handle(vpiTypespec, obj_h)) {
+            dtypep = reinterpret_cast<AstNodeDType*>(process_typespec(typespec_h, shared));
+        } else {
+            AstBasicDTypeKwd keyword = get_kwd_for_type(type);
+            dtypep = new AstBasicDType(fl, keyword);
+        }
+        dtypep = applyPackedRanges(fl, obj_h, dtypep, shared);
+        break;
+    }
     case vpiLogicTypespec:
     case vpiLogicVar:
     case vpiBitVar:
