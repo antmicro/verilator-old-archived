@@ -1880,12 +1880,13 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         AstParseRef* refp = getVarRefIfAlreadyDeclared(obj_h, shared);
         if (refp) return refp;
 
-        AstNodeDType* dtype = getDType(make_fileline(obj_h), obj_h, shared);
+        AstNodeDType* dtypep = getDType(make_fileline(obj_h), obj_h, shared);
 
-        auto* v = new AstVar(make_fileline(obj_h), AstVarType::VAR, objectName, VFlagChildDType(),
-                             dtype);
-        if (v3Global.opt.trace()) { v->trace(true); }
-        return v;
+        auto* varp = new AstVar(make_fileline(obj_h), AstVarType::VAR, objectName,
+                                VFlagChildDType(), dtypep);
+        if (v3Global.opt.trace()) { varp->trace(true); }
+        visit_one_to_one({vpiExpr}, obj_h, shared, [&](AstNode* itemp) { varp->valuep(itemp); });
+        return varp;
     }
     case vpiParameter: {
         return process_parameter(obj_h, shared, true);
