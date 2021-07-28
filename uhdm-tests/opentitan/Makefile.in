@@ -14,6 +14,7 @@ OPEN_TITAN_INCLUDE = \
 
 # Working set of Opentitan files
 SURELOG_FILE_LIST='/ibex_pkg.sv \
+hmac_pkg.sv \
 lc_ctrl_pkg.sv \
 kmac_pkg.sv \
 lc_ctrl_state_pkg.sv \
@@ -220,6 +221,9 @@ usb_fs_nb_pe.sv \
 kmac_entropy.sv \
 kmac_keymgr.sv \
 lc_ctrl_state_decode.sv \
+flash_ctrl_erase.sv \
+lc_ctrl_state_transition.sv \
+hmac_core.sv \
 usbdpi.sv'
 
 TO_SURELOG = \
