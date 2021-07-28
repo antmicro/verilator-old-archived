@@ -596,7 +596,9 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
     case vpiLogicVar:
     case vpiBitVar: {
         if (auto typespec_h = vpi_handle(vpiTypespec, obj_h)) {
-            dtypep = reinterpret_cast<AstNodeDType*>(process_typespec(typespec_h, shared));
+            dtypep = VN_CAST(process_typespec(typespec_h, shared), NodeDType);
+            if (!dtypep)
+                v3error("Unable to handle vpiTypespec node as AstNodeDType");
         } else {
             AstBasicDTypeKwd keyword = get_kwd_for_type(type);
             dtypep = new AstBasicDType(fl, keyword);
@@ -607,7 +609,9 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
     case vpiLogicTypespec:
     case vpiBitTypespec: {
         if (auto elem_typespec_h = vpi_handle(vpiElemTypespec, obj_h)) {
-            dtypep = reinterpret_cast<AstNodeDType*>(process_typespec(elem_typespec_h, shared));
+            dtypep = VN_CAST(process_typespec(elem_typespec_h, shared), NodeDType);
+            if (!dtypep)
+                v3error("Unable to handle vpiElemTypespec node as AstNodeDType");
         } else {
             AstBasicDTypeKwd keyword = get_kwd_for_type(type);
             dtypep = new AstBasicDType(fl, keyword);
