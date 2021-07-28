@@ -238,7 +238,7 @@ AstNodeDType* applyPackedRanges(FileLine* fl, vpiHandle obj_h, AstNodeDType* dty
     });
 
     AstBasicDType* basicp = VN_CAST(dtypep, BasicDType);
-    if (basicp && !range_stack.empty()) {
+    if (basicp && !basicp->rangep() && !range_stack.empty()) {
         basicp->rangep(range_stack.top());
         range_stack.pop();
         dtypep = basicp;
@@ -592,7 +592,9 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
     }
     AstBasicDTypeKwd keyword = AstBasicDTypeKwd::UNKNOWN;
     switch (type) {
-    case vpiLogicNet: {
+    case vpiLogicNet:
+    case vpiLogicVar:
+    case vpiBitVar: {
         if (auto typespec_h = vpi_handle(vpiTypespec, obj_h)) {
             dtypep = reinterpret_cast<AstNodeDType*>(process_typespec(typespec_h, shared));
         } else {
@@ -603,12 +605,14 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
         break;
     }
     case vpiLogicTypespec:
-    case vpiLogicVar:
-    case vpiBitVar:
     case vpiBitTypespec: {
-        AstBasicDTypeKwd keyword = get_kwd_for_type(type);
-        auto basicp = new AstBasicDType(fl, keyword);
-        dtypep = applyPackedRanges(fl, obj_h, basicp, shared);
+        if (auto elem_typespec_h = vpi_handle(vpiElemTypespec, obj_h)) {
+            dtypep = reinterpret_cast<AstNodeDType*>(process_typespec(elem_typespec_h, shared));
+        } else {
+            AstBasicDTypeKwd keyword = get_kwd_for_type(type);
+            dtypep = new AstBasicDType(fl, keyword);
+        }
+        dtypep = applyPackedRanges(fl, obj_h, dtypep, shared);
         break;
     }
     case vpiArrayTypespec: {
