@@ -224,6 +224,10 @@ lc_ctrl_state_decode.sv \
 flash_ctrl_erase.sv \
 lc_ctrl_state_transition.sv \
 hmac_core.sv \
+spi_p2s.sv \
+sha2_pad.sv \
+spi_s2p.sv \
+sha2.sv \
 usbdpi.sv'
 
 TO_SURELOG = \
