@@ -1028,6 +1028,12 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared,
         }
         return new AstPattern(make_fileline(obj_h), itemsp);
     }
+    case vpiMultiAssignmentPatternOp: {
+        // '{op0{op1}}
+        AstPatMember* patMemberp
+            = new AstPatMember(make_fileline(obj_h), operands[1], nullptr, operands[0]);
+        return new AstPattern(make_fileline(obj_h), patMemberp);
+    }
     case vpiNullOp: {
         return nullptr;
     }
