@@ -2213,6 +2213,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         if (auto s = vpi_get_str(vpiName, typespec_h)) {
             pattern_name = s;
             sanitize_str(pattern_name);
+            typespecp = new AstText(make_fileline(obj_h), pattern_name);
         } else {
             typespecp = process_typespec(typespec_h, shared);
         }
