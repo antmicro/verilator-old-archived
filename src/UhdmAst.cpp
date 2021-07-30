@@ -596,9 +596,9 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
     case vpiLogicVar:
     case vpiBitVar: {
         if (auto typespec_h = vpi_handle(vpiTypespec, obj_h)) {
-            dtypep = VN_CAST(process_typespec(typespec_h, shared), NodeDType);
+            dtypep = getDType(fl, typespec_h, shared);
             if (!dtypep)
-                v3error("Unable to handle vpiTypespec node as AstNodeDType");
+                v3error("Unable to handle vpiTypespec node");
         } else {
             AstBasicDTypeKwd keyword = get_kwd_for_type(type);
             dtypep = new AstBasicDType(fl, keyword);
@@ -608,15 +608,22 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
     }
     case vpiLogicTypespec:
     case vpiBitTypespec: {
-        if (auto elem_typespec_h = vpi_handle(vpiElemTypespec, obj_h)) {
-            dtypep = VN_CAST(process_typespec(elem_typespec_h, shared), NodeDType);
-            if (!dtypep)
-                v3error("Unable to handle vpiElemTypespec node as AstNodeDType");
-        } else {
-            AstBasicDTypeKwd keyword = get_kwd_for_type(type);
-            dtypep = new AstBasicDType(fl, keyword);
+        std::string typespec_name = get_object_name(obj_h);
+        std::string full_type_name;
+        if (typespec_name != "") {
+            std::string package_name = "";
+            if (vpiHandle instance_h = vpi_handle(vpiInstance, obj_h))
+                package_name = get_object_name(instance_h, {vpiDefName});
+            if (package_name != "")
+                full_type_name = package_name + "::" + typespec_name;
+            else
+                full_type_name = typespec_name;
+            dtypep = get_type_reference(fl, typespec_name, full_type_name, shared);
+            break;
         }
-        dtypep = applyPackedRanges(fl, obj_h, dtypep, shared);
+        dtypep = VN_CAST(process_typespec(obj_h, shared), NodeDType);
+        if (!dtypep)
+            v3error("Unable to handle vpiTypespec node");
         break;
     }
     case vpiArrayTypespec: {
@@ -1363,7 +1370,17 @@ AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
     switch (objectType) {
     case vpiBitTypespec:
     case vpiLogicTypespec: {
-        return getDType(fl, obj_h, shared);
+        AstNodeDType* dtypep = nullptr;
+        if (auto elem_typespec_h = vpi_handle(vpiElemTypespec, obj_h)) {
+            dtypep = getDType(fl, elem_typespec_h, shared);
+            if (!dtypep)
+                v3error("Unable to handle vpiElemTypespec node");
+        } else {
+            AstBasicDTypeKwd keyword = get_kwd_for_type(objectType);
+            dtypep = new AstBasicDType(fl, keyword);
+        }
+        dtypep = applyPackedRanges(fl, obj_h, dtypep, shared);
+        return dtypep;
     }
     case vpiIntTypespec: {
         auto* name = vpi_get_str(vpiName, obj_h);
