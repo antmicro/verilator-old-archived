@@ -2215,7 +2215,9 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             sanitize_str(pattern_name);
             typespecp = new AstText(make_fileline(obj_h), pattern_name);
         } else {
-            typespecp = process_typespec(typespec_h, shared);
+            typespecp = VN_CAST(process_typespec(typespec_h, shared), Const);
+            if (!typespecp)
+                v3error("Unable to handle vpiTypespec in vpiTaggedPattern");
         }
 
         visit_one_to_one({vpiPattern}, obj_h, shared, [&](AstNode* nodep) { patternp = nodep; });
