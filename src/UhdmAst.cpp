@@ -1251,7 +1251,12 @@ AstNode* process_parameter(vpiHandle obj_h, UhdmShared& shared, bool get_value) 
     AstNodeDType* dtypep = nullptr;
     auto typespec_h = vpi_handle(vpiTypespec, obj_h);
     if (typespec_h) {
-        dtypep = VN_CAST(process_typespec(typespec_h, shared), NodeDType);
+        std::string typespecName = get_object_name(typespec_h);
+        if (typespecName == objectName)
+            dtypep = VN_CAST(process_typespec(typespec_h, shared), NodeDType);
+        else
+            dtypep = getDType(make_fileline(typespec_h), typespec_h, shared);
+
         if (!dtypep)
             UINFO(7, "vpiTypespec node of type " << UHDM::VpiTypeName(typespec_h)
                                                  << " can't be handled as AstNodeDType");
@@ -1867,8 +1872,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     }
     case vpiRefVar:
     case vpiRefObj: {
-        std::string refName = get_object_name(obj_h);
-        return get_referenceNode(make_fileline(obj_h), refName, shared);
+        return get_referenceNode(make_fileline(obj_h), objectName, shared);
     }
     case vpiNetArray: {  // also defined as vpiArrayNet
         // vpiNetArray is used for unpacked arrays
