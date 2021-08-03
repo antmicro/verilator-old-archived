@@ -1867,7 +1867,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     }
     case vpiRefVar:
     case vpiRefObj: {
-        std::string refName = get_object_name(obj_h, {vpiFullName, vpiName});
+        std::string refName = get_object_name(obj_h);
         return get_referenceNode(make_fileline(obj_h), refName, shared);
     }
     case vpiNetArray: {  // also defined as vpiArrayNet
