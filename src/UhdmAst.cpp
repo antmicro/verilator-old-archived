@@ -605,8 +605,8 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
         dtypep = applyPackedRanges(fl, obj_h, dtypep, shared);
         break;
     }
-    case vpiArrayTypespec:
-    case vpiPackedArrayTypespec:
+    case vpiLogicTypespec:
+    case vpiBitTypespec:
     case vpiIntTypespec:
     case vpiLongIntTypespec:
     case vpiIntegerTypespec:
@@ -615,8 +615,11 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
     case vpiStringTypespec:
     case vpiChandleTypespec:
     case vpiTimeTypespec:
-    case vpiLogicTypespec:
-    case vpiBitTypespec: {
+    case vpiArrayTypespec:
+    case vpiPackedArrayTypespec:
+    case vpiStructTypespec:
+    case vpiEnumTypespec:
+    case vpiUnionTypespec: {
         std::string typespec_name = get_object_name(obj_h);
         std::string full_type_name;
         if (typespec_name != "") {
@@ -632,10 +635,12 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
                 full_type_name = typespec_name;
             dtypep = get_type_reference(fl, typespec_name, full_type_name, shared);
             break;
+        } else {
+            // Typespec without name, construct the type by process_typespec
+            dtypep = VN_CAST(process_typespec(obj_h, shared), NodeDType);
+            if (!dtypep) v3error("Unable to handle vpiTypespec node");
+            break;
         }
-        dtypep = VN_CAST(process_typespec(obj_h, shared), NodeDType);
-        if (!dtypep) v3error("Unable to handle vpiTypespec node");
-        break;
     }
     case vpiIntegerNet:
     case vpiTimeNet:
@@ -672,27 +677,6 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
             // Simple reference only, prefix is not stored in name
             UINFO(7, "No match found, creating ref to name" << type_name << std::endl);
             dtypep = new AstRefDType(fl, type_name);
-        }
-        break;
-    }
-    case vpiStructTypespec:
-    case vpiEnumTypespec:
-    case vpiUnionTypespec: {
-        std::string nameWithRef = get_object_name(obj_h);
-        std::string typeName;
-        auto pos = nameWithRef.rfind("::");
-        if (pos != std::string::npos)
-            typeName = nameWithRef.substr(pos + 2);
-        else
-            typeName = nameWithRef;
-        if (typeName != "") {
-            dtypep = get_type_reference(fl, typeName, nameWithRef, shared);
-        } else {
-            // Typedefed types were visited earlier, probably anonymous struct
-            // Get the typespec here
-            UINFO(7, "Encountered anonymous struct");
-            AstNode* typespec_p = process_typespec(obj_h, shared);
-            dtypep = typespec_p->getChildDTypep()->cloneTree(false);
         }
         break;
     }
@@ -1252,20 +1236,21 @@ AstNode* process_parameter(vpiHandle obj_h, UhdmShared& shared, bool get_value) 
     auto typespec_h = vpi_handle(vpiTypespec, obj_h);
     if (typespec_h) {
         std::string typespecName = get_object_name(typespec_h);
+        // Surelog sometimes inserts parameter name as typespec name
+        // We have to detect it to know if we should treat a typespec
+        // as type definition or type reference
         if (typespecName == objectName)
             dtypep = VN_CAST(process_typespec(typespec_h, shared), NodeDType);
         else
             dtypep = getDType(make_fileline(typespec_h), typespec_h, shared);
 
         if (!dtypep)
-            UINFO(7, "vpiTypespec node of type " << UHDM::VpiTypeName(typespec_h)
-                                                 << " can't be handled as AstNodeDType");
+            v3error("vpiTypespec node of type " << UHDM::VpiTypeName(typespec_h)
+                                                << " can't be handled as AstNodeDType");
     } else {
         UINFO(7, "No typespec found in vpiParameter " << objectName << std::endl);
-    }
 
-    // If no typespec provided assume default
-    if (dtypep == nullptr) {
+        // If no typespec provided assume default
         dtypep = new AstBasicDType(make_fileline(obj_h), AstBasicDTypeKwd::LOGIC_IMPLICIT);
     }
 
