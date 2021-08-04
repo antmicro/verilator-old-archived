@@ -597,7 +597,8 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
     case vpiBitVar: {
         if (auto typespec_h = vpi_handle(vpiTypespec, obj_h)) {
             dtypep = getDType(fl, typespec_h, shared);
-            if (!dtypep) v3error("Unable to handle vpiTypespec node");
+            if (!dtypep)
+                v3error("Unable to handle vpiTypespec node in logic net, logic var or bit var");
         } else {
             AstBasicDTypeKwd keyword = get_kwd_for_type(type);
             dtypep = new AstBasicDType(fl, keyword);
@@ -638,7 +639,7 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
         } else {
             // Typespec without name, construct the type by process_typespec
             dtypep = VN_CAST(process_typespec(obj_h, shared), NodeDType);
-            if (!dtypep) v3error("Unable to handle vpiTypespec node");
+            if (!dtypep) v3error("Unable to handle anonymous vpiTypespec node");
             break;
         }
     }
@@ -1389,7 +1390,7 @@ AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
             if (index_typespec_h) {
                 dtypep = getDType(fl, index_typespec_h, shared);
             } else {
-                v3error("\t! Failed to get typespec handle for PackedArrayTypespec");
+                v3error("Failed to get typespec handle for PackedArrayTypespec");
             }
         }
         return applyPackedRanges(fl, obj_h, dtypep, shared);
