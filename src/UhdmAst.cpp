@@ -1202,6 +1202,9 @@ AstNode* process_ioDecl(vpiHandle obj_h, UhdmShared& shared) {
         UINFO(7, "No dtype found in vpiIODecl, falling back to logic" << std::endl);
         dtypep = new AstBasicDType(make_fileline(obj_h), AstBasicDTypeKwd::LOGIC);
     }
+
+    dtypep = applyUnpackedRanges(make_fileline(obj_h), obj_h, dtypep, shared);
+
     auto* varp = new AstVar(make_fileline(obj_h), AstVarType::PORT, objectName, VFlagChildDType(),
                             dtypep);
     varp->declDirection(dir);
