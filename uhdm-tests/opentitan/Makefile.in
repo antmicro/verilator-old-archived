@@ -14,6 +14,11 @@ OPEN_TITAN_INCLUDE = \
 
 # Working set of Opentitan files
 SURELOG_FILE_LIST='/ibex_pkg.sv \
+aes_pkg.sv \
+rv_core_ibex_pkg.sv \
+usbdev_pkg.sv \
+sram_ctrl_pkg.sv \
+otp_ctrl_part_pkg.sv \
 top_earlgrey_rnd_cnst_pkg.sv \
 otp_ctrl_pkg.sv \
 hmac_pkg.sv \
