@@ -244,14 +244,55 @@ aes_sbox.sv \
 aes_shift_rows.sv \
 aes_sbox_dom.sv \
 aes_mix_columns.sv \
-usbdpi.sv'
+usbdpi.sv \
+entropy_src_ack_sm.sv \
+entropy_src_main_sm.sv \
+entropy_src_core.sv \
+entropy_src_reg_top.sv \
+entropy_src.sv \
+tlul_pkg.sv \
+prim_lfsr.sv \
+prim_clock_gating.sv \
+prim_flop.sv \
+prim_generic_flop.sv \
+prim_flop_2sync.sv \
+prim_generic_flop_2sync.sv \
+prim_packer_fifo.sv \
+prim_alert_sender.sv \
+tlul_adapter_reg.sv \
+prim_subreg.sv \
+prim_fifo_sync.sv \
+prim_alert_receiver.sv \
+prim_esc_sender.sv \
+alert_handler_reg_top.sv \
+alert_handler_reg_wrap.sv \
+alert_handler.sv \
+alert_handler_ping_timer.sv'
 
+# Working set of Opentitan files
 TO_SURELOG = \
 	$(shell \
 		echo \'${SURELOG_FILE_LIST}\' | sed 's/\s/\\|/g' )
 
-# Need to readd this to .vc file due to double matching 'ibex_pkg.sv'
-READD='../src/lowrisc_ip_rv_core_ibex_pkg_0.1/rtl/rv_core_ibex_pkg.sv'
+# Need to readd parametrized modules for the SV frontend to use
+READD=../src/lowrisc_prim_generic_clock_gating_0/rtl/prim_generic_clock_gating.sv \
+../src/lowrisc_prim_abstract_buf_0/prim_buf.sv \
+../src/lowrisc_prim_diff_decode_0/rtl/prim_diff_decode.sv \
+../src/lowrisc_prim_all_0.1/rtl/prim_subreg.sv \
+../src/lowrisc_prim_all_0.1/rtl/prim_subreg_arb.sv \
+../src/lowrisc_prim_all_0.1/rtl/prim_subreg_ext.sv \
+../src/lowrisc_prim_all_0.1/rtl/prim_intr_hw.sv \
+../src/lowrisc_prim_lfsr_0.1/rtl/prim_lfsr.sv \
+../src/lowrisc_prim_abstract_clock_gating_0/prim_clock_gating.sv \
+../src/lowrisc_prim_abstract_flop_0/prim_flop.sv \
+../src/lowrisc_prim_generic_flop_0/rtl/prim_generic_flop.sv \
+../src/lowrisc_prim_abstract_flop_2sync_0/prim_flop_2sync.sv \
+../src/lowrisc_prim_generic_flop_2sync_0/rtl/prim_generic_flop_2sync.sv \
+../src/lowrisc_prim_all_0.1/rtl/prim_packer_fifo.sv \
+../src/lowrisc_prim_all_0.1/rtl/prim_alert_sender.sv \
+../src/lowrisc_prim_all_0.1/rtl/prim_alert_receiver.sv \
+../src/lowrisc_prim_all_0.1/rtl/prim_fifo_sync.sv \
+../src/lowrisc_tlul_adapter_reg_0.1/rtl/tlul_adapter_reg.sv
 
 # Top-level parameters in skipped modules that need to be known to Surelog
 SURELOG_PARAMETERS = -PPMPNumRegions=16 \
@@ -299,7 +340,7 @@ uhdm/verilator/opentitan: clean-build | prepare-sources
 		sed '/--cc/a --uhdm-ast-sv' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
 		sed '/--uhdm-ast-sv/a ${root_dir}/build/ibex_core.uhdm' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
 		sed '/${OPEN_TITAN_SOURCES_DELETE_OR}/d' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
-		sed '/usbdev_pkg.sv/i ${READD}' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
+		sed '/top_earlgrey_verilator.sv/i ${READD}' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
 		$(MAKE))
 
 verilator/opentitan: clean-build | prepare-sources
