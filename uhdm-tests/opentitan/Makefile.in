@@ -235,6 +235,15 @@ spi_p2s.sv \
 sha2_pad.sv \
 spi_s2p.sv \
 sha2.sv \
+aes_sbox_lut.sv \
+aes_sbox_canright_masked_noreuse.sv \
+aes_sbox_canright.sv \
+aes_mix_single_column.sv \
+aes_sbox_canright_masked.sv \
+aes_sbox.sv \
+aes_shift_rows.sv \
+aes_sbox_dom.sv \
+aes_mix_columns.sv \
 usbdpi.sv'
 
 TO_SURELOG = \
