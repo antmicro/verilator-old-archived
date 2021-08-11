@@ -335,8 +335,12 @@ AstNode* get_value_as_node(vpiHandle obj_h, bool need_decompile = false) {
                         std::string actualValStr;
                         if (valStr == "0")
                             actualValStr = "'0";
-                        else
+                        else if (valStr == "1" || valStr == "18446744073709551615")
+                            // Surelog's default constant size is 64
+                            // 18446744073709551615 is 2^64 - 1
                             actualValStr = "'1";
+                        else
+                            v3error("Unexpected value with vpiSize: -1");
 
                         return new AstConst(make_fileline(obj_h), AstConst::StringToParse(), actualValStr.c_str());
                     }
