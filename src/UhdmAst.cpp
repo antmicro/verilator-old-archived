@@ -745,8 +745,11 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
 
 AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared,
                            std::vector<AstNode*>&& operands) {
-    if(vpi_get(vpiReordered, obj_h))
+    if(vpi_get(vpiReordered, obj_h)) {
+        // this field is present when Surelog changed the order of array parameters
+        // It happens when subarray is selected from multidimensional parameter
         std::reverse(operands.begin(), operands.end());
+    }
 
     auto operation = vpi_get(vpiOpType, obj_h);
     switch (operation) {
