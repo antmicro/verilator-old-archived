@@ -331,6 +331,17 @@ AstNode* get_value_as_node(vpiHandle obj_h, bool need_decompile = false) {
             } else {
                 valStr = s;
                 if (valStr.find('\'') == std::string::npos) {
+                    if (vpi_get(vpiSize, obj_h) == -1) {
+                        std::string actualValStr;
+                        if (valStr == "0")
+                            actualValStr = "'0";
+                        else
+                            actualValStr = "'1";
+
+                        return new AstConst(make_fileline(obj_h), AstConst::VerilogStringLiteral(),
+                                            deQuote(make_fileline(obj_h), actualValStr));
+                    }
+
                     if (int size = vpi_get(vpiSize, obj_h)) {
                         if (type == vpiBinaryConst) valStr = "'b" + valStr;
                         else if (type == vpiOctConst) valStr = "'o" + valStr;
