@@ -744,7 +744,13 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
 }
 
 AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared,
-                           const std::vector<AstNode*>& operands) {
+                           std::vector<AstNode*>&& operands) {
+    if(vpi_get(vpiReordered, obj_h)) {
+        // this field is present when Surelog changed the order of array parameters
+        // It happens when subarray is selected from multidimensional parameter
+        std::reverse(operands.begin(), operands.end());
+    }
+
     auto operation = vpi_get(vpiOpType, obj_h);
     switch (operation) {
     case vpiBitNegOp: {
@@ -2204,7 +2210,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         visit_one_to_many({vpiOperand}, obj_h, shared, [&](AstNode* itemp) {
             if (itemp) { operands.push_back(itemp); }
         });
-        return process_operation(obj_h, shared, operands);
+        return process_operation(obj_h, shared, std::move(operands));
     }
     case vpiTaggedPattern: {
         AstNode* typespecp = nullptr;
