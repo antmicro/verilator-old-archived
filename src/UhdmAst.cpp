@@ -338,8 +338,7 @@ AstNode* get_value_as_node(vpiHandle obj_h, bool need_decompile = false) {
                         else
                             actualValStr = "'1";
 
-                        return new AstConst(make_fileline(obj_h), AstConst::VerilogStringLiteral(),
-                                            deQuote(make_fileline(obj_h), actualValStr));
+                        return new AstConst(make_fileline(obj_h), AstConst::StringToParse(), actualValStr.c_str());
                     }
 
                     if (int size = vpi_get(vpiSize, obj_h)) {
