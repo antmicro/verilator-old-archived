@@ -438,8 +438,12 @@ AstNode* get_value_as_node(vpiHandle obj_h, bool need_decompile = false) {
                                   deQuote(make_fileline(obj_h), valStr));
         break;
     }
+    case 0: {
+        UINFO(7, "No value; value format is 0" << std::endl);
+        return nullptr;
+    }
     default: {
-        v3info("Encountered unknown value format " << val.format);
+        v3error("Encountered unknown value format " << val.format << std::endl);
         break;
     }
     }
