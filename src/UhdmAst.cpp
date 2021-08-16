@@ -1576,7 +1576,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     }
     case vpiPackage: {
         AstPackage* package = nullptr;
-        auto it = shared.package_map.find(objectName); // In case it has been created becasue of an import
+        auto it = shared.package_map.find(objectName); // In case it has been created because of an import
         if (it != shared.package_map.end()) package = it->second;
         else package = new AstPackage(new FileLine(objectName), objectName);
         package->inLibrary(true);
@@ -1694,8 +1694,11 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             if (fullName != modDefName) { // Not a top module
                 itr = vpi_iterate(vpiParameter, obj_h);
                 while (vpiHandle param_h = vpi_scan(itr)) {
-                    if (!vpi_get(vpiLocalParam, param_h) && !is_imported(param_h))
+                    if (!vpi_get(vpiLocalParam, param_h) && !is_imported(param_h)) {
                         module->user1(true); // Need to set params, mark as partial again
+                        vpi_free_object(param_h);
+                        break;
+                    }
                     vpi_free_object(param_h);
                 }
                 vpi_free_object(itr);
