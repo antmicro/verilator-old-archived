@@ -1,0 +1,5 @@
+ÿI00000 boot_rom.c:56] Version:    opentitan-earlgrey_silver_release_v5-1231-g754506562
+Build Date: 2021-09-28, 05:26:04
+
+I00001 boot_rom.c:72] Boot ROM initialisation has completed, jump into flash!
+I00000 test_status.c:28] PASS!

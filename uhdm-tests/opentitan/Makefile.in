@@ -84,3 +84,9 @@ verilator/opentitan: clean-build | prepare-sources
 		. ${root_dir}/venv-opentitan/bin/activate && \
 		cd ${OPENTITAN_BUILD}/sim-verilator/ && \
 		$(MAKE))
+
+uhdm/verilator/opentitan/get_not_surelog_modules: clean-build | prepare-sources
+	(echo ${VERILATOR_ONLY_SOURCE_FILENAMES} \
+                | sed 's/\///g' | tr " " "\n" > verilator_names.txt && \
+	echo ${VERILATOR_AND_SURELOG_SOURCE_FILENAMES} \
+                | sed 's/\///g' | tr " " "\n" > verilator_surelog_names.txt)
