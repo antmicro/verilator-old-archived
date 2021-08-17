@@ -1254,8 +1254,9 @@ AstNode* process_parameter(vpiHandle obj_h, UhdmShared& shared, bool get_value) 
             return AstDot::newIfPkg(make_fileline(obj_h), class_pkg_refp, var_refp);
         }
     }
-    if (is_imported(obj_h)) {
+    if (shared.package_prefix.empty() && is_imported(obj_h)) {
         // Skip imported parameters, they will still be visible in their packages
+        // Can't skip in package, as then names from nested imports cannot be resolved
         UINFO(3, "Skipping imported parameter " << objectName << std::endl);
         return nullptr;
     }
@@ -1324,19 +1325,20 @@ AstPackageImport* process_uhdm_import(vpiHandle obj_h, UhdmShared& shared) {
     AstPackage* packagep = nullptr;
     auto it = shared.package_map.find(objectName);
     if (it != shared.package_map.end()) { packagep = it->second; }
-    if (packagep != nullptr) {
-        std::string symbol_name;
-        vpiHandle imported_name = vpi_handle(vpiImport, obj_h);
-        if (imported_name) {
-            s_vpi_value val;
-            vpi_get_value(imported_name, &val);
-            symbol_name = val.value.str;
-        }
-        auto* package_importp = new AstPackageImport(make_fileline(obj_h), packagep, symbol_name);
-        shared.m_symp->importItem(packagep, symbol_name);
-        return package_importp;
+    else { // Create the package if it doesn't exist yet
+        packagep = new AstPackage(new FileLine(objectName), objectName);
+        shared.package_map.insert(std::make_pair(objectName, packagep));
     }
-    return nullptr;
+    std::string symbol_name;
+    vpiHandle imported_name = vpi_handle(vpiImport, obj_h);
+    if (imported_name) {
+        s_vpi_value val;
+        vpi_get_value(imported_name, &val);
+        symbol_name = val.value.str;
+    }
+    auto* package_importp = new AstPackageImport(make_fileline(obj_h), packagep, symbol_name);
+    shared.m_symp->importItem(packagep, symbol_name);
+    return package_importp;
 }
 
 AstMemberDType* process_typespec_member(vpiHandle obj_h, UhdmShared& shared) {
@@ -1577,7 +1579,10 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return node;
     }
     case vpiPackage: {
-        auto* package = new AstPackage(new FileLine(objectName), objectName);
+        AstPackage* package = nullptr;
+        auto it = shared.package_map.find(objectName); // In case it has been created because of an import
+        if (it != shared.package_map.end()) package = it->second;
+        else package = new AstPackage(new FileLine(objectName), objectName);
         package->inLibrary(true);
         shared.package_prefix = objectName + "::";
         shared.m_symp->pushNew(package);
@@ -1672,100 +1677,118 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return process_uhdm_import(obj_h, shared);
     }
     case vpiModule: {
-        std::string modType = get_object_name(obj_h, {vpiDefName});
-        std::string name = objectName;
+        std::string modDefName = get_object_name(obj_h, {vpiDefName});
+        std::string modType = modDefName;
+        remove_scope(modType);
         AstModule* module;
 
         // Check if we have encountered this object before
-        auto it = shared.partial_modules.find(modType);
-        auto param_it = shared.top_param_map.find(modType);
-        if (it != shared.partial_modules.end()) {
+        auto it = shared.top_nodes.find(modType);
+        auto param_it = shared.top_param_map.find(modDefName);
+        if (it != shared.top_nodes.end()) {
             // Was created before, fill missing
             module = reinterpret_cast<AstModule*>(it->second);
             // If available, check vpiFullName instead of vpiName, as vpiName can equal vpiDefName
-            std::string fullName = name;
+            std::string fullName = objectName;
             if (auto* s = vpi_get_str(vpiFullName, obj_h)) {
                 fullName = s;
                 sanitize_str(fullName);
             }
-            if (fullName != modType) {
+            module->user1(false);  // Not partial anymore (potentially)
+            if (fullName != modDefName) { // Not a top module
+                itr = vpi_iterate(vpiParameter, obj_h);
+                while (vpiHandle param_h = vpi_scan(itr)) {
+                    if (!vpi_get(vpiLocalParam, param_h) && !is_imported(param_h)) {
+                        module->user1(true); // Need to set params, mark as partial again
+                        vpi_free_object(param_h);
+                        break;
+                    }
+                    vpi_free_object(param_h);
+                }
+                vpi_free_object(itr);
+            }
+            if (module->user1u().toInt()) { // Is partial
                 static int module_counter;
-                // Not a top module, create separate node with proper params
+                // Create separate node with proper params
                 module = module->cloneTree(false);
+                module->user1(false);  // Not partial anymore
                 module->user4p(nullptr);  // Clear SymEnt
                 // Use more specific name
-                name = modType + "_" + objectName + std::to_string(module_counter++);
+                modType += "_" + objectName + std::to_string(module_counter++);
+                module->name(modType);
             }
-            module->name(name);
-            shared.m_symp->pushNew(module);
-            visit_one_to_many(
-                {
-                    vpiPort,
-                    vpiInterface,
-                    vpiInterfaceArray,
-                    vpiProcess,
-                    vpiContAssign,
-                    vpiModule,
-                    vpiModuleArray,
-                    vpiPrimitive,
-                    vpiPrimitiveArray,
-                    vpiModPath,
-                    vpiTchk,
-                    vpiDefParam,
-                    vpiIODecl,
-                    vpiAliasStmt,
-                    vpiClockingBlock,
-                    vpiNet,
-                    vpiGenScopeArray,
-                    vpiArrayNet,
+            if (!module->user2SetOnce()) { // Only do this once
+                shared.m_symp->pushNew(module);
+                visit_one_to_many(
+                    {
+                        vpiPort,
+                        vpiInterface,
+                        vpiInterfaceArray,
+                        vpiProcess,
+                        vpiContAssign,
+                        vpiModule,
+                        vpiModuleArray,
+                        vpiPrimitive,
+                        vpiPrimitiveArray,
+                        vpiModPath,
+                        vpiTchk,
+                        vpiDefParam,
+                        vpiIODecl,
+                        vpiAliasStmt,
+                        vpiClockingBlock,
+                        vpiNet,
+                        vpiGenScopeArray,
+                        vpiArrayNet,
 
-                    // from vpiInstance
-                    vpiProgram,
-                    vpiProgramArray,
-                    vpiTaskFunc,
-                    vpiSpecParam,
-                    vpiAssertion,
-                    // vpiClassDefn,
+                        // from vpiInstance
+                        vpiProgram,
+                        vpiProgramArray,
+                        vpiTaskFunc,
+                        vpiSpecParam,
+                        vpiAssertion,
+                        // vpiClassDefn,
 
-                    // from vpiScope
-                    vpiPropertyDecl,
-                    vpiSequenceDecl,
-                    vpiConcurrentAssertions,
-                    vpiNamedEvent,
-                    vpiNamedEventArray,
-                    vpiVariables,
-                    vpiVirtualInterfaceVar,
-                    vpiReg,
-                    vpiRegArray,
-                    vpiMemory,
-                    vpiInternalScope,
-                    vpiAttribute,
-                },
-                obj_h, shared, [&](AstNode* node) {
-                    if (node != nullptr) module->addStmtp(node);
-                });
-            // Update parameter values using TopModules tree
-            if (param_it != shared.top_param_map.end()) {
-                auto param_map = param_it->second;
-                visit_one_to_many({vpiParamAssign}, obj_h, shared, [&](AstNode* node) {
-                    if (VN_IS(node, Var)) {
-                        AstVar* param_node = VN_CAST(node, Var);
-                        // Global parameters are added as pins, skip them here
-                        if (param_node->varType() == AstVarType::LPARAM)
-                            param_map[node->name()] = node;
+                        // from vpiScope
+                        vpiPropertyDecl,
+                        vpiSequenceDecl,
+                        vpiConcurrentAssertions,
+                        vpiNamedEvent,
+                        vpiNamedEventArray,
+                        vpiVariables,
+                        vpiVirtualInterfaceVar,
+                        vpiReg,
+                        vpiRegArray,
+                        vpiMemory,
+                        vpiInternalScope,
+                        vpiAttribute,
+                    },
+                    obj_h, shared, [&](AstNode* node) {
+                        if (node != nullptr) module->addStmtp(node);
+                    });
+                // Update parameter values using TopModules tree
+                if (param_it != shared.top_param_map.end()) {
+                    auto& param_map = param_it->second;
+                    visit_one_to_many({vpiParamAssign}, obj_h, shared, [&](AstNode* node) {
+                        if (VN_IS(node, Var)) {
+                            AstVar* param_node = VN_CAST(node, Var);
+                            // Global parameters are added as pins, skip them here
+                            if (param_node->varType() == AstVarType::LPARAM)
+                                param_map[node->name()] = node;
+                        }
+                    });
+                    // Add final values of parameters
+                    for (auto& param_p : param_map) {
+                        if (param_p.second != nullptr)
+                            module->addStmtp(param_p.second->cloneTree(false));
                     }
-                });
-                // Add final values of parameters
-                for (auto& param_p : param_map) {
-                    if (param_p.second != nullptr)
-                        module->addStmtp(param_p.second->cloneTree(false));
                 }
+                (shared.top_nodes)[modType] = module;
+                shared.m_symp->popScope(module);
             }
-            (shared.top_nodes)[name] = module;
-            shared.m_symp->popScope(module);
         } else {
             // Encountered for the first time
             module = new AstModule(new FileLine(modType), modType);
+            module->user1(true); // Mark as partial
 
             vpiHandle typedef_itr = vpi_iterate(vpiTypedef, obj_h);
             while (vpiHandle typedef_obj = vpi_scan(typedef_itr)) {
@@ -1788,18 +1811,18 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             visit_one_to_many({vpiParamAssign}, obj_h, shared, [&](AstNode* node) {
                 if (node != nullptr) param_map[node->name()] = node;
             });
-            (shared.partial_modules)[module->name()] = module;
+            (shared.top_nodes)[modType] = module;
             if (v3Global.opt.trace()) { module->modTrace(true); }
-            shared.top_param_map[module->name()] = param_map;
+            shared.top_param_map[modDefName] = param_map;
         }
 
         // If available, check vpiFullName instead of vpiName, as vpiName can equal vpiDefName
-        std::string fullName = name;
+        std::string fullName = objectName;
         if (auto* s = vpi_get_str(vpiFullName, obj_h)) {
             fullName = s;
             sanitize_str(fullName);
         }
-        if (fullName != modType) {
+        if (fullName != modDefName) {
             // Not a top module, create instance
             AstPin* modPins = nullptr;
             AstPin* modParams = nullptr;
@@ -1869,7 +1892,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             std::string fullname = get_object_name(obj_h, {vpiFullName});
             UINFO(8, "Adding cell " << fullname << std::endl);
             AstCell* cell = new AstCell(make_fileline(obj_h), make_fileline(obj_h), objectName,
-                                        name, modPins, modParams, nullptr);
+                                        modType, modPins, modParams, nullptr);
             if (v3Global.opt.trace()) { cell->trace(true); }
             return cell;
         }
@@ -2993,7 +3016,7 @@ std::vector<AstNodeModule*> visit_designs(const std::vector<vpiHandle>& designs,
             });
     }
     std::vector<AstNodeModule*> nodes;
-    for (auto node : shared.top_nodes) nodes.push_back(node.second);
+    for (auto node : shared.top_nodes) if (!node.second->user1u().toInt()) nodes.push_back(node.second);
     if (class_package != nullptr) { nodes.push_back(class_package); }
     return nodes;
 }

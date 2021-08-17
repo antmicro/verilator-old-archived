@@ -1,257 +1,225 @@
 curr_dir:=$(dir $(lastword $(MAKEFILE_LIST)))
-OPEN_TITAN = ${curr_dir}/opentitan
+OPENTITAN = ${curr_dir}/opentitan
 
 ################################
 #### verilator - simulation ####
 ################################
-OPEN_TITAN_BUILD = ${root_dir}/build/lowrisc_systems_top_earlgrey_verilator_0.1
+OPENTITAN_BUILD = ${root_dir}/build/lowrisc_systems_top_earlgrey_verilator_0.1
 
-OPEN_TITAN_INCLUDE = \
-	-I$(OPEN_TITAN_BUILD)/src/lowrisc_prim_assert_0.1/rtl \
-	-I$(OPEN_TITAN_BUILD)/src/lowrisc_ibex_ibex_core_0.1/rtl \
-	-I$(OPEN_TITAN_BUILD)/src/lowrisc_dv_dv_macros_0 \
-	-I$(OPEN_TITAN_BUILD)/src/lowrisc_prim_util_memload_0/rtl
+OPENTITAN_INCLUDE = \
+	-I$(OPENTITAN_BUILD)/src/lowrisc_prim_assert_0.1/rtl \
+	-I$(OPENTITAN_BUILD)/src/lowrisc_ibex_ibex_core_0.1/rtl \
+	-I$(OPENTITAN_BUILD)/src/lowrisc_dv_dv_macros_0 \
+	-I$(OPENTITAN_BUILD)/src/lowrisc_prim_util_memload_0/rtl
 
-# Working set of Opentitan files
-SURELOG_FILE_LIST='/ibex_pkg.sv \
-aes_pkg.sv \
-rv_core_ibex_pkg.sv \
-usbdev_pkg.sv \
-sram_ctrl_pkg.sv \
-otp_ctrl_part_pkg.sv \
-top_earlgrey_rnd_cnst_pkg.sv \
-otp_ctrl_pkg.sv \
-hmac_pkg.sv \
-lc_ctrl_pkg.sv \
-kmac_pkg.sv \
-lc_ctrl_state_pkg.sv \
-flash_phy_pkg.sv \
-flash_ctrl_pkg.sv \
-otbn_pkg.sv \
-tlul_pkg.sv \
-spi_device_pkg.sv \
-keymgr_pkg.sv \
-alert_pkg.sv \
-hmac_reg_pkg.sv \
-ast_pkg.sv \
-otp_ctrl_reg_pkg.sv \
-lc_ctrl_reg_pkg.sv \
-rv_plic_reg_pkg.sv \
-sensor_ctrl_pkg.sv \
-pwrmgr_pkg.sv \
-flash_ctrl_reg_pkg.sv \
-kmac_reg_pkg.sv \
-pattgen_reg_pkg.sv \
-pinmux_reg_pkg.sv \
-usbdev_reg_pkg.sv \
-sensor_ctrl_reg_pkg.sv \
-rv_timer_reg_pkg.sv \
-rstmgr_reg_pkg.sv \
-pwrmgr_reg_pkg.sv \
-alert_handler_reg_pkg.sv \
-keymgr_reg_pkg.sv \
-rstmgr_pkg.sv \
-pinmux_pkg.sv \
-tl_peri_pkg.sv \
-tl_main_pkg.sv \
-clkmgr_reg_pkg.sv \
-uart_reg_pkg.sv \
-spi_device_reg_pkg.sv \
-sha3_pkg.sv \
-pattgen_ctrl_pkg.sv \
-otbn_reg_pkg.sv \
-nmi_gen_reg_pkg.sv \
-i2c_reg_pkg.sv \
-gpio_reg_pkg.sv \
-entropy_src_reg_pkg.sv \
-aes_reg_pkg.sv \
-aes_sbox_canright_pkg.sv \
-dm_pkg.sv \
-usb_consts_pkg.sv \
-clkmgr_pkg.sv \
-sram_ctrl_reg_pkg.sv \
-edn_pkg.sv \
-edn_reg_pkg.sv \
-csrng_pkg.sv \
-csrng_reg_pkg.sv \
-top_pkg.sv \
-dv_test_status_pkg.sv \
-entropy_src_pkg.sv \
-jtag_pkg.sv \
-top_earlgrey_pkg.sv \
-sw_test_status_pkg.sv \
-ibex_tracer_pkg.sv \
-prim_cipher_pkg.sv \
-prim_generic_clock_gating.sv \
-ibex_prefetch_buffer.sv \
-ibex_branch_predict.sv \
-ibex_compressed_decoder.sv \
-ibex_fetch_fifo.sv \
-ibex_id_stage.sv \
-ibex_decoder.sv \
-ibex_dummy_instr.sv \
-ibex_controller.sv \
-ibex_if_stage.sv \
-ibex_ex_block.sv \
-ibex_alu.sv \
-ibex_multdiv_fast.sv \
-ibex_multdiv_slow.sv \
-ibex_load_store_unit.sv \
-ibex_wb_stage.sv \
-ibex_csr.sv \
-ibex_cs_registers.sv \
-ibex_counter.sv \
-ibex_register_file_ff.sv \
-ibex_register_file_fpga.sv \
-ibex_register_file_latch.sv \
-ibex_pmp.sv \
-prim_secded_22_16_enc.sv \
-prim_secded_22_16_dec.sv \
-prim_secded_28_22_enc.sv \
-prim_secded_28_22_dec.sv \
-prim_secded_39_32_enc.sv \
-prim_secded_39_32_dec.sv \
-prim_secded_72_64_enc.sv \
-prim_secded_72_64_dec.sv \
-prim_secded_hamming_22_16_enc.sv \
-prim_secded_hamming_22_16_dec.sv \
-prim_secded_hamming_39_32_enc.sv \
-prim_secded_hamming_39_32_dec.sv \
-prim_secded_hamming_72_64_enc.sv \
-prim_secded_hamming_72_64_dec.sv \
-prim_pkg.sv \
-prim_util_pkg.sv \
-prim_gf_mult.sv \
-prim_generic_pad_wrapper.sv \
-prim_generic_buf.sv \
-prim_otp_pkg.sv \
-prim_dom_and_2share.sv \
-prim_xilinx_buf.sv \
-prim_xilinx_clock_buf.sv \
-prim_xilinx_clock_gating.sv \
-prim_xilinx_clock_mux2.sv \
-prim_xilinx_flop.sv \
-prim_xilinx_pad_wrapper.sv \
-prim_pad_wrapper.sv \
-prim_generic_clock_buf.sv \
-prim_clock_buf.sv \
-prim_generic_clock_mux2.sv \
-prim_buf.sv \
-prim_alert_pkg.sv \
-prim_arbiter_fixed.sv \
-prim_esc_pkg.sv \
-prim_diff_decode.sv \
-gpiodpi.sv \
-spidpi.sv \
-prim_slicer.sv \
-prim_gate_gen.sv \
-prim_pulse_sync.sv \
-prim_filter_ctr.sv \
-prim_subreg_arb.sv \
-prim_subreg_ext.sv \
-prim_intr_hw.sv \
-pins_if.sv \
-dmidpi.sv \
-jtagdpi.sv \
-ibex_tracer.sv \
-usb_fs_nb_out_pe.sv \
-usb_fs_rx.sv \
-usb_fs_tx.sv \
-usb_fs_tx_mux.sv \
-debug_rom.sv \
-debug_rom_one_scratch.sv \
-aes_reg_status.sv \
-entropy_src_watermark_reg.sv \
-entropy_src_cntr_reg.sv \
-entropy_src_repcnt_ht.sv \
-entropy_src_adaptp_ht.sv \
-entropy_src_bucket_ht.sv \
-entropy_src_markov_ht.sv \
-i2c_fsm.sv \
-keymgr_cfg_en.sv \
-pattgen_chan.sv \
-rv_plic_gateway.sv \
-timer_core.sv \
-spi_fwm_rxf_ctrl.sv \
-spi_fwm_txf_ctrl.sv \
-uart_rx.sv \
-uart_tx.sv \
-usbdev_flop_2syncpulse.sv \
-jtag_mux.sv \
-csrng_state_db.sv \
-tlul_assert_multiple.sv \
-tlul_assert.sv \
-prim_generic_ram_2p.sv \
-prim_ram_2p.sv \
-pwrmgr_wake_info.sv \
-padring.sv \
-prim_ram_2p_async_adv.sv \
-pwrmgr_slow_fsm.sv \
-prim_present.sv \
-alert_handler_class.sv \
-alert_handler_accu.sv \
-spi_fwmode.sv \
-sram2tlul.sv \
-alert_handler_esc_timer.sv \
-tlul_err_resp.sv \
-otbn_rf_bignum_fpga.sv \
-keymgr_kmac_if.sv \
-otbn_decoder.sv \
-keymgr_input_checks.sv \
-otbn_instruction_fetch.sv \
-keymgr_sideload_key.sv \
-otbn_core_model.sv \
-otbn_rf_base_ff.sv \
-otbn_rf_base_fpga.sv \
-otbn_alu_bignum.sv \
-otbn_trace_if.sv \
-otbn_rf_snooper_if.sv \
-otbn_tracer.sv \
-otbn_rf_bignum_ff.sv \
-otbn_stack.sv \
-otbn_lsu.sv \
-keymgr_sideload_key_ctrl.sv \
-flash_ctrl_prog.sv \
-flash_phy_prog.sv \
-otbn_stack_snooper_if.sv \
-flash_ctrl_rd.sv \
-flash_phy_rd_buffers.sv \
-flash_ctrl_arb.sv \
-flash_phy_erase.sv \
-otbn_alu_base.sv \
-otbn_mac_bignum.sv \
-tlul_err.sv \
-tlul_adapter_host.sv \
-usb_fs_nb_in_pe.sv \
-dm_sba.sv \
-usb_fs_nb_pe.sv \
-kmac_entropy.sv \
-kmac_keymgr.sv \
-lc_ctrl_state_decode.sv \
-flash_ctrl_erase.sv \
-lc_ctrl_state_transition.sv \
-hmac_core.sv \
-spi_p2s.sv \
-sha2_pad.sv \
-spi_s2p.sv \
-sha2.sv \
-aes_sbox_lut.sv \
-aes_sbox_canright_masked_noreuse.sv \
-aes_sbox_canright.sv \
-aes_mix_single_column.sv \
-aes_sbox_canright_masked.sv \
-aes_sbox.sv \
-aes_shift_rows.sv \
-aes_sbox_dom.sv \
-aes_mix_columns.sv \
-usbdpi.sv'
+# Names of source files only read by Verilator (starting with / to avoid false matches by suffix)
+VERILATOR_ONLY_SOURCE_FILENAMES=\
+/uartdpi.sv \
+/sw_test_status_if.sv \
+/prim_generic_ram_1p.sv \
+/prim_generic_rom.sv \
+/pwrmgr_reg_top.sv \
+/rstmgr_reg_top.sv \
+/pinmux_reg_top.sv \
+/prim_clock_mux2.sv \
+/prim_ram_1p.sv \
+/prim_rom.sv \
+/ibex_icache.sv \
+/prim_clock_gating_sync.sv \
+/prim_arbiter_ppc.sv \
+/prim_arbiter_tree.sv \
+/prim_esc_receiver.sv \
+/prim_sram_arbiter.sv \
+/prim_fifo_async.sv \
+/prim_sync_reqack.sv \
+/prim_sync_reqack_data.sv \
+/prim_keccak.sv \
+/prim_packer.sv \
+/prim_prince.sv \
+/prim_subst_perm.sv \
+/prim_filter.sv \
+/prim_subreg_shadow.sv \
+/prim_generic_clock_inv.sv \
+/prim_lc_sender.sv \
+/prim_lc_sync.sv \
+/prim_ram_1p_adv.sv \
+/prim_rom_adv.sv \
+/ibex_core.sv \
+/prim_clock_inv.sv \
+/prim_edn_req.sv \
+/prim_generic_otp.sv \
+/prim_ram_1p_scr.sv \
+/prim_ram_2p_adv.sv \
+/tlul_fifo_sync.sv \
+/tlul_fifo_async.sv \
+/prim_otp.sv \
+/flash_ctrl_reg_top.sv \
+/flash_ctrl.sv \
+/tlul_adapter_sram.sv \
+/tlul_socket_1n.sv \
+/tlul_socket_m1.sv \
+/tlul_sink.sv \
+/sim_sram_if.sv \
+/sim_sram.sv \
+/prim_clock_div.sv \
+/dm_csrs.sv \
+/dm_mem.sv \
+/dmi_cdc.sv \
+/dmi_jtag.sv \
+/dmi_jtag_tap.sv \
+/aes_reg_top.sv \
+/aes_core.sv \
+/aes_ctr.sv \
+/aes_control.sv \
+/aes_sel_buf_chk.sv \
+/aes_cipher_core.sv \
+/aes_cipher_control.sv \
+/aes_sub_bytes.sv \
+/aes_key_expand.sv \
+/aes_prng_clearing.sv \
+/aes_prng_masking.sv \
+/aes.sv \
+/edn_reg_top.sv \
+/edn_ack_sm.sv \
+/edn_main_sm.sv \
+/edn_core.sv \
+/edn.sv \
+/gpio.sv \
+/gpio_reg_top.sv \
+/hmac_reg_top.sv \
+/hmac.sv \
+/i2c_reg_top.sv \
+/i2c_core.sv \
+/i2c.sv \
+/keymgr_reg_top.sv \
+/keymgr_ctrl.sv \
+/keymgr_reseed_ctrl.sv \
+/keymgr.sv \
+/nmi_gen_reg_top.sv \
+/nmi_gen.sv \
+/otbn_controller.sv \
+/otbn_rf_base.sv \
+/otbn_loop_controller.sv \
+/otbn_core.sv \
+/otbn_reg_top.sv \
+/otbn.sv \
+/otp_ctrl_reg_top.sv \
+/otp_ctrl_ecc_reg.sv \
+/otp_ctrl_scrmbl.sv \
+/otp_ctrl_lfsr_timer.sv \
+/otp_ctrl_part_unbuf.sv \
+/otp_ctrl_part_buf.sv \
+/otp_ctrl_dai.sv \
+/otp_ctrl_kdi.sv \
+/otp_ctrl_lci.sv \
+/otp_ctrl.sv \
+/pattgen_reg_top.sv \
+/pattgen_core.sv \
+/pattgen.sv \
+/pwrmgr.sv \
+/pwrmgr_cdc.sv \
+/pwrmgr_fsm.sv \
+/rv_core_ibex.sv \
+/rv_dm.sv \
+/rv_plic_target.sv \
+/rv_timer_reg_top.sv \
+/rv_timer.sv \
+/keccak_round.sv \
+/keccak_2share.sv \
+/sha3pad.sv \
+/sha3.sv \
+/spi_device_reg_top.sv \
+/spi_device.sv \
+/sram_ctrl_reg_top.sv \
+/sram_ctrl.sv \
+/uart_reg_top.sv \
+/uart_core.sv \
+/uart.sv \
+/usbdev_reg_top.sv \
+/usbdev_usbif.sv \
+/usbdev_linkstate.sv \
+/usbdev_iomux.sv \
+/usbdev_aon_wake.sv \
+/usbdev.sv \
+/prim_generic_flash_bank.sv \
+/prim_generic_flash.sv \
+/clkmgr_reg_top.sv \
+/clkmgr.sv \
+/sensor_ctrl_reg_top.sv \
+/xbar_main.sv \
+/xbar_peri.sv \
+/csrng_reg_top.sv \
+/csrng_main_sm.sv \
+/csrng_cmd_stage.sv \
+/csrng_block_encrypt.sv \
+/csrng_ctr_drbg_cmd.sv \
+/csrng_ctr_drbg_upd.sv \
+/csrng_ctr_drbg_gen.sv \
+/csrng_core.sv \
+/csrng.sv \
+/kmac_core.sv \
+/kmac_msgfifo.sv \
+/kmac_staterd.sv \
+/kmac_reg_top.sv \
+/kmac.sv \
+/lc_ctrl_reg_top.sv \
+/lc_ctrl_signal_decode.sv \
+/lc_ctrl_fsm.sv \
+/lc_ctrl.sv \
+/pinmux_wkup.sv \
+/pinmux.sv \
+/prim_flash.sv \
+/rv_plic_reg_top.sv \
+/rv_plic.sv \
+/sensor_ctrl.sv \
+/flash_ctrl_info_cfg.sv \
+/flash_ctrl_lcmgr.sv \
+/flash_mp.sv \
+/flash_mp_data_region_sel.sv \
+/flash_phy.sv \
+/flash_phy_core.sv \
+/flash_phy_rd.sv \
+/flash_phy_scramble.sv \
+/rstmgr.sv \
+/rstmgr_ctrl.sv \
+/rstmgr_por.sv \
+/rstmgr_crash_info.sv \
+/top_earlgrey.sv \
+/top_earlgrey_verilator.sv \
 
-TO_SURELOG = \
-	$(shell \
-		echo \'${SURELOG_FILE_LIST}\' | sed 's/\s/\\|/g' )
+# Names of source files read by Verilator AND Surelog (starting with / to avoid false matches by suffix)
+VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/prim_generic_clock_gating.sv \
+/prim_buf.sv \
+/prim_diff_decode.sv \
+/prim_subreg.sv \
+/prim_subreg_arb.sv \
+/prim_subreg_ext.sv \
+/prim_intr_hw.sv \
+/prim_lfsr.sv \
+/prim_clock_gating.sv \
+/prim_flop.sv \
+/prim_generic_flop.sv \
+/prim_flop_2sync.sv \
+/prim_generic_flop_2sync.sv \
+/prim_packer_fifo.sv \
+/prim_alert_sender.sv \
+/prim_alert_receiver.sv \
+/prim_fifo_sync.sv \
+/tlul_adapter_reg.sv
 
-# Need to readd this to .vc file due to double matching 'ibex_pkg.sv'
-READD='../src/lowrisc_ip_rv_core_ibex_pkg_0.1/rtl/rv_core_ibex_pkg.sv'
+# Regexes for grep
+VERILATOR_ONLY_REGEX=$(shell echo ${VERILATOR_ONLY_SOURCE_FILENAMES} | sed 's/\s/\\|/g')
+VERILATOR_AND_SURELOG_REGEX=$(shell echo ${VERILATOR_AND_SURELOG_SOURCE_FILENAMES} | sed 's/\s/\\|/g')
+
+# File containing OpenTitan source paths
+VC_FILE=${OPENTITAN_BUILD}/sim-verilator/lowrisc_systems_top_earlgrey_verilator_0.1.vc
+
+# Source paths read by Verilator (including those from VERILATOR_AND_SURELOG_SOURCE_FILENAMES)
+VERILATOR_SOURCES=$(shell grep -F .sv < ${VC_FILE} | grep '${VERILATOR_ONLY_REGEX}\|${VERILATOR_AND_SURELOG_REGEX}')
+
+# Source paths read by Surelog (including those from VERILATOR_AND_SURELOG_SOURCE_FILENAMES)
+SURELOG_SOURCES=$(shell grep -F .sv < ${VC_FILE} | grep -v '${VERILATOR_ONLY_REGEX}' | sed 's@^..@${OPENTITAN_BUILD}@')
 
 # Top-level parameters in skipped modules that need to be known to Surelog
 SURELOG_PARAMETERS = -PPMPNumRegions=16 \
@@ -259,30 +227,15 @@ SURELOG_PARAMETERS = -PPMPNumRegions=16 \
                        -PWritebackStage=1 \
                       --disable-feature=parametersubstitution
 
-OPEN_TITAN_SOURCES = \
-	$(shell \
-		cat ${OPEN_TITAN_BUILD}/sim-verilator/lowrisc_systems_top_earlgrey_verilator_0.1.vc | \
-		grep -F .sv | grep ${TO_SURELOG} | \
-		sed 's@^..@${OPEN_TITAN_BUILD}@')
-
-OPEN_TITAN_SOURCES_DELETE = \
-        $(shell \
-		cat ${OPEN_TITAN_BUILD}/sim-verilator/lowrisc_systems_top_earlgrey_verilator_0.1.vc | \
-		grep -F .sv | grep ${TO_SURELOG}  | sed "s/.*\///")
-
-OPEN_TITAN_SOURCES_DELETE_OR = \
-	$(shell \
-		echo ${OPEN_TITAN_SOURCES_DELETE} | sed 's/\s/\\|/g')
-
 CPU_COUNT = $(shell nproc)
 
 prepare-sources:
 	virtualenv ${root_dir}/venv-opentitan
 	(export PATH=${root_dir}/../image/bin:${PATH} && \
 		. ${root_dir}/venv-opentitan/bin/activate && \
-		pip install -r ${OPEN_TITAN}/python-requirements.txt && \
+		pip install -r ${OPENTITAN}/python-requirements.txt && \
 		pip install git+https://github.com/antmicro/edalize@surelog && \
-		fusesoc --cores-root=${OPEN_TITAN} run --flag=fileset_top --target=sim --setup lowrisc:systems:top_earlgrey_verilator \
+		fusesoc --cores-root=${OPENTITAN} run --flag=fileset_top --target=sim --setup lowrisc:systems:top_earlgrey_verilator \
 		--verilator_options '--threads ${CPU_COUNT}')
 
 uhdm/verilator/opentitan: clean-build | prepare-sources
@@ -291,19 +244,19 @@ uhdm/verilator/opentitan: clean-build | prepare-sources
 		cd ${root_dir}/build && \
 		${root_dir}/../image/bin/surelog -nobuiltin -parse -sverilog +define+VERILATOR \
 			${SURELOG_PARAMETERS} \
-			$(OPEN_TITAN_INCLUDE) \
-			$(OPEN_TITAN_SOURCES) && \
+			$(OPENTITAN_INCLUDE) \
+			$(SURELOG_SOURCES) && \
 		cp ${root_dir}/build/slpp_all/surelog.uhdm ${root_dir}/build/ibex_core.uhdm && \
-		cd ${OPEN_TITAN_BUILD}/sim-verilator/ && \
+		cd ${OPENTITAN_BUILD}/sim-verilator/ && \
 		sed 's/-Wall -DVM_TRACE_FMT_FST/-DVM_TRACE_FMT_FST/g' -i config.mk && \
 		sed '/--cc/a --uhdm-ast-sv' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
 		sed '/--uhdm-ast-sv/a ${root_dir}/build/ibex_core.uhdm' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
-		sed '/${OPEN_TITAN_SOURCES_DELETE_OR}/d' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
-		sed '/usbdev_pkg.sv/i ${READD}' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
+		sed '/\.sv$$/d' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
+		sed '/--top-module top_earlgrey_verilator/i ${VERILATOR_SOURCES}' -i lowrisc_systems_top_earlgrey_verilator_0.1.vc && \
 		$(MAKE))
 
 verilator/opentitan: clean-build | prepare-sources
 	(export PATH=${root_dir}/../image/bin:${PATH} && \
 		. ${root_dir}/venv-opentitan/bin/activate && \
-		cd ${OPEN_TITAN_BUILD}/sim-verilator/ && \
+		cd ${OPENTITAN_BUILD}/sim-verilator/ && \
 		$(MAKE))
