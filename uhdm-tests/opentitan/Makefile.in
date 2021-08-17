@@ -172,7 +172,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /rv_plic_reg_top.sv \
 /rv_plic.sv \
 /sensor_ctrl.sv \
-/flash_ctrl_info_cfg.sv \
 /flash_ctrl_lcmgr.sv \
 /flash_mp.sv \
 /flash_mp_data_region_sel.sv \
