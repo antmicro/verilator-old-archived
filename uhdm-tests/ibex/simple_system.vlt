@@ -3,3 +3,4 @@ lint_off -rule PINCONNECTEMPTY
 clock_enable -module "prim_generic_clock_gating*" -var "en_latch"
 lint_off -rule IMPERFECTSCH
 lint_off -rule DECLFILENAME
+lint_off -rule VARHIDDEN

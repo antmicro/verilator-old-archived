@@ -16,7 +16,6 @@ typedef std::map<std::string, AstNode*> NameNodeMap;
 struct UhdmShared {
     std::map<std::string, AstPackage*> package_map;
     std::string package_prefix;
-    NameNodeMap partial_modules;
     std::unordered_map<const UHDM::BaseClass*, std::string> visited_types_map;
     std::unordered_set<const UHDM::BaseClass*> visited_objects;
     // Store parameters here (values can be updated for each instance)
