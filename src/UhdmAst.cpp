@@ -970,13 +970,13 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared,
         auto typespec_h = vpi_handle(vpiTypespec, obj_h);
         auto type = vpi_get(vpiType, typespec_h);
         AstNode* sizeNodep = nullptr;
-        if (type == vpiIntTypespec) {
+        if (type == vpiIntTypespec || type == vpiIntegerTypespec) {
             auto* namep = vpi_get_str(vpiName, typespec_h);
             if (namep != nullptr)
                 sizeNodep = new AstParseRef(make_fileline(typespec_h), VParseRefExp::en::PX_TEXT,
                                             namep, nullptr, nullptr);
-        } else if (type == vpiIntegerTypespec) {
-            sizeNodep = get_value_as_node(typespec_h);
+            else
+                sizeNodep = get_value_as_node(typespec_h);
         }
 
         if (sizeNodep != nullptr) {
