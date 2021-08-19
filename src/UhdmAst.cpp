@@ -23,9 +23,9 @@ void visit_one_to_many(const std::vector<int> childrenNodeTypes, vpiHandle paren
         while (vpiHandle vpi_child_obj = vpi_scan(itr)) {
             auto* childNode = visit_object(vpi_child_obj, shared);
             f(childNode);
-            vpi_free_object(vpi_child_obj);
+            vpi_release_handle(vpi_child_obj);
         }
-        vpi_free_object(itr);
+        vpi_release_handle(itr);
     }
 }
 
@@ -40,7 +40,7 @@ void visit_one_to_one(const std::vector<int> childrenNodeTypes, vpiHandle parent
             auto* childNode = visit_object(itr, shared);
             f(childNode);
         }
-        vpi_free_object(itr);
+        vpi_release_handle(itr);
     }
 }
 
@@ -745,9 +745,9 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
         vpiHandle itr = vpi_iterate(vpiNet, obj_h);
         if (vpiHandle vpi_child_obj = vpi_scan(itr)) {
             dtypep = getDType(fl, vpi_child_obj, shared);
-            vpi_free_object(vpi_child_obj);
+            vpi_release_handle(vpi_child_obj);
         }
-        vpi_free_object(itr);
+        vpi_release_handle(itr);
 
         dtypep = applyUnpackedRanges(make_fileline(obj_h), obj_h, dtypep, shared);
         break;
@@ -1454,7 +1454,7 @@ AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
                 enum_members->addNextNull(wrapped_item);
             }
         }
-        vpi_free_object(itr);
+        vpi_release_handle(itr);
 
         visit_one_to_one({vpiBaseTypespec}, obj_h, shared, [&](AstNode* item) {
             if (item != nullptr) { enum_member_dtype = reinterpret_cast<AstNodeDType*>(item); }
@@ -1630,9 +1630,9 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                     dtype = getDType(make_fileline(obj_h), vpi_child_obj, shared);
                     break;
                 }
-                vpi_free_object(vpi_child_obj);
+                vpi_release_handle(vpi_child_obj);
             }
-            vpi_free_object(itr);
+            vpi_release_handle(itr);
         }
         if (dtype == nullptr) {
             // If no matching net was found, get info from port node connections
@@ -1700,12 +1700,12 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 while (vpiHandle param_h = vpi_scan(itr)) {
                     if (!vpi_get(vpiLocalParam, param_h) && !is_imported(param_h)) {
                         module->user1(true); // Need to set params, mark as partial again
-                        vpi_free_object(param_h);
+                        vpi_release_handle(param_h);
                         break;
                     }
-                    vpi_free_object(param_h);
+                    vpi_release_handle(param_h);
                 }
-                vpi_free_object(itr);
+                vpi_release_handle(itr);
             }
             if (module->user1u().toInt()) { // Is partial
                 static int module_counter;
@@ -1842,9 +1842,9 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 else
                     modPins->addNextNull(pin);
 
-                vpi_free_object(vpi_child_obj);
+                vpi_release_handle(vpi_child_obj);
             }
-            vpi_free_object(itr);
+            vpi_release_handle(itr);
 
             // Get parameter assignments
             itr = vpi_iterate(vpiParamAssign, obj_h);
@@ -1886,9 +1886,9 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                                                                 << objectName << std::endl);
                     continue;
                 }
-                vpi_free_object(vpi_child_obj);
+                vpi_release_handle(vpi_child_obj);
             }
-            vpi_free_object(itr);
+            vpi_release_handle(itr);
             std::string fullname = get_object_name(obj_h, {vpiFullName});
             UINFO(8, "Adding cell " << fullname << std::endl);
             AstCell* cell = new AstCell(make_fileline(obj_h), make_fileline(obj_h), objectName,
@@ -2026,9 +2026,9 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                         modPins->addNextNull(pin);
                 }
 
-                vpi_free_object(vpi_child_obj);
+                vpi_release_handle(vpi_child_obj);
             }
-            vpi_free_object(itr);
+            vpi_release_handle(itr);
 
             AstCell* cell = new AstCell(make_fileline(obj_h), new FileLine("uhdm"), objectName,
                                         modType, modPins, nullptr, nullptr);
@@ -2062,9 +2062,9 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 modport_vars->addNextNull(io_node);
             else
                 modport_vars = io_node;
-            vpi_free_object(io_h);
+            vpi_release_handle(io_h);
         }
-        vpi_free_object(io_itr);
+        vpi_release_handle(io_itr);
 
         return new AstModport(make_fileline(obj_h), objectName, modport_vars);
     }
