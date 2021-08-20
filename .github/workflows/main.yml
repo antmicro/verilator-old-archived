@@ -60,7 +60,7 @@ jobs:
     - name: Build binaries
       run: |
         # Default BSD sed is incompatible with -i flag without suffix
-        brew install gnu-sed && export SED_BIN=gsed
+        brew install gnu-sed
         export CPU_COUNT=`sysctl -n hw.logicalcpu`
         ./build_binaries.sh
 
@@ -74,6 +74,7 @@ jobs:
       env:
         TARGET: uhdm/verilator/simple-system
         TEST_CASE: tests/ibex
+        SED_BIN: gsed
 
     - name: Build & Test Ibex (vanilla verilator)
       run: |
