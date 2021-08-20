@@ -22,16 +22,16 @@ IBEX_SOURCES = \
         $(shell \
                 cat ${IBEX_BUILD}/sim-verilator/lowrisc_ibex_ibex_simple_system_0.vc | \
                 grep -F .sv | \
-                sed 's@^..@${IBEX_BUILD}@')
+                ${SED_BIN} 's@^..@${IBEX_BUILD}@')
 
 IBEX_SOURCES_DELETE = \
         $(shell \
                 cat ${IBEX_BUILD}/sim-verilator/lowrisc_ibex_ibex_simple_system_0.vc | \
-                grep -F .sv | sed "s/.*\///" )
+                grep -F .sv | ${SED_BIN} "s/.*\///" )
 
 IBEX_SOURCES_DELETE_OR = \
 	$(shell \
-		echo ${IBEX_SOURCES_DELETE} | sed 's/\s/\\|/g')
+		echo ${IBEX_SOURCES_DELETE} | ${SED_BIN} 's/\s/\\|/g')
 
 # Use up to 8 threads for simulated model (related to design parallelism factor)
 CPU_COUNT := $(shell nproc)
@@ -66,10 +66,10 @@ uhdm/verilator/simple-system: clean-build | prepare-sources
 			$(IBEX_SOURCES) && \
 		cp ${root_dir}/build/slpp_all/surelog.uhdm ${root_dir}/build/simple_system.uhdm && \
 		cd ${IBEX_BUILD}/sim-verilator/ && \
-		sed 's/-Wall --unroll-count 72/--unroll-count 72/g' -i config.mk && \
-		sed '/${IBEX_SOURCES_DELETE_OR}/d' -i lowrisc_ibex_ibex_simple_system_0.vc && \
-		sed '/--cc/a --uhdm-ast-sv' -i lowrisc_ibex_ibex_simple_system_0.vc && \
-		sed '/--top-module.*/i ${curr_dir}simple_system.vlt ${root_dir}/build/simple_system.uhdm' -i lowrisc_ibex_ibex_simple_system_0.vc && \
+		${SED_BIN} 's/-Wall --unroll-count 72/--unroll-count 72/g' -i config.mk && \
+		${SED_BIN} '/${IBEX_SOURCES_DELETE_OR}/d' -i lowrisc_ibex_ibex_simple_system_0.vc && \
+		${SED_BIN} '/--cc/a --uhdm-ast-sv' -i lowrisc_ibex_ibex_simple_system_0.vc && \
+		${SED_BIN} '/--top-module.*/i ${curr_dir}simple_system.vlt ${root_dir}/build/simple_system.uhdm' -i lowrisc_ibex_ibex_simple_system_0.vc && \
 		$(MAKE))
 
 verilator/simple-system: clean-build | prepare-sources

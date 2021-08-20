@@ -60,7 +60,7 @@ jobs:
     - name: Build binaries
       run: |
         # Default BSD sed is incompatible with -i flag without suffix
-        brew install gnu-sed && alias sed=gsed
+        brew install gnu-sed && export SED_BIN=gsed
         ./build_binaries.sh
 
     - name: Build & Test Ibex (UHDM)
