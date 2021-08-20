@@ -31,10 +31,8 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /prim_packer.sv \
 /prim_prince.sv \
 /prim_subst_perm.sv \
-/prim_filter.sv \
 /prim_generic_clock_inv.sv \
 /prim_lc_sync.sv \
-/prim_ram_1p_adv.sv \
 /prim_rom_adv.sv \
 /ibex_core.sv \
 /prim_clock_inv.sv \
@@ -80,7 +78,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /pwrmgr_cdc.sv \
 /rv_core_ibex.sv \
 /rv_dm.sv \
-/keccak_round.sv \
 /keccak_2share.sv \
 /sha3pad.sv \
 /sha3.sv \
@@ -106,7 +103,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /kmac.sv \
 /lc_ctrl_fsm.sv \
 /lc_ctrl.sv \
-/pinmux_wkup.sv \
 /pinmux.sv \
 /prim_flash.sv \
 /sensor_ctrl.sv \
@@ -121,6 +117,10 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 
 # Names of source files read by Verilator AND Surelog (starting with / to avoid false matches by suffix)
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/keccak_round.sv \
+/pinmux_wkup.sv \
+/prim_filter.sv \
+/prim_ram_1p_adv.sv \
 /prim_generic_clock_gating.sv \
 /prim_buf.sv \
 /prim_diff_decode.sv \
