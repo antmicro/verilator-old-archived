@@ -44,6 +44,47 @@ jobs:
         name: binaries
         path: binaries.tar
 
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+        fetch-depth: 1
+
+    - uses: actions/setup-python@v2
+      with:
+         python-version: '3.7'
+
+    - name: Build binaries
+      run: |
+        export CPU_COUNT=`sysctl -n hw.logicalcpu`
+        ./build_binaries.sh
+
+    - name: Build & Test Ibex (UHDM)
+      run: |
+        pip install virtualenv
+        ./uhdm-integration/.github/ci.sh
+        ./uhdm-integration/build/lowrisc_ibex_ibex_simple_system_0/sim-verilator/Vibex_simple_system --meminit=ram,uhdm-tests/ibex/hello_test.elf
+        mkdir output_uhdm
+        cp ibex_simple_system.log ibex_simple_system_pcount.csv trace_core_00000000.log output_uhdm/
+      env:
+        TARGET: uhdm/verilator/simple-system
+        TEST_CASE: tests/ibex
+
+    - name: Build & Test Ibex (vanilla verilator)
+      run: |
+        ./uhdm-integration/.github/ci.sh
+        ./uhdm-integration/build/lowrisc_ibex_ibex_simple_system_0/sim-verilator/Vibex_simple_system --meminit=ram,uhdm-tests/ibex/hello_test.elf
+      env:
+        TARGET: verilator/simple-system
+        TEST_CASE: tests/ibex
+
+    - name: Compare test results
+      run: |
+        diff -y ibex_simple_system.log output_uhdm/ibex_simple_system.log
+
   generate-matrix:
     runs-on: ubuntu-latest
     outputs:
