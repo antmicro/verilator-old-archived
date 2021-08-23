@@ -19,16 +19,13 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /prim_generic_ram_1p.sv \
 /prim_generic_rom.sv \
 /prim_clock_mux2.sv \
-/prim_ram_1p.sv \
 /prim_rom.sv \
 /ibex_icache.sv \
-/prim_arbiter_tree.sv \
 /prim_sram_arbiter.sv \
 /prim_fifo_async.sv \
 /prim_keccak.sv \
 /prim_subst_perm.sv \
 /prim_generic_clock_inv.sv \
-/prim_lc_sync.sv \
 /prim_rom_adv.sv \
 /ibex_core.sv \
 /prim_edn_req.sv \
@@ -50,9 +47,7 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /aes_cipher_core.sv \
 /aes_sub_bytes.sv \
 /aes_key_expand.sv \
-/gpio_reg_top.sv \
 /hmac_reg_top.sv \
-/hmac.sv \
 /keymgr.sv \
 /otbn_rf_base.sv \
 /otbn_loop_controller.sv \
@@ -61,8 +56,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /otp_ctrl_ecc_reg.sv \
 /otp_ctrl_part_buf.sv \
 /otp_ctrl_dai.sv \
-/otp_ctrl_kdi.sv \
-/otp_ctrl_lci.sv \
 /otp_ctrl.sv \
 /pwrmgr_cdc.sv \
 /rv_core_ibex.sv \
@@ -86,10 +79,8 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /kmac_staterd.sv \
 /kmac_reg_top.sv \
 /kmac.sv \
-/lc_ctrl.sv \
 /prim_flash.sv \
 /sensor_ctrl.sv \
-/flash_ctrl_lcmgr.sv \
 /flash_mp.sv \
 /flash_mp_data_region_sel.sv \
 /flash_phy.sv \
@@ -100,22 +91,22 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 
 # Names of source files read by Verilator AND Surelog (starting with / to avoid false matches by suffix)
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
-/keymgr_reg_top.sv \
+/flash_ctrl_lcmgr.sv \
+/otp_ctrl_kdi.sv \
+/otp_ctrl_lci.sv \
+/lc_ctrl.sv \
+/gpio_reg_top.sv \
+/prim_ram_1p.sv \
+/prim_lc_sync.sv \
+/prim_arbiter_tree.sv \
+/hmac.sv \
 /prim_sync_reqack_data.sv \
 /prim_arbiter_ppc.sv \
 /lc_ctrl_fsm.sv \
 /usbdev_linkstate.sv \
-/pinmux.sv \
-/csrng_ctr_drbg_cmd.sv \
-/prim_packer.sv \
-/edn_main_sm.sv \
-/pwrmgr.sv \
-/uart.sv \
 /sha3.sv \
-/aes_prng_masking.sv \
 /tlul_adapter_sram.sv \
 /prim_prince.sv \
-/prim_otp.sv \
 /prim_clock_inv.sv \
 /prim_ram_1p_adv.sv \
 /prim_generic_clock_gating.sv \
