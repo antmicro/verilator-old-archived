@@ -2492,11 +2492,28 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             return new AstAttrOf(make_fileline(obj_h), AstAttrType::DIM_UNPK_DIMENSIONS,
                                  arguments[0]);
         } else if (objectName == "$bits") {
-            // If this is not an expression, explicitly mark it as data type ref.
-            // See exprOrDataType in verilog.y
-            AstNode* expr_datatype_p = arguments[0];
-            if (VN_IS(expr_datatype_p, ParseRef)) {
-                expr_datatype_p = new AstRefDType(make_fileline(obj_h), expr_datatype_p->name());
+            // Verilator's original parser allow $bits function to have 2 arguments
+            // but it is not defined in standard
+            if (arguments.size() != 1)
+                v3error("Number of arguments is not 1");
+            vpiHandle arg_itr = vpi_iterate(vpiArgument, obj_h);
+            vpiHandle arg_h = vpi_scan(arg_itr);
+            AstNode* expr_datatype_p = nullptr;
+            // Check if it is type/variable name or expression
+            const unsigned int objectType = vpi_get(vpiType, arg_h);
+            if (objectType == vpiRefObj) {
+                // In case of funtion arguments Surelog parses
+                // both type names and variable names as vpiRefObjs
+                // We check if vpiActual field exists.
+                // If so, we assume that the argument is variable name
+                std::string argumentName = get_object_name(arg_h);
+                if (vpi_handle(vpiActual, arg_h))
+                    expr_datatype_p = new AstParseRef(make_fileline(arg_h), VParseRefExp::en::PX_TEXT,
+                                                      argumentName);
+                else
+                    expr_datatype_p = new AstRefDType(make_fileline(arg_h), argumentName);
+            } else {
+                expr_datatype_p = arguments[0];
             }
             return new AstAttrOf(make_fileline(obj_h), AstAttrType::DIM_BITS, expr_datatype_p);
         } else if (objectName == "$realtobits") {
