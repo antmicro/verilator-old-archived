@@ -2507,14 +2507,18 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 // We check if vpiActual field exists.
                 // If so, we assume that the argument is variable name
                 std::string argumentName = get_object_name(arg_h);
-                if (vpi_handle(vpiActual, arg_h))
+                if (vpiHandle actual_h = vpi_handle(vpiActual, arg_h)) {
                     expr_datatype_p = new AstParseRef(make_fileline(arg_h), VParseRefExp::en::PX_TEXT,
                                                       argumentName);
-                else
+                    vpi_release_handle(actual_h);
+                } else {
                     expr_datatype_p = new AstRefDType(make_fileline(arg_h), argumentName);
+                }
             } else {
                 expr_datatype_p = arguments[0];
             }
+            vpi_release_handle(arg_itr);
+            vpi_release_handle(arg_h);
             return new AstAttrOf(make_fileline(obj_h), AstAttrType::DIM_BITS, expr_datatype_p);
         } else if (objectName == "$realtobits") {
             return new AstRealToBits(make_fileline(obj_h), arguments[0]);
