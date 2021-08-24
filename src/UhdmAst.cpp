@@ -2811,11 +2811,11 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         AstParseRef* refp = getVarRefIfAlreadyDeclared(obj_h, shared);
         if (refp) return refp;
 
-        auto dtype = getDType(make_fileline(obj_h), obj_h, shared);
+        auto dtypep = getDType(make_fileline(obj_h), obj_h, shared);
 
-        auto* var = new AstVar(make_fileline(obj_h), AstVarType::VAR, objectName,
-                               VFlagChildDType(), dtype);
-        visit_one_to_one({vpiExpr}, obj_h, shared, [&](AstNode* item) { var->valuep(item); });
+        auto* varp = new AstVar(make_fileline(obj_h), AstVarType::VAR, objectName,
+                                VFlagChildDType(), dtypep);
+        visit_one_to_one({vpiExpr}, obj_h, shared, [&](AstNode* itemp) { varp->valuep(itemp); });
 
         if (objectType == vpiPackedArrayVar) {
             int elements_count = 0;
@@ -2823,17 +2823,17 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             while (vpiHandle element_h = vpi_scan(element_itr)) {
                 elements_count++;
                 if (elements_count > 1) v3error("vpiPackedArray has more than 1 vpiElement nodes");
-                if (var->valuep()) v3error("vpiPackedArray has both vpiElement and vpiExpr node");
+                if (varp->valuep()) v3error("vpiPackedArray has both vpiElement and vpiExpr node");
 
                 visit_one_to_one({vpiExpr}, element_h, shared,
-                                 [&](AstNode* item) { var->valuep(item); });
+                                 [&](AstNode* itemp) { varp->valuep(itemp); });
                 vpi_release_handle(element_h);
             }
             vpi_release_handle(element_itr);
         }
 
-        if (v3Global.opt.trace()) { var->trace(true); }
-        return var;
+        if (v3Global.opt.trace()) { varp->trace(true); }
+        return varp;
     }
     case vpiChandleVar: {
         AstParseRef* refp = getVarRefIfAlreadyDeclared(obj_h, shared);
