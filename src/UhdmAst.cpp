@@ -2820,6 +2820,8 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         if (objectType == vpiPackedArrayVar) {
             int elements_count = 0;
             vpiHandle element_itr = vpi_iterate(vpiElement, obj_h);
+            // It looks like Surelog returns at most 1 vpiElement node
+            // Elements of the array are given as operation vpiExpr of vpiElement
             while (vpiHandle element_h = vpi_scan(element_itr)) {
                 elements_count++;
                 if (elements_count > 1) v3error("vpiPackedArray has more than 1 vpiElement nodes");
