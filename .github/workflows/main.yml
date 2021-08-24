@@ -505,9 +505,9 @@ jobs:
       env:
         TEST_CASE: ${{ matrix.TEST_CASE_VCDDIFF }}
         OWNER: antmicro
-        REPO: yosys
+        REPO: yosys-uhdm-plugin-integration
         WORKFLOW: main.yml
-        BRANCH: uhdm-yosys
+        BRANCH: master
         STATUS: success
 
     - run: |
