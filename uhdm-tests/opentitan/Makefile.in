@@ -16,7 +16,6 @@ OPENTITAN_INCLUDE = \
 VERILATOR_ONLY_SOURCE_FILENAMES=\
 /uartdpi.sv \
 /sw_test_status_if.sv \
-/prim_generic_ram_1p.sv \
 /prim_generic_rom.sv \
 /prim_clock_mux2.sv \
 /prim_rom.sv \
@@ -85,16 +84,13 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 
 # Names of source files read by Verilator AND Surelog (starting with / to avoid false matches by suffix)
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
-/dm_mem.sv \
+/prim_generic_ram_1p.sv \
 /csrng_core.sv \
-/flash_ctrl.sv \
-/lc_ctrl.sv \
 /prim_ram_1p.sv \
 /prim_lc_sync.sv \
 /prim_arbiter_tree.sv \
 /prim_sync_reqack_data.sv \
 /prim_arbiter_ppc.sv \
-/sha3.sv \
 /tlul_adapter_sram.sv \
 /prim_prince.sv \
 /prim_clock_inv.sv \
