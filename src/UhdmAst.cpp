@@ -1717,7 +1717,25 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 modType += "_" + objectName + std::to_string(module_counter++);
                 module->name(modType);
             }
-            if (!module->user2SetOnce()) { // Only do this once
+            // Update parameter values using TopModules tree
+            if (param_it != shared.top_param_map.end()) {
+                auto& param_map = param_it->second;
+                visit_one_to_many({vpiParamAssign}, obj_h, shared, [&](AstNode* node) {
+                    if (VN_IS(node, Var)) {
+                        AstVar* param_node = VN_CAST(node, Var);
+                        // Global parameters are added as pins, skip them here
+                        if (param_node->varType() == AstVarType::LPARAM)
+                            param_map[node->name()] = node;
+                    }
+                });
+                // Add final values of parameters
+                for (auto& param_p : param_map) {
+                    if (param_p.second != nullptr)
+                        module->addStmtp(param_p.second->cloneTree(false));
+                }
+            }
+
+            if (!module->user2SetOnce()) {  // Only do this once
                 shared.m_symp->pushNew(module);
                 visit_one_to_many(
                     {
@@ -1765,23 +1783,6 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                     obj_h, shared, [&](AstNode* node) {
                         if (node != nullptr) module->addStmtp(node);
                     });
-                // Update parameter values using TopModules tree
-                if (param_it != shared.top_param_map.end()) {
-                    auto& param_map = param_it->second;
-                    visit_one_to_many({vpiParamAssign}, obj_h, shared, [&](AstNode* node) {
-                        if (VN_IS(node, Var)) {
-                            AstVar* param_node = VN_CAST(node, Var);
-                            // Global parameters are added as pins, skip them here
-                            if (param_node->varType() == AstVarType::LPARAM)
-                                param_map[node->name()] = node;
-                        }
-                    });
-                    // Add final values of parameters
-                    for (auto& param_p : param_map) {
-                        if (param_p.second != nullptr)
-                            module->addStmtp(param_p.second->cloneTree(false));
-                    }
-                }
                 (shared.top_nodes)[modType] = module;
                 shared.m_symp->popScope(module);
             }
@@ -1796,6 +1797,14 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 if (typedefp != nullptr) module->addStmtp(typedefp);
             }
 
+            NameNodeMap param_map;
+            visit_one_to_many({vpiParamAssign}, obj_h, shared, [&](AstNode* node) {
+                if (node != nullptr) {
+                    param_map[node->name()] = node;
+                    module->addStmtp(node->cloneTree(false));
+                }
+            });
+
             visit_one_to_many(
                 {
                     vpiModule,
@@ -1807,10 +1816,6 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                     if (node != nullptr) module->addStmtp(node);
                 });
 
-            NameNodeMap param_map;
-            visit_one_to_many({vpiParamAssign}, obj_h, shared, [&](AstNode* node) {
-                if (node != nullptr) param_map[node->name()] = node;
-            });
             (shared.top_nodes)[modType] = module;
             if (v3Global.opt.trace()) { module->modTrace(true); }
             shared.top_param_map[modDefName] = param_map;
