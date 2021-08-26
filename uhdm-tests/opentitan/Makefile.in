@@ -30,10 +30,7 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /prim_edn_req.sv \
 /prim_ram_1p_scr.sv \
 /prim_ram_2p_adv.sv \
-/tlul_fifo_sync.sv \
 /tlul_fifo_async.sv \
-/flash_ctrl_reg_top.sv \
-/tlul_socket_1n.sv \
 /tlul_socket_m1.sv \
 /sim_sram_if.sv \
 /sim_sram.sv \
@@ -74,9 +71,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /kmac.sv \
 /prim_flash.sv \
 /sensor_ctrl.sv \
-/flash_mp.sv \
-/flash_mp_data_region_sel.sv \
-/flash_phy.sv \
 /rstmgr.sv \
 /rstmgr_crash_info.sv \
 /top_earlgrey.sv \
@@ -110,7 +104,9 @@ VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
 /prim_packer_fifo.sv \
 /prim_alert_sender.sv \
 /prim_fifo_sync.sv \
-/tlul_adapter_reg.sv
+/tlul_adapter_reg.sv \
+/tlul_fifo_sync.sv \
+/tlul_socket_1n.sv \
 
 # Regexes for grep
 VERILATOR_ONLY_REGEX=$(shell echo ${VERILATOR_ONLY_SOURCE_FILENAMES} | sed 's/\s/\\|/g')
