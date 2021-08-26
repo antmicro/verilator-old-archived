@@ -70,6 +70,7 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /kmac_reg_top.sv \
 /kmac.sv \
 /prim_flash.sv \
+/sensor_ctrl.sv \
 /rstmgr.sv \
 /rstmgr_crash_info.sv \
 /top_earlgrey.sv \
@@ -106,7 +107,6 @@ VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
 /tlul_adapter_reg.sv \
 /tlul_fifo_sync.sv \
 /tlul_socket_1n.sv \
-/prim_lc_sync.sv \
 
 # Regexes for grep
 VERILATOR_ONLY_REGEX=$(shell echo ${VERILATOR_ONLY_SOURCE_FILENAMES} | sed 's/\s/\\|/g')
