@@ -62,7 +62,7 @@ jobs:
       - name: Generate matrix
         id: generate-matrix
         run: |
-          matrix="$(cd uhdm-integration && python list.py -d tests -s ibex synthesis OneClass hello-uvm OneThis opentitan BitsCallOnExpression)"
+          matrix="$(cd uhdm-integration && python list.py -d tests -s ibex synthesis OneClass hello-uvm OneThis opentitan BitsCallOnExpression CastStructArray conditional_if)"
           echo "::set-output name=matrix::$matrix"
           echo "Matrix: $matrix"
 
