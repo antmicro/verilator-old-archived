@@ -795,7 +795,7 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared,
         return new AstXor(make_fileline(obj_h), operands[0], operands[1]);
     }
     case vpiBitXnorOp: {
-        return new AstXnor(make_fileline(obj_h), operands[0], operands[1]);
+        return new AstNot(make_fileline(obj_h), new AstXor(make_fileline(obj_h), operands[0], operands[1]));
     }
     case vpiPostIncOp:
     case vpiPostDecOp: {
@@ -830,7 +830,7 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared,
         return new AstRedXor(make_fileline(obj_h), operands[0]);
     }
     case vpiUnaryXNorOp: {
-        return new AstRedXnor(make_fileline(obj_h), operands[0]);
+        return new AstNot(make_fileline(obj_h), new AstRedXor(make_fileline(obj_h), operands[0]));
     }
     case vpiEventOrOp: {
         // Do not create a separate node
@@ -983,7 +983,7 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared,
             return new AstCastParse(make_fileline(obj_h), operands[0], sizeNodep);
         } else {
             AstNodeDType* dtypep = getDType(make_fileline(obj_h), typespec_h, shared);
-            return new AstCast(make_fileline(obj_h), operands[0], dtypep);
+            return new AstCast(make_fileline(obj_h), operands[0], VFlagChildDType(), dtypep);
         }
     }
     case vpiStreamRLOp: {
@@ -2305,8 +2305,8 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             bitp = itemp;
             if (itemp->type() == AstType::en::atSelExtract) {
                 selectp = new AstSelExtract(make_fileline(obj_h), fromp,
-                                            ((AstSelExtract*)itemp)->msbp()->cloneTree(true),
-                                            ((AstSelExtract*)itemp)->lsbp()->cloneTree(true));
+                                            ((AstSelExtract*)itemp)->leftp()->cloneTree(true),
+                                            ((AstSelExtract*)itemp)->rightp()->cloneTree(true));
             } else if (itemp->type() == AstType::en::atConst) {
                 selectp = new AstSelBit(make_fileline(obj_h), fromp, bitp);
             } else if (itemp->type() == AstType::atSelPlus) {
