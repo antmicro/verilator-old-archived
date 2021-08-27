@@ -33,18 +33,14 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /tlul_fifo_async.sv \
 /tlul_socket_m1.sv \
 /sim_sram_if.sv \
-/sim_sram.sv \
 /prim_clock_div.sv \
 /dmi_cdc.sv \
 /aes_core.sv \
 /aes_cipher_core.sv \
 /aes_sub_bytes.sv \
 /aes_key_expand.sv \
-/hmac_reg_top.sv \
 /otbn_rf_base.sv \
 /otbn_loop_controller.sv \
-/otbn_reg_top.sv \
-/otbn.sv \
 /otp_ctrl_ecc_reg.sv \
 /otp_ctrl_part_buf.sv \
 /otp_ctrl_dai.sv \
@@ -54,20 +50,16 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /rv_dm.sv \
 /keccak_2share.sv \
 /sha3pad.sv \
-/spi_device_reg_top.sv \
 /spi_device.sv \
 /uart_core.sv \
-/usbdev_reg_top.sv \
 /usbdev_iomux.sv \
 /usbdev.sv \
 /prim_generic_flash_bank.sv \
 /prim_generic_flash.sv \
 /clkmgr.sv \
 /xbar_main.sv \
-/xbar_peri.sv \
 /kmac_core.sv \
 /kmac_staterd.sv \
-/kmac_reg_top.sv \
 /kmac.sv \
 /prim_flash.sv \
 /sensor_ctrl.sv \
@@ -79,7 +71,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 # Names of source files read by Verilator AND Surelog (starting with / to avoid false matches by suffix)
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
 /prim_generic_ram_1p.sv \
-/csrng_core.sv \
 /prim_ram_1p.sv \
 /prim_lc_sync.sv \
 /prim_arbiter_tree.sv \
@@ -94,7 +85,6 @@ VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
 /prim_diff_decode.sv \
 /prim_subreg.sv \
 /prim_subreg_arb.sv \
-/prim_subreg_ext.sv \
 /prim_intr_hw.sv \
 /prim_clock_gating.sv \
 /prim_flop.sv \
@@ -104,7 +94,6 @@ VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
 /prim_packer_fifo.sv \
 /prim_alert_sender.sv \
 /prim_fifo_sync.sv \
-/tlul_adapter_reg.sv \
 /tlul_fifo_sync.sv \
 /tlul_socket_1n.sv \
 
