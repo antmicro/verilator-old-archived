@@ -15,7 +15,7 @@ IBEX_INCLUDE = \
 	-I$(IBEX_BUILD)/src/lowrisc_prim_util_memload_0/rtl \
 	-I$(IBEX_BUILD)/src/lowrisc_dv_verilator_memutil_verilator_0/cpp
 
-SURELOG_PARAMETERS = --disable-feature=parametersubstitution +define+RVFI
+SURELOG_PARAMETERS = +define+RVFI
 
 
 IBEX_SOURCES = \
