@@ -1030,6 +1030,7 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared,
                 dtypep = getDType(make_fileline(obj_h), typespec_h, shared);
             }
             patternp->childDTypep(dtypep);
+            vpi_release_handle(typespec_h);
         }
         return patternp;
     }
