@@ -1024,7 +1024,12 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared,
         }
         auto patternp = new AstPattern(make_fileline(obj_h), itemsp);
         if (auto typespec_h = vpi_handle(vpiTypespec, obj_h)) {
-            patternp->childDTypep(getDType(make_fileline(obj_h), typespec_h, shared));
+            AstNodeDType* dtypep = VN_CAST(process_typespec(typespec_h, shared), NodeDType);
+            if (!dtypep) {
+                // Probably struct/union/enum type. getDType will return reference
+                dtypep = getDType(make_fileline(obj_h), typespec_h, shared);
+            }
+            patternp->childDTypep(dtypep);
         }
         return patternp;
     }
