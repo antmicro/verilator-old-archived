@@ -1022,7 +1022,11 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared,
                 itemsp->addNextNull(op);
             }
         }
-        return new AstPattern(make_fileline(obj_h), itemsp);
+        auto patternp = new AstPattern(make_fileline(obj_h), itemsp);
+        if (auto typespec_h = vpi_handle(vpiTypespec, obj_h)) {
+            patternp->childDTypep(getDType(make_fileline(obj_h), typespec_h, shared));
+        }
+        return patternp;
     }
     case vpiMultiAssignmentPatternOp: {
         // '{op0{op1}}

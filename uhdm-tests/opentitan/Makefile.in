@@ -114,7 +114,6 @@ SURELOG_SOURCES=$(shell grep -F .sv < ${VC_FILE} | grep -v '${VERILATOR_ONLY_REG
 SURELOG_PARAMETERS = -PPMPNumRegions=16 \
                        -PBranchTargetALU=1 \
                        -PWritebackStage=1 \
-                      --disable-feature=parametersubstitution
 
 CPU_COUNT = $(shell nproc)
 
