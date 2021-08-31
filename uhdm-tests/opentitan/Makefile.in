@@ -54,14 +54,11 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /uart_core.sv \
 /usbdev_iomux.sv \
 /usbdev.sv \
-/prim_generic_flash_bank.sv \
-/prim_generic_flash.sv \
 /clkmgr.sv \
 /xbar_main.sv \
 /kmac_core.sv \
 /kmac_staterd.sv \
 /kmac.sv \
-/prim_flash.sv \
 /sensor_ctrl.sv \
 /rstmgr.sv \
 /rstmgr_crash_info.sv \
@@ -70,6 +67,9 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 
 # Names of source files read by Verilator AND Surelog (starting with / to avoid false matches by suffix)
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/prim_flash.sv \
+/prim_generic_flash_bank.sv \
+/prim_generic_flash.sv \
 /prim_generic_ram_1p.sv \
 /prim_ram_1p.sv \
 /prim_lc_sync.sv \
