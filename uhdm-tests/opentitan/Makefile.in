@@ -61,7 +61,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /kmac.sv \
 /sensor_ctrl.sv \
 /rstmgr.sv \
-/rstmgr_crash_info.sv \
 /top_earlgrey.sv \
 /top_earlgrey_verilator.sv \
 
