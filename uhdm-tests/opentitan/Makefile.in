@@ -53,9 +53,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 
 # Names of source files read by Verilator AND Surelog (starting with / to avoid false matches by suffix)
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
-/prim_flash.sv \
-/prim_generic_flash_bank.sv \
-/prim_generic_flash.sv \
 /prim_generic_ram_1p.sv \
 /prim_ram_1p.sv \
 /prim_lc_sync.sv \
