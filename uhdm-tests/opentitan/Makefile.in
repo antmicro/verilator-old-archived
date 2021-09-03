@@ -19,7 +19,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /prim_generic_rom.sv \
 /prim_clock_mux2.sv \
 /prim_rom.sv \
-/ibex_icache.sv \
 /prim_sram_arbiter.sv \
 /prim_fifo_async.sv \
 /prim_keccak.sv \
@@ -46,7 +45,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /usbdev_iomux.sv \
 /usbdev.sv \
 /clkmgr.sv \
-/sensor_ctrl.sv \
 /rstmgr.sv \
 /top_earlgrey.sv \
 /top_earlgrey_verilator.sv \
@@ -56,8 +54,6 @@ VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
 /prim_generic_ram_1p.sv \
 /prim_ram_1p.sv \
 /prim_lc_sync.sv \
-/prim_arbiter_tree.sv \
-/prim_sync_reqack_data.sv \
 /prim_arbiter_ppc.sv \
 /tlul_adapter_sram.sv \
 /prim_prince.sv \
