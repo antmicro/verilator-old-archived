@@ -38,10 +38,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /aes_cipher_core.sv \
 /aes_sub_bytes.sv \
 /aes_key_expand.sv \
-/otp_ctrl_ecc_reg.sv \
-/otp_ctrl_part_buf.sv \
-/otp_ctrl_dai.sv \
-/otp_ctrl.sv \
 /pwrmgr_cdc.sv \
 /rv_core_ibex.sv \
 /rv_dm.sv \
@@ -88,7 +84,6 @@ VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
 /prim_fifo_sync.sv \
 /tlul_fifo_sync.sv \
 /tlul_socket_1n.sv \
-/prim_edn_req.sv \
 
 # Regexes for grep
 VERILATOR_ONLY_REGEX=$(shell echo ${VERILATOR_ONLY_SOURCE_FILENAMES} | sed 's/\s/\\|/g')
