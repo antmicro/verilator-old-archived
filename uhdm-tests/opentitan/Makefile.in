@@ -30,7 +30,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /prim_ram_1p_scr.sv \
 /prim_ram_2p_adv.sv \
 /tlul_fifo_async.sv \
-/tlul_socket_m1.sv \
 /sim_sram_if.sv \
 /prim_clock_div.sv \
 /dmi_cdc.sv \
@@ -47,7 +46,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /usbdev_iomux.sv \
 /usbdev.sv \
 /clkmgr.sv \
-/xbar_main.sv \
 /sensor_ctrl.sv \
 /rstmgr.sv \
 /top_earlgrey.sv \
