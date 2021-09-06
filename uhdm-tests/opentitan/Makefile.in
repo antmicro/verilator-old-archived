@@ -36,7 +36,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /aes_cipher_core.sv \
 /aes_sub_bytes.sv \
 /aes_key_expand.sv \
-/pwrmgr_cdc.sv \
 /rv_core_ibex.sv \
 /rv_dm.sv \
 /keccak_2share.sv \
@@ -60,7 +59,6 @@ VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
 /prim_ram_1p_adv.sv \
 /prim_generic_clock_gating.sv \
 /prim_buf.sv \
-/prim_diff_decode.sv \
 /prim_subreg.sv \
 /prim_subreg_arb.sv \
 /prim_intr_hw.sv \
@@ -69,11 +67,8 @@ VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
 /prim_generic_flop.sv \
 /prim_flop_2sync.sv \
 /prim_generic_flop_2sync.sv \
-/prim_packer_fifo.sv \
-/prim_alert_sender.sv \
 /prim_fifo_sync.sv \
 /tlul_fifo_sync.sv \
-/tlul_socket_1n.sv \
 
 # Regexes for grep
 VERILATOR_ONLY_REGEX=$(shell echo ${VERILATOR_ONLY_SOURCE_FILENAMES} | sed 's/\s/\\|/g')
