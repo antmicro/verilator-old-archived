@@ -64,6 +64,14 @@ jobs:
         export CPU_COUNT=`sysctl -n hw.logicalcpu`
         ./build_binaries.sh
 
+    - name: Run MultipleCells test
+      run: |
+        ./uhdm-integration/.github/ci.sh
+      env:
+        TARGET: uhdm/verilator/test-ast
+        TEST_CASE: tests/MultipleCells
+        SED_BIN: gsed
+
     - name: Build & Test Ibex (UHDM)
       run: |
         pip install virtualenv
