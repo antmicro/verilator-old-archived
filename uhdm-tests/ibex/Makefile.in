@@ -43,7 +43,7 @@ else
 endif
 
 prepare-sources:
-	virtualenv ${root_dir}/venv-ibex
+	virtualenv --python=python3 ${root_dir}/venv-ibex
 	(export PATH=${root_dir}/../image/bin:${PATH} && \
 		. ${root_dir}/venv-ibex/bin/activate && \
 		pip install -r ${IBEX}/python-requirements.txt && \
@@ -53,7 +53,7 @@ prepare-sources:
 			--setup lowrisc:ibex:ibex_simple_system \
 			--RV32E=0 \
 			--RV32M=ibex_pkg::RV32MFast \
-			--verilator_options '--threads $(THREAD_COUNT)' \
+			--verilator_options '--no-threads ' \
 			)
 
 uhdm/verilator/simple-system: clean-build | prepare-sources
