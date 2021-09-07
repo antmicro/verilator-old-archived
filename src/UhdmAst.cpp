@@ -1982,73 +1982,31 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             // Was created before, fill missing
             interfacep = reinterpret_cast<AstIface*>(it->second);
             bool hasModports = false;
-            visit_one_to_many(
-                {
-                    vpiPort,
-                    vpiParamAssign,
-                    vpiInterfaceTfDecl,
-                    vpiModPath,
-                    vpiContAssign,
-                    vpiInterface,
-                    vpiInterfaceArray,
-                    vpiProcess,
-                    vpiGenScopeArray,
+            visit_one_to_many({vpiPort, vpiParamAssign, vpiInterfaceTfDecl, vpiModPath,
+                               vpiContAssign, vpiInterface, vpiInterfaceArray, vpiProcess,
+                               vpiGenScopeArray,
 
-                    // from vpiInstance
-                    vpiProgram,
-                    vpiProgramArray,
-                    vpiTaskFunc,
-                    vpiArrayNet,
-                    vpiSpecParam,
-                    vpiAssertion,
-                    vpiNet,
-                    vpiVariables
-                },
-                obj_h, shared, [&](AstNode* port) {
-                    if (port) { interfacep->addStmtp(port); }
-                });
-            visit_one_to_many({vpiModport}, obj_h, shared, [&](AstNode* port) {
-                if (port) {
+                               // from vpiInstance
+                               vpiProgram, vpiProgramArray, vpiTaskFunc, vpiArrayNet, vpiSpecParam,
+                               vpiAssertion, vpiNet, vpiVariables},
+                              obj_h, shared, [&](AstNode* portp) {
+                                  if (portp) { interfacep->addStmtp(portp); }
+                              });
+            visit_one_to_many({vpiModport}, obj_h, shared, [&](AstNode* portp) {
+                if (portp) {
                     hasModports = true;
-                    interfacep->addStmtp(port);
+                    interfacep->addStmtp(portp);
                 }
             });
             if (hasModports) {
                 // Only then create the nets, as they won't be connected otherwise
-                visit_one_to_many({vpiNet}, obj_h, shared, [&](AstNode* port) {
-                    if (port) { interfacep->addStmtp(port); }
+                visit_one_to_many({vpiNet}, obj_h, shared, [&](AstNode* portp) {
+                    if (portp) { interfacep->addStmtp(portp); }
                 });
             }
 
-            if (objectName != modType) {
-                AstPin* modPins = nullptr;
-                vpiHandle itr = vpi_iterate(vpiPort, obj_h);
-                int np = 0;
-                while (vpiHandle vpi_child_obj = vpi_scan(itr)) {
-                    vpiHandle highConn = vpi_handle(vpiHighConn, vpi_child_obj);
-                    if (highConn) {
-                        std::string portName = get_object_name(vpi_child_obj);
-                        AstParseRef* ref
-                            = reinterpret_cast<AstParseRef*>(visit_object(highConn, shared));
-                        AstPin* pin
-                            = new AstPin(make_fileline(vpi_child_obj), ++np, portName, ref);
-                        if (!modPins)
-                            modPins = pin;
-                        else
-                            modPins->addNextNull(pin);
-                    }
-
-                    vpi_release_handle(vpi_child_obj);
-                }
-                vpi_release_handle(itr);
-
-                AstCell* cellp = new AstCell(make_fileline(obj_h), new FileLine("uhdm"), objectName,
-                                             modType, modPins, nullptr, nullptr);
-                (shared.top_nodes)[modType] = interfacep;
-                return cellp;
-            }
+            (shared.top_nodes)[modType] = interfacep;
         } else {
-            // is top level
             interfacep = new AstIface(make_fileline(obj_h), objectName);
 
             visit_one_to_many(
@@ -2057,13 +2015,39 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                     vpiProcess,
                     vpiTaskFunc,
                 },
-                obj_h, shared, [&](AstNode* node) {
-                    if (node != nullptr) interfacep->addStmtp(node);
-            });
+                obj_h, shared, [&](AstNode* nodep) {
+                    if (nodep != nullptr) interfacep->addStmtp(nodep);
+                });
             (shared.top_nodes)[modType] = interfacep;
-
-            return interfacep;
         }
+
+        std::string fullName = get_object_name(obj_h, {vpiFullName, vpiName});
+        if (fullName != modType) {
+            AstPin* modPins = nullptr;
+            vpiHandle itr = vpi_iterate(vpiPort, obj_h);
+            int np = 0;
+            while (vpiHandle vpi_child_obj = vpi_scan(itr)) {
+                vpiHandle highConn = vpi_handle(vpiHighConn, vpi_child_obj);
+                if (highConn) {
+                    std::string portName = get_object_name(vpi_child_obj);
+                    AstParseRef* refp
+                        = reinterpret_cast<AstParseRef*>(visit_object(highConn, shared));
+                    AstPin* pinp = new AstPin(make_fileline(vpi_child_obj), ++np, portName, refp);
+                    if (!modPins)
+                        modPins = pinp;
+                    else
+                        modPins->addNextNull(pinp);
+                }
+
+                vpi_release_handle(vpi_child_obj);
+            }
+            vpi_release_handle(itr);
+
+            AstCell* cellp = new AstCell(make_fileline(obj_h), new FileLine("uhdm"), objectName,
+                                         modType, modPins, nullptr, nullptr);
+            return cellp;
+        }
+        break;
     }
     case vpiModport: {
         AstNode* modport_vars = nullptr;
