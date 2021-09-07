@@ -60,7 +60,7 @@ jobs:
     - name: Build binaries
       run: |
         # Default BSD sed is incompatible with -i flag without suffix
-        brew install gnu-sed
+        brew install gnu-sed libelf
         export CPU_COUNT=`sysctl -n hw.logicalcpu`
         ./build_binaries.sh
 
