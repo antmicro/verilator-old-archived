@@ -32,10 +32,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /sim_sram_if.sv \
 /prim_clock_div.sv \
 /dmi_cdc.sv \
-/aes_core.sv \
-/aes_cipher_core.sv \
-/aes_sub_bytes.sv \
-/aes_key_expand.sv \
 /rv_core_ibex.sv \
 /rv_dm.sv \
 /keccak_2share.sv \
