@@ -728,15 +728,12 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
             if (typespec_h) {
                 dtypep = getDType(fl, typespec_h, shared);
             } else {
-                auto element_type = vpi_get(vpiType, member_h);
-                if (element_type) {
-                    AstBasicDTypeKwd keyword = get_kwd_for_type(element_type);
-                    dtypep = new AstBasicDType(fl, keyword);
-                } else {
-                    v3error("Missing typespec for array_var");
-                }
+                dtypep = getDType(fl, member_h, shared);
             }
+            vpi_release_handle(itr);
+            vpi_release_handle(member_h);
         }
+        vpi_release_handle(typespec_h);
 
         dtypep = applyUnpackedRanges(make_fileline(obj_h), obj_h, dtypep, shared);
         break;
