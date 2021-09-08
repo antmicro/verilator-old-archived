@@ -1724,11 +1724,23 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 modType += "_" + objectName + std::to_string(module_counter++);
                 module->name(modType);
             }
-            if (!module->user2SetOnce()) { // Only do this once
+
+            if (!module->user2SetOnce()) {  // Only do this once
                 shared.m_symp->pushNew(module);
+
+                AstNode* firstNonPortStatementp = module->stmtsp();
+                // Ports need to be added before the statements that use them
+                visit_one_to_many({vpiPort}, obj_h, shared, [&](AstNode* portp) {
+                    if (portp != nullptr) {
+                        if (firstNonPortStatementp != nullptr)
+                            firstNonPortStatementp->addPrev(portp);
+                        else
+                            module->addStmtp(portp);
+                    }
+                });
+
                 visit_one_to_many(
                     {
-                        vpiPort,
                         vpiInterface,
                         vpiInterfaceArray,
                         vpiProcess,
