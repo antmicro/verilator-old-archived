@@ -20,24 +20,17 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /prim_clock_mux2.sv \
 /prim_rom.sv \
 /prim_sram_arbiter.sv \
-/prim_fifo_async.sv \
 /prim_keccak.sv \
-/prim_subst_perm.sv \
 /prim_generic_clock_inv.sv \
 /prim_rom_adv.sv \
 /ibex_core.sv \
-/prim_ram_1p_scr.sv \
-/prim_ram_2p_adv.sv \
-/tlul_fifo_async.sv \
 /sim_sram_if.sv \
 /prim_clock_div.sv \
-/dmi_cdc.sv \
 /rv_core_ibex.sv \
 /rv_dm.sv \
 /keccak_2share.sv \
 /spi_device.sv \
 /usbdev_iomux.sv \
-/usbdev.sv \
 /clkmgr.sv \
 /rstmgr.sv \
 /top_earlgrey.sv \
@@ -45,6 +38,9 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 
 # Names of source files read by Verilator AND Surelog (starting with / to avoid false matches by suffix)
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/prim_ram_1p_scr.sv \
+/tlul_fifo_async.sv \
+/prim_fifo_async.sv \
 /prim_generic_ram_1p.sv \
 /prim_ram_1p.sv \
 /prim_lc_sync.sv \
