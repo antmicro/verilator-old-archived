@@ -1994,16 +1994,31 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             // Was created before, fill missing
             interfacep = reinterpret_cast<AstIface*>(it->second);
             bool hasModports = false;
-            visit_one_to_many({vpiPort, vpiParamAssign, vpiInterfaceTfDecl, vpiModPath,
-                               vpiContAssign, vpiInterface, vpiInterfaceArray, vpiProcess,
-                               vpiGenScopeArray,
+            visit_one_to_many(
+                {
+                    vpiPort,
+                    vpiParamAssign,
+                    vpiInterfaceTfDecl,
+                    vpiModPath,
+                    vpiContAssign,
+                    vpiInterface,
+                    vpiInterfaceArray,
+                    vpiProcess,
+                    vpiGenScopeArray,
 
-                               // from vpiInstance
-                               vpiProgram, vpiProgramArray, vpiTaskFunc, vpiArrayNet, vpiSpecParam,
-                               vpiAssertion, vpiNet, vpiVariables},
-                              obj_h, shared, [&](AstNode* portp) {
-                                  if (portp) { interfacep->addStmtp(portp); }
-                              });
+                    // from vpiInstance
+                    vpiProgram,
+                    vpiProgramArray,
+                    vpiTaskFunc,
+                    vpiArrayNet,
+                    vpiSpecParam,
+                    vpiAssertion,
+                    vpiNet,
+                    vpiVariables
+                },
+                obj_h, shared, [&](AstNode* portp) {
+                    if (portp) { interfacep->addStmtp(portp); }
+                });
             visit_one_to_many({vpiModport}, obj_h, shared, [&](AstNode* portp) {
                 if (portp) {
                     hasModports = true;
