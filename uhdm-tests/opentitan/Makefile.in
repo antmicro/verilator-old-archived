@@ -39,21 +39,15 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 # Names of source files read by Verilator AND Surelog (starting with / to avoid false matches by suffix)
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
 /prim_ram_1p_scr.sv \
-/tlul_fifo_async.sv \
 /prim_fifo_async.sv \
-/prim_generic_ram_1p.sv \
-/prim_ram_1p.sv \
 /prim_lc_sync.sv \
 /prim_arbiter_ppc.sv \
 /tlul_adapter_sram.sv \
-/prim_prince.sv \
 /prim_clock_inv.sv \
-/prim_ram_1p_adv.sv \
 /prim_generic_clock_gating.sv \
 /prim_buf.sv \
 /prim_subreg.sv \
 /prim_subreg_arb.sv \
-/prim_intr_hw.sv \
 /prim_clock_gating.sv \
 /prim_flop.sv \
 /prim_generic_flop.sv \
