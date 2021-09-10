@@ -16,34 +16,28 @@ OPENTITAN_INCLUDE = \
 VERILATOR_ONLY_SOURCE_FILENAMES=\
 /sw_test_status_if.sv \
 /prim_generic_rom.sv \
-/prim_clock_mux2.sv \
 /prim_rom.sv \
-/prim_sram_arbiter.sv \
 /prim_keccak.sv \
-/prim_generic_clock_inv.sv \
 /prim_rom_adv.sv \
 /sim_sram_if.sv \
-/prim_clock_div.sv \
-/rv_core_ibex.sv \
 /rv_dm.sv \
 /keccak_2share.sv \
-/spi_device.sv \
-/usbdev_iomux.sv \
-/clkmgr.sv \
-/rstmgr.sv \
 /top_earlgrey.sv \
 
 # Names of source files read by Verilator AND Surelog (starting with / to avoid false matches by suffix)
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/tlul_adapter_host.sv \
+/prim_generic_clock_mux2.sv \
+/prim_clock_buf.sv \
+/prim_clock_div.sv \
+/prim_generic_clock_inv.sv \
+/prim_clock_mux2.sv \
 /prim_fifo_async.sv \
 /prim_lc_sync.sv \
-/prim_arbiter_ppc.sv \
 /tlul_adapter_sram.sv \
 /prim_clock_inv.sv \
 /prim_generic_clock_gating.sv \
 /prim_buf.sv \
-/prim_subreg.sv \
-/prim_subreg_arb.sv \
 /prim_clock_gating.sv \
 /prim_flop.sv \
 /prim_generic_flop.sv \
