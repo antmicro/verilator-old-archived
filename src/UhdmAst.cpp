@@ -339,6 +339,10 @@ AstNode* get_value_as_node(vpiHandle obj_h, bool need_decompile = false) {
                             // Surelog's default constant size is 64
                             // 18446744073709551615 is 2^64 - 1
                             actualValStr = "'1";
+                        else if (valStr == "x" || valStr == "X")
+                            actualValStr = "'X";
+                        else if (valStr == "z" || valStr == "Z")
+                            actualValStr = "'Z";
                         else
                             v3error("Unexpected value with vpiSize: -1");
 
