@@ -14,7 +14,6 @@ OPENTITAN_INCLUDE = \
 
 # Names of source files only read by Verilator (starting with / to avoid false matches by suffix)
 VERILATOR_ONLY_SOURCE_FILENAMES=\
-/uartdpi.sv \
 /sw_test_status_if.sv \
 /prim_generic_rom.sv \
 /prim_clock_mux2.sv \
@@ -23,7 +22,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /prim_keccak.sv \
 /prim_generic_clock_inv.sv \
 /prim_rom_adv.sv \
-/ibex_core.sv \
 /sim_sram_if.sv \
 /prim_clock_div.sv \
 /rv_core_ibex.sv \
@@ -37,8 +35,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 
 # Names of source files read by Verilator AND Surelog (starting with / to avoid false matches by suffix)
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
-/top_earlgrey_verilator.sv \
-/prim_ram_1p_scr.sv \
 /prim_fifo_async.sv \
 /prim_lc_sync.sv \
 /prim_arbiter_ppc.sv \
