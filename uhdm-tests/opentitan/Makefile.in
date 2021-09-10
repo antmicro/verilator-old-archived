@@ -34,10 +34,10 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /clkmgr.sv \
 /rstmgr.sv \
 /top_earlgrey.sv \
-/top_earlgrey_verilator.sv \
 
 # Names of source files read by Verilator AND Surelog (starting with / to avoid false matches by suffix)
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/top_earlgrey_verilator.sv \
 /prim_ram_1p_scr.sv \
 /prim_fifo_async.sv \
 /prim_lc_sync.sv \
@@ -69,6 +69,8 @@ VERILATOR_SOURCES=$(shell grep -F .sv < ${VC_FILE} | grep '${VERILATOR_ONLY_REGE
 # Source paths read by Surelog (including those from VERILATOR_AND_SURELOG_SOURCE_FILENAMES)
 SURELOG_SOURCES=$(shell grep -F .sv < ${VC_FILE} | grep -v '${VERILATOR_ONLY_REGEX}' | sed 's@^..@${OPENTITAN_BUILD}@')
 
+SURELOG_DEFINES=$(shell grep "^-D" < ${VC_FILE})
+
 # Top-level parameters in skipped modules that need to be known to Surelog
 SURELOG_PARAMETERS = -PPMPNumRegions=16 \
                        -PBranchTargetALU=1 \
@@ -91,6 +93,7 @@ uhdm/verilator/opentitan: clean-build | prepare-sources
 		cd ${root_dir}/build && \
 		${root_dir}/../image/bin/surelog -nobuiltin -parse -sverilog +define+VERILATOR \
 			${SURELOG_PARAMETERS} \
+			${SURELOG_DEFINES} \
 			$(OPENTITAN_INCLUDE) \
 			$(SURELOG_SOURCES) && \
 		cp ${root_dir}/build/slpp_all/surelog.uhdm ${root_dir}/build/ibex_core.uhdm && \
