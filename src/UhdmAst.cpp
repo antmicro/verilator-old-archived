@@ -1993,10 +1993,10 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         if (it != shared.top_nodes.end()) {
             // Was created before, fill missing
             interfacep = reinterpret_cast<AstIface*>(it->second);
-            bool hasModports = false;
             visit_one_to_many(
                 {
                     vpiPort,
+                    vpiModport,
                     vpiParamAssign,
                     vpiInterfaceTfDecl,
                     vpiModPath,
@@ -2016,21 +2016,9 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                     vpiNet,
                     vpiVariables
                 },
-                obj_h, shared, [&](AstNode* portp) {
-                    if (portp) { interfacep->addStmtp(portp); }
+                obj_h, shared, [&](AstNode* nodep) {
+                    if (nodep) { interfacep->addStmtp(nodep); }
                 });
-            visit_one_to_many({vpiModport}, obj_h, shared, [&](AstNode* portp) {
-                if (portp) {
-                    hasModports = true;
-                    interfacep->addStmtp(portp);
-                }
-            });
-            if (hasModports) {
-                // Only then create the nets, as they won't be connected otherwise
-                visit_one_to_many({vpiNet}, obj_h, shared, [&](AstNode* portp) {
-                    if (portp) { interfacep->addStmtp(portp); }
-                });
-            }
 
             (shared.top_nodes)[modType] = interfacep;
         } else {
