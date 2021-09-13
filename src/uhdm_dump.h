@@ -25,7 +25,7 @@
 
 #include <string>
 #include <vector>
-#include "sv_vpi_user.h"
+#include <uhdm/sv_vpi_user.h>
 
 #ifndef UHDM_DUMP_H
 #define UHDM_DUMP_H

@@ -26,9 +26,9 @@
 #include "V3ParseSym.h"
 #include "V3Stats.h"
 
-#include "uhdm.h"
 #include "UhdmAst.h"
-#include "vpi_visitor.h"
+#include <uhdm/uhdm.h>
+#include <uhdm/vpi_visitor.h>
 #include "uhdm_dump.h"
 #include <iostream>
 
