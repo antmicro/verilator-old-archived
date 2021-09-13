@@ -105,9 +105,8 @@ endif
 LDFLAGS += $(CFG_LDFLAGS_SRC)
 
 #*** UHDM ***
-CPPFLAGS += -std=c++14 -I$(srcdir)/../image/include/uhdm \
-			-I$(srcdir)/../image/include/uhdm/include \
-			-I$(srcdir)/../image/include/uhdm/headers
+CPPFLAGS += -std=c++14 -I$(srcdir)/../image/include/
+
 LDFLAGS += -L$(srcdir)/../image/lib/uhdm -L$(srcdir)/../image/lib
 LIBS += -luhdm -lcapnp -lkj -ldl -lutil -lm -lrt -lpthread
 
