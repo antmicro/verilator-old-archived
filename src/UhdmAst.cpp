@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <regex>
 
-#include "headers/uhdm.h"
+#include <uhdm/uhdm.h>
 
 #include "V3Ast.h"
 #include "V3ParseSym.h"
