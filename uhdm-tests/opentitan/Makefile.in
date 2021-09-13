@@ -27,24 +27,14 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 # Names of source files read by Verilator AND Surelog (starting with / to avoid false matches by suffix)
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
 /tlul_adapter_host.sv \
-/prim_generic_clock_mux2.sv \
-/prim_clock_buf.sv \
-/prim_clock_div.sv \
-/prim_generic_clock_inv.sv \
-/prim_clock_mux2.sv \
-/prim_fifo_async.sv \
 /prim_lc_sync.sv \
 /tlul_adapter_sram.sv \
-/prim_clock_inv.sv \
-/prim_generic_clock_gating.sv \
 /prim_buf.sv \
-/prim_clock_gating.sv \
 /prim_flop.sv \
 /prim_generic_flop.sv \
 /prim_flop_2sync.sv \
 /prim_generic_flop_2sync.sv \
 /prim_fifo_sync.sv \
-/tlul_fifo_sync.sv \
 
 # Regexes for grep
 VERILATOR_ONLY_REGEX=$(shell echo ${VERILATOR_ONLY_SOURCE_FILENAMES} | sed 's/\s/\\|/g')
