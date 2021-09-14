@@ -30,6 +30,8 @@ else  # Run an experiment
  endif
 endif
 
+IMAGE_DIR = @IMAGE_DIR@
+
 incdir = $(srcdir)/../include
 # Bldsrc may differ from srcdir if configure wan't run from the kit top
 bldsrc = ..
@@ -105,9 +107,9 @@ endif
 LDFLAGS += $(CFG_LDFLAGS_SRC)
 
 #*** UHDM ***
-CPPFLAGS += -std=c++14 -I$(prefix)/include/
+CPPFLAGS += -std=c++14 -I$(IMAGE_DIR)/include/
 
-LDFLAGS += -L$(prefix)/lib/uhdm -L$(prefix)/lib
+LDFLAGS += -L$(IMAGE_DIR)/lib/uhdm -L$(IMAGE_DIR)/lib
 LIBS += -luhdm -lcapnp -lkj -ldl -lutil -lm -lrt -lpthread
 
 CPPFLAGSWALL   = $(CPPFLAGS)
@@ -141,6 +143,7 @@ all: make_info $(TGT)
 
 make_info:
 	@echo "      Compile flags: " $(CXX) ${CFLAGS} ${CXXFLAGS} ${CPPFLAGS}
+	@echo "      IMAGE_DIR: " $(IMAGE_DIR)
 
 clean mostlyclean distclean maintainer-clean::
 	-rm -f *.o *.d *_gen_*
