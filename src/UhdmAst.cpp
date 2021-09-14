@@ -650,8 +650,11 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
             if (pos != std::string::npos) typespec_name = typespec_name.substr(pos + 2);
 
             std::string package_name = "";
-            if (vpiHandle instance_h = vpi_handle(vpiInstance, obj_h))
-                package_name = get_object_name(instance_h, {vpiDefName});
+            if (vpiHandle instance_h = vpi_handle(vpiInstance, obj_h)) {
+                if (vpi_get(vpiType, instance_h) == vpiPackage)
+                    package_name = get_object_name(instance_h, {vpiDefName});
+                vpi_release_handle(instance_h);
+            }
             if (package_name != "")
                 full_type_name = package_name + "::" + typespec_name;
             else
