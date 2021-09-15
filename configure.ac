@@ -142,7 +142,7 @@ AC_ARG_ENABLE([longtests],
 AC_SUBST(CFG_WITH_LONGTESTS)
 AC_MSG_RESULT($CFG_WITH_LONGTESTS)
 
-AC_ARG_VAR(IMAGE_DIR, path to image dir)
+AC_ARG_VAR(SURELOG_INSTALL_DIR, path to Surelog installation dir)
 
 # Compiler flags (ensure they are not empty to avoid configure defaults)
 CFLAGS+=" "
