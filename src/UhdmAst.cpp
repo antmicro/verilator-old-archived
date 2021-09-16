@@ -1732,16 +1732,26 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             if (!module->user2SetOnce()) {  // Only do this once
                 shared.m_symp->pushNew(module);
 
-                AstNode* firstNonPortStatementp = module->stmtsp();
                 // Ports need to be added before the statements that use them
+                AstNode* portListp = nullptr;
                 visit_one_to_many({vpiPort}, obj_h, shared, [&](AstNode* portp) {
                     if (portp != nullptr) {
-                        if (firstNonPortStatementp != nullptr)
-                            firstNonPortStatementp->addPrev(portp);
+                        if (portListp == nullptr)
+                            portListp = portp;
                         else
-                            module->addStmtp(portp);
+                            portListp->addNext(portp);
                     }
                 });
+
+                AstNode* firstNonPortStatementp = module->stmtsp();
+                if (firstNonPortStatementp != nullptr) {
+                    firstNonPortStatementp->unlinkFrBackWithNext();
+                    module->addStmtp(portListp);
+                    portListp->addNext(firstNonPortStatementp);
+                }
+                else {
+                    module->addStmtp(portListp);
+                }
 
                 visit_one_to_many(
                     {
