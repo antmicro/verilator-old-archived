@@ -1293,8 +1293,6 @@ AstNode* process_parameter(vpiHandle obj_h, UhdmShared& shared, bool get_value) 
         dtypep = new AstBasicDType(make_fileline(obj_h), AstBasicDTypeKwd::LOGIC_IMPLICIT);
     }
 
-    dtypep = applyUnpackedRanges(make_fileline(obj_h), obj_h, dtypep, shared);
-
     if (get_value) { parameterValuep = get_value_as_node(obj_h); }
 
     AstVarType parameterType;
