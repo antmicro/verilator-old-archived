@@ -30,6 +30,8 @@ else  # Run an experiment
  endif
 endif
 
+SURELOG_INSTALL_DIR = @SURELOG_INSTALL_DIR@
+
 incdir = $(srcdir)/../include
 # Bldsrc may differ from srcdir if configure wan't run from the kit top
 bldsrc = ..
@@ -105,10 +107,9 @@ endif
 LDFLAGS += $(CFG_LDFLAGS_SRC)
 
 #*** UHDM ***
-CPPFLAGS += -std=c++14 -I$(srcdir)/../image/include/uhdm \
-			-I$(srcdir)/../image/include/uhdm/include \
-			-I$(srcdir)/../image/include/uhdm/headers
-LDFLAGS += -L$(srcdir)/../image/lib/uhdm -L$(srcdir)/../image/lib
+CPPFLAGS += -std=c++14 -I$(SURELOG_INSTALL_DIR)/include/
+
+LDFLAGS += -L$(SURELOG_INSTALL_DIR)/lib/uhdm -L$(SURELOG_INSTALL_DIR)/lib
 LIBS += -luhdm -lcapnp -lkj -ldl -lutil -lm -lrt -lpthread
 
 CPPFLAGSWALL   = $(CPPFLAGS)
@@ -142,6 +143,7 @@ all: make_info $(TGT)
 
 make_info:
 	@echo "      Compile flags: " $(CXX) ${CFLAGS} ${CXXFLAGS} ${CPPFLAGS}
+	@echo "      SURELOG_INSTALL_DIR: " $(SURELOG_INSTALL_DIR)
 
 clean mostlyclean distclean maintainer-clean::
 	-rm -f *.o *.d *_gen_*

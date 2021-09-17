@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <regex>
 
-#include "headers/uhdm.h"
+#include <uhdm/uhdm.h>
 
 #include "V3Ast.h"
 #include "V3ParseSym.h"
@@ -650,8 +650,11 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
             if (pos != std::string::npos) typespec_name = typespec_name.substr(pos + 2);
 
             std::string package_name = "";
-            if (vpiHandle instance_h = vpi_handle(vpiInstance, obj_h))
-                package_name = get_object_name(instance_h, {vpiDefName});
+            if (vpiHandle instance_h = vpi_handle(vpiInstance, obj_h)) {
+                if (vpi_get(vpiType, instance_h) == vpiPackage)
+                    package_name = get_object_name(instance_h, {vpiDefName});
+                vpi_release_handle(instance_h);
+            }
             if (package_name != "")
                 full_type_name = package_name + "::" + typespec_name;
             else
@@ -1025,11 +1028,7 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared,
         }
         auto patternp = new AstPattern(make_fileline(obj_h), itemsp);
         if (auto typespec_h = vpi_handle(vpiTypespec, obj_h)) {
-            AstNodeDType* dtypep = VN_CAST(process_typespec(typespec_h, shared), NodeDType);
-            if (!dtypep) {
-                // Probably struct/union/enum type. getDType will return reference
-                dtypep = getDType(make_fileline(obj_h), typespec_h, shared);
-            }
+            AstNodeDType* dtypep = getDType(make_fileline(obj_h), typespec_h, shared);
             patternp->childDTypep(dtypep);
             vpi_release_handle(typespec_h);
         }
@@ -1293,8 +1292,6 @@ AstNode* process_parameter(vpiHandle obj_h, UhdmShared& shared, bool get_value) 
         // If no typespec provided assume default
         dtypep = new AstBasicDType(make_fileline(obj_h), AstBasicDTypeKwd::LOGIC_IMPLICIT);
     }
-
-    dtypep = applyUnpackedRanges(make_fileline(obj_h), obj_h, dtypep, shared);
 
     if (get_value) { parameterValuep = get_value_as_node(obj_h); }
 
