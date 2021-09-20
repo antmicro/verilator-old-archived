@@ -17,9 +17,7 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /sw_test_status_if.sv \
 /prim_generic_rom.sv \
 /prim_rom.sv \
-/prim_keccak.sv \
 /prim_rom_adv.sv \
-/sim_sram_if.sv \
 /rv_dm.sv \
 /keccak_2share.sv \
 /top_earlgrey.sv \
