@@ -6,12 +6,6 @@ OPENTITAN = ${curr_dir}/opentitan
 ################################
 OPENTITAN_BUILD = ${root_dir}/build/lowrisc_systems_top_earlgrey_verilator_0.1
 
-OPENTITAN_INCLUDE = \
-	-I$(OPENTITAN_BUILD)/src/lowrisc_prim_assert_0.1/rtl \
-	-I$(OPENTITAN_BUILD)/src/lowrisc_ibex_ibex_core_0.1/rtl \
-	-I$(OPENTITAN_BUILD)/src/lowrisc_dv_dv_macros_0 \
-	-I$(OPENTITAN_BUILD)/src/lowrisc_prim_util_memload_0/rtl
-
 # Names of source files only read by Verilator (starting with / to avoid false matches by suffix)
 VERILATOR_ONLY_SOURCE_FILENAMES=\
 /sw_test_status_if.sv \
@@ -47,6 +41,8 @@ VERILATOR_SOURCES=$(shell grep -F .sv < ${VC_FILE} | grep '${VERILATOR_ONLY_REGE
 # Source paths read by Surelog (including those from VERILATOR_AND_SURELOG_SOURCE_FILENAMES)
 SURELOG_SOURCES=$(shell grep -F .sv < ${VC_FILE} | grep -v '${VERILATOR_ONLY_REGEX}' | sed 's@^..@${OPENTITAN_BUILD}@')
 
+OPENTITAN_INCLUDES=$(shell grep "\-CFLAGS \-I.." < ${VC_FILE} | sed 's@-CFLAGS -I..@-I${OPENTITAN_BUILD}@g')
+
 SURELOG_DEFINES=$(shell grep "^-D" < ${VC_FILE})
 
 # Top-level parameters in skipped modules that need to be known to Surelog
@@ -72,7 +68,7 @@ uhdm/verilator/opentitan: clean-build | prepare-sources
 		${root_dir}/../image/bin/surelog -nobuiltin -parse -sverilog +define+VERILATOR \
 			${SURELOG_PARAMETERS} \
 			${SURELOG_DEFINES} \
-			$(OPENTITAN_INCLUDE) \
+			$(OPENTITAN_INCLUDES) \
 			$(SURELOG_SOURCES) && \
 		cp ${root_dir}/build/slpp_all/surelog.uhdm ${root_dir}/build/ibex_core.uhdm && \
 		cd ${OPENTITAN_BUILD}/sim-verilator/ && \
