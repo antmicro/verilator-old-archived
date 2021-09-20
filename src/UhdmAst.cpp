@@ -3040,6 +3040,8 @@ std::vector<AstNodeModule*> visit_designs(const std::vector<vpiHandle>& designs,
     // Package for top-level class definitions
     // Created and added only if there are classes in the design
     AstPackage* class_package = nullptr;
+    AstPackage* designPackagep = new AstPackage(new FileLine("uhdm"), "DesignPackageItems");
+    shared.m_symp->reinsert(designPackagep, symp->symRootp());
     for (auto design : designs) {
         visit_one_to_many({UHDM::uhdmallPackages,  // Keep this first, packages need to be defined
                                                    // before any imports
@@ -3079,8 +3081,28 @@ std::vector<AstNodeModule*> visit_designs(const std::vector<vpiHandle>& designs,
                 }
                 shared.coverage_set.clear();
             });
+
+        vpiHandle typedef_itr = vpi_iterate(vpiTypedef, design);
+        while (vpiHandle typedef_obj = vpi_scan(typedef_itr)) {
+            AstNode* typedefp = process_typedef(typedef_obj, shared);
+            if (typedefp != nullptr) designPackagep->addStmtp(typedefp);
+        }
+
+        visit_one_to_many(
+            {
+                vpiParamAssign,
+                vpiProgram,
+                vpiProgramArray,
+                vpiTaskFunc,
+                vpiSpecParam,
+                vpiAssertion,
+            },
+            design, shared, [&](AstNode* itemp) {
+                if (itemp != nullptr) {designPackagep->addStmtp(itemp); }
+            });
     }
     std::vector<AstNodeModule*> nodes;
+    nodes.push_back(designPackagep);
     for (auto node : shared.top_nodes) if (!node.second->user1u().toInt()) nodes.push_back(node.second);
     if (class_package != nullptr) { nodes.push_back(class_package); }
     return nodes;
