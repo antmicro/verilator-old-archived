@@ -3040,8 +3040,8 @@ std::vector<AstNodeModule*> visit_designs(const std::vector<vpiHandle>& designs,
     // Package for top-level class definitions
     // Created and added only if there are classes in the design
     AstPackage* class_package = nullptr;
-    AstPackage* designPackagep = v3Global.rootp()->dollarUnitPkgAddp();
-    shared.m_symp->reinsert(designPackagep, symp->symRootp());
+    // Package for other top-level definitions
+    AstPackage* designPackagep = nullptr;
     for (auto design : designs) {
         visit_one_to_many({UHDM::uhdmallPackages,  // Keep this first, packages need to be defined
                                                    // before any imports
@@ -3085,7 +3085,11 @@ std::vector<AstNodeModule*> visit_designs(const std::vector<vpiHandle>& designs,
         vpiHandle typedef_itr = vpi_iterate(vpiTypedef, design);
         while (vpiHandle typedef_obj = vpi_scan(typedef_itr)) {
             AstNode* typedefp = process_typedef(typedef_obj, shared);
-            if (typedefp != nullptr) designPackagep->addStmtp(typedefp);
+            if (typedefp != nullptr) {
+                if (designPackagep == nullptr)
+                    designPackagep = v3Global.rootp()->dollarUnitPkgAddp();
+                designPackagep->addStmtp(typedefp);
+            }
         }
 
         visit_one_to_many(
@@ -3098,9 +3102,15 @@ std::vector<AstNodeModule*> visit_designs(const std::vector<vpiHandle>& designs,
                 vpiAssertion,
             },
             design, shared, [&](AstNode* itemp) {
-                if (itemp != nullptr) {designPackagep->addStmtp(itemp); }
+                if (itemp != nullptr) {
+                     if (designPackagep == nullptr)
+                         designPackagep = v3Global.rootp()->dollarUnitPkgAddp();
+                     designPackagep->addStmtp(itemp); }
             });
     }
+    if (designPackagep != nullptr)
+        shared.m_symp->reinsert(designPackagep, symp->symRootp());
+
     std::vector<AstNodeModule*> nodes;
     for (auto node : shared.top_nodes) if (!node.second->user1u().toInt()) nodes.push_back(node.second);
     if (class_package != nullptr) { nodes.push_back(class_package); }
