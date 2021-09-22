@@ -2851,7 +2851,11 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             while (vpiHandle element_h = vpi_scan(element_itr)) {
                 elements_count++;
                 if (elements_count > 1) v3error("vpiPackedArray has more than 1 vpiElement nodes");
-                if (varp->valuep()) v3error("vpiPackedArray has both vpiElement and vpiExpr node");
+                if (varp->valuep()) {
+                    UINFO(7, "vpiPackedArray has both vpiElement and vpiExpr node, taking vpiExpr as value"
+                          << std::endl);
+                    break;
+                }
 
                 visit_one_to_one({vpiExpr}, element_h, shared,
                                  [&](AstNode* itemp) { varp->valuep(itemp); });
