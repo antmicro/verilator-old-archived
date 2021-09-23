@@ -1495,7 +1495,8 @@ AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
             = new AstDefImplicitDType(fl, objectName, nullptr, VFlagChildDType(), enum_dtype);
         return dtype;
     }
-    case vpiStructTypespec: {
+    case vpiStructTypespec:
+    case vpiUnionTypespec: {
         const uhdm_handle* const handle = (const uhdm_handle*)obj_h;
         const UHDM::BaseClass* const object = (const UHDM::BaseClass*)handle->object;
         if (shared.visited_types_map.find(object) != shared.visited_types_map.end()) {
@@ -1517,17 +1518,21 @@ AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
         } else {
             packed = VSigning::UNSIGNED;
         }
-        auto* struct_dtype = new AstStructDType(fl, packed);
+        AstNodeUOrStructDType* structOrUnionDTypep = nullptr;
+        if (objectType == vpiStructTypespec)
+            structOrUnionDTypep = new AstStructDType(fl, packed);
+        else
+            structOrUnionDTypep = new AstUnionDType(fl, packed);
 
         vpiHandle member_itr = vpi_iterate(vpiTypespecMember, obj_h);
         while (vpiHandle member_obj = vpi_scan(member_itr)) {
             AstMemberDType* memberp = process_typespec_member(member_obj, shared);
-            if (memberp != nullptr) struct_dtype->addMembersp(memberp);
+            if (memberp != nullptr) structOrUnionDTypep->addMembersp(memberp);
         }
 
-        auto* dtype
-            = new AstDefImplicitDType(fl, objectName, nullptr, VFlagChildDType(), struct_dtype);
-        return dtype;
+        auto* dtypep
+            = new AstDefImplicitDType(fl, objectName, nullptr, VFlagChildDType(), structOrUnionDTypep);
+        return dtypep;
     }
     case vpiUnsupportedTypespec: {
         v3info("\t! This typespec is unsupported in UHDM: " << file_name << ":" << currentLine);
