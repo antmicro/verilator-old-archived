@@ -513,6 +513,10 @@ AstBasicDTypeKwd get_kwd_for_type(int vpi_var_type) {
     case vpiIntegerVar: {
         return AstBasicDTypeKwd::INTEGER;
     }
+    case vpiShortIntTypespec:
+    case vpiShortIntVar: {
+        return AstBasicDTypeKwd::SHORTINT;
+    }
     case vpiBitTypespec:
     case vpiBitVar: {
         return AstBasicDTypeKwd::BIT;
@@ -520,6 +524,14 @@ AstBasicDTypeKwd get_kwd_for_type(int vpi_var_type) {
     case vpiByteTypespec:
     case vpiByteVar: {
         return AstBasicDTypeKwd::BYTE;
+    }
+    case vpiShortRealTypespec:
+    case vpiShortRealVar: {
+        // Warning thrown by original verilator
+        auto *fl = new FileLine("uhdm");
+        fl->v3warn(SHORTREAL,
+                   "Unsupported: shortreal being promoted to real (suggest use real instead)");
+        return AstBasicDTypeKwd::DOUBLE;
     }
     case vpiRealTypespec:
     case vpiRealVar: {
@@ -633,6 +645,8 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
     case vpiIntTypespec:
     case vpiLongIntTypespec:
     case vpiIntegerTypespec:
+    case vpiShortIntTypespec:
+    case vpiShortRealTypespec:
     case vpiByteTypespec:
     case vpiRealTypespec:
     case vpiStringTypespec:
@@ -673,6 +687,8 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
     case vpiIntVar:
     case vpiLongIntVar:
     case vpiIntegerVar:
+    case vpiShortIntVar:
+    case vpiShortRealVar:
     case vpiByteVar:
     case vpiRealVar:
     case vpiStringVar:
@@ -1399,6 +1415,8 @@ AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
     case vpiIntTypespec:
     case vpiLongIntTypespec:
     case vpiIntegerTypespec:
+    case vpiShortIntTypespec:
+    case vpiShortRealTypespec:
     case vpiByteTypespec:
     case vpiRealTypespec:
     case vpiStringTypespec:
@@ -2819,6 +2837,8 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     case vpiIntVar:
     case vpiLongIntVar:
     case vpiIntegerVar:
+    case vpiShortIntVar:
+    case vpiShortRealVar:
     case vpiEnumVar:
     case vpiBitVar:
     case vpiByteVar: {
