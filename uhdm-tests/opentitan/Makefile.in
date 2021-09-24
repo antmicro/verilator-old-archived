@@ -12,13 +12,11 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /prim_generic_rom.sv \
 /prim_rom.sv \
 /prim_rom_adv.sv \
-/rv_dm.sv \
 /keccak_2share.sv \
 /top_earlgrey.sv \
 
 # Names of source files read by Verilator AND Surelog (starting with / to avoid false matches by suffix)
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
-/tlul_adapter_host.sv \
 /prim_lc_sync.sv \
 /tlul_adapter_sram.sv \
 /prim_buf.sv \
