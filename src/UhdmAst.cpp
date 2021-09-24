@@ -2231,7 +2231,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         if (objectType == vpiBegin) {
             objectName = "";  // avoid storing parent name
         }
-        return new AstBegin(make_fileline(obj_h), "", body);
+        return new AstBegin(make_fileline(obj_h), objectName, body);
     }
     case vpiIf:
     case vpiIfElse: {
