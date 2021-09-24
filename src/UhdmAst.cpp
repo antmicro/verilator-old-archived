@@ -781,9 +781,56 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
     return dtypep;
 }
 
-AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared,
-                           std::vector<AstNode*>&& operands) {
-    if(vpi_get(vpiReordered, obj_h)) {
+AstAlways* process_always(vpiHandle obj_h, UhdmShared& shared) {
+    VAlwaysKwd alwaysType;
+    // Which always type is it?
+    switch (vpi_get(vpiAlwaysType, obj_h)) {
+    case vpiAlways: {
+        alwaysType = VAlwaysKwd::ALWAYS;
+        break;
+    }
+    case vpiAlwaysFF: {
+        alwaysType = VAlwaysKwd::ALWAYS_FF;
+        break;
+    }
+    case vpiAlwaysLatch: {
+        alwaysType = VAlwaysKwd::ALWAYS_LATCH;
+        break;
+    }
+    case vpiAlwaysComb: {
+        alwaysType = VAlwaysKwd::ALWAYS_COMB;
+        break;
+    }
+    default: {
+        v3error("Unhandled always type");
+        break;
+    }
+    }
+
+    // Body of always statement
+    AstNode* bodyp = nullptr;
+    visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* nodep) { bodyp = nodep; });
+    return new AstAlways(make_fileline(obj_h), alwaysType, nullptr, bodyp);
+}
+
+AstTimingControl* process_event_control(vpiHandle obj_h, UhdmShared& shared) {
+    AstSenItem* senItemRootp = nullptr;
+    visit_one_to_one({vpiCondition}, obj_h, shared, [&](AstNode* nodep) {
+        if (nodep->type() == AstType::en::atSenItem) {
+            senItemRootp = reinterpret_cast<AstSenItem*>(nodep);
+        } else {  // wrap this in a AstSenItem
+            senItemRootp = new AstSenItem(nodep->fileline(), VEdgeType::ET_ANYEDGE, nodep);
+        }
+    });
+    AstSenTree* senTreep = new AstSenTree(make_fileline(obj_h), senItemRootp);
+    // Body of statements
+    AstNode* bodyp = nullptr;
+    visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* nodep) { bodyp = nodep; });
+    return new AstTimingControl(make_fileline(obj_h), senTreep, bodyp);
+}
+
+AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared, std::vector<AstNode*>&& operands) {
+    if (vpi_get(vpiReordered, obj_h)) {
         // this field is present when Surelog changed the order of array parameters
         // It happens when subarray is selected from multidimensional parameter
         std::reverse(operands.begin(), operands.end());
@@ -2121,52 +2168,10 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return process_ioDecl(obj_h, shared);
     }
     case vpiAlways: {
-        VAlwaysKwd alwaysType;
-        AstNode* bodyp = nullptr;
-
-        // Which always type is it?
-        switch (vpi_get(vpiAlwaysType, obj_h)) {
-        case vpiAlways: {
-            alwaysType = VAlwaysKwd::ALWAYS;
-            break;
-        }
-        case vpiAlwaysFF: {
-            alwaysType = VAlwaysKwd::ALWAYS_FF;
-            break;
-        }
-        case vpiAlwaysLatch: {
-            alwaysType = VAlwaysKwd::ALWAYS_LATCH;
-            break;
-        }
-        case vpiAlwaysComb: {
-            alwaysType = VAlwaysKwd::ALWAYS_COMB;
-            break;
-        }
-        default: {
-            v3error("Unhandled always type");
-            break;
-        }
-        }
-
-        // Body of always statement
-        visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* nodep) { bodyp = nodep; });
-        return new AstAlways(make_fileline(obj_h), alwaysType, nullptr, bodyp);
+        return process_always(obj_h, shared);
     }
     case vpiEventControl: {
-        AstSenItem* senItemRoot = nullptr;
-        AstNode* body = nullptr;
-        AstSenTree* senTree = nullptr;
-        visit_one_to_one({vpiCondition}, obj_h, shared, [&](AstNode* node) {
-            if (node->type() == AstType::en::atSenItem) {
-                senItemRoot = reinterpret_cast<AstSenItem*>(node);
-            } else {  // wrap this in a AstSenItem
-                senItemRoot = new AstSenItem(node->fileline(), VEdgeType::ET_ANYEDGE, node);
-            }
-        });
-        senTree = new AstSenTree(make_fileline(obj_h), senItemRoot);
-        // Body of statements
-        visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* node) { body = node; });
-        return new AstTimingControl(make_fileline(obj_h), senTree, body);
+        return process_event_control(obj_h, shared);
     }
     case vpiInitial: {
         AstNode* body = nullptr;
