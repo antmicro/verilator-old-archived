@@ -2122,8 +2122,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     }
     case vpiAlways: {
         VAlwaysKwd alwaysType;
-        AstSenTree* senTree = nullptr;
-        AstNode* body = nullptr;
+        AstNode* bodyp = nullptr;
 
         // Which always type is it?
         switch (vpi_get(vpiAlwaysType, obj_h)) {
@@ -2149,18 +2148,9 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         }
         }
 
-        if (alwaysType != VAlwaysKwd::ALWAYS_COMB && alwaysType != VAlwaysKwd::ALWAYS_LATCH) {
-            // Handled in vpiEventControl
-            AstNode* always;
-
-            visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* node) { always = node; });
-            return always;
-        } else {
-            // Body of statements
-            visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* node) { body = node; });
-        }
-
-        return new AstAlways(make_fileline(obj_h), alwaysType, senTree, body);
+        // Body of always statement
+        visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* nodep) { bodyp = nodep; });
+        return new AstAlways(make_fileline(obj_h), alwaysType, nullptr, bodyp);
     }
     case vpiEventControl: {
         AstSenItem* senItemRoot = nullptr;
@@ -2176,8 +2166,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         senTree = new AstSenTree(make_fileline(obj_h), senItemRoot);
         // Body of statements
         visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* node) { body = node; });
-        auto* tctrl = new AstTimingControl(make_fileline(obj_h), senTree, body);
-        return new AstAlways(make_fileline(obj_h), VAlwaysKwd::ALWAYS_FF, nullptr, tctrl);
+        return new AstTimingControl(make_fileline(obj_h), senTree, body);
     }
     case vpiInitial: {
         AstNode* body = nullptr;
