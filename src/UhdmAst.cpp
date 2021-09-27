@@ -1941,7 +1941,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             std::set<std::string> parameter_set;
             while (vpiHandle vpi_child_obj = vpi_scan(itr)) {
                 if(!vpi_get(vpiOverriden, vpi_child_obj)) {
-                    // skip parameter assaignments with default values
+                    // skip parameter assignments with default values
                     continue;
                 }
 
