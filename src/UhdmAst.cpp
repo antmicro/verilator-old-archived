@@ -1940,6 +1940,11 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             itr = vpi_iterate(vpiParamAssign, obj_h);
             std::set<std::string> parameter_set;
             while (vpiHandle vpi_child_obj = vpi_scan(itr)) {
+                if(!vpi_get(vpiOverriden, vpi_child_obj)) {
+                    // skip parameter assaignments with default values
+                    continue;
+                }
+
                 vpiHandle param_handle = vpi_handle(vpiLhs, vpi_child_obj);
                 std::string param_name = get_object_name(param_handle);
                 UINFO(3, "Got parameter (pin) " << param_name << std::endl);
