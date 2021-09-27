@@ -1002,6 +1002,9 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared, std::vector<AstN
                 }
             }
         }
+        // The following case doesn't require wrapping in AstReplicate
+        if (op2p == nullptr && VN_IS(op1p, Const))
+            return op1p;
         // Wrap in a Replicate node
         if (op2p != nullptr) {
             op1p = new AstConcat(make_fileline(obj_h), op1p, op2p);
@@ -1940,6 +1943,11 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             itr = vpi_iterate(vpiParamAssign, obj_h);
             std::set<std::string> parameter_set;
             while (vpiHandle vpi_child_obj = vpi_scan(itr)) {
+                if(!vpi_get(vpiOverriden, vpi_child_obj)) {
+                    // skip parameter assignments with default values
+                    continue;
+                }
+
                 vpiHandle param_handle = vpi_handle(vpiLhs, vpi_child_obj);
                 std::string param_name = get_object_name(param_handle);
                 UINFO(3, "Got parameter (pin) " << param_name << std::endl);
