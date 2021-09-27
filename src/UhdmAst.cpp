@@ -1002,6 +1002,9 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared, std::vector<AstN
                 }
             }
         }
+        // The following case doesn't require wrapping in AstReplicate
+        if (op2p == nullptr && VN_IS(op1p, Const))
+            return op1p;
         // Wrap in a Replicate node
         if (op2p != nullptr) {
             op1p = new AstConcat(make_fileline(obj_h), op1p, op2p);
