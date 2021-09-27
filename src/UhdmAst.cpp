@@ -3006,11 +3006,9 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     }
     case vpiDisable: {
         std::string scopeName = "";
-        if (auto parent_h = vpi_handle(vpiParent, obj_h)) {
-            scopeName = get_object_name(parent_h, {vpiName, vpiFullName});
-            vpi_release_handle(parent_h);
-        }
-        return new AstDisable(make_fileline(obj_h), scopeName);
+        FileLine* fl = make_fileline(obj_h);
+        fl->v3error("Unable to get scope name to disable");
+        return new AstDisable(fl, scopeName);
     }
     case vpiMethodFuncCall: {
         AstNode* from = nullptr;
