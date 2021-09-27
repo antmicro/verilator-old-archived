@@ -1522,7 +1522,7 @@ AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
         while (vpiHandle item_h = vpi_scan(itr)) {
             std::string item_name = get_object_name(item_h);
 
-            auto* value = get_value_as_node(item_h, false);
+            auto* value = get_value_as_node(item_h, true);
             auto* wrapped_item = new AstEnumItem(make_fileline(item_h), item_name, nullptr, value);
             if (enum_members == nullptr) {
                 enum_members = wrapped_item;
@@ -2329,7 +2329,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         }
     }
     case vpiEnumConst: {
-        return get_value_as_node(obj_h, false);
+        return get_value_as_node(obj_h, true);
     }
     case vpiConstant: {
         return get_value_as_node(obj_h, true);
