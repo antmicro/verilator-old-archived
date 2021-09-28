@@ -1,3 +1,4 @@
+TOP_TARGET_NAME = dv_chip_verilator_sim
 curr_dir:=$(dir $(lastword $(MAKEFILE_LIST)))
-OPEN_TITAN = ${curr_dir}/../opentitan
-OPEN_TITAN_BUILD = ${OPEN_TITAN}/build/lowrisc_systems_top_earlgrey_verilator_0.1
+OPENTITAN = ${curr_dir}/../opentitan
+OPENTITAN_BUILD = ${OPENTITAN}/build/lowrisc_$(TOP_TARGET_NAME)_0.1
