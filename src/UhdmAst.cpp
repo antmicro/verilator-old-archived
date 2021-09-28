@@ -864,6 +864,11 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared, std::vector<AstN
     case vpiBitXnorOp: {
         return new AstNot(make_fileline(obj_h), new AstXor(make_fileline(obj_h), operands[0], operands[1]));
     }
+    case vpiImplyOp: {
+        // Unsupported by mainline verilator
+        // return new AstImplication(make_fileline(obj_h), operands[0], operands[1]);
+        make_fileline(obj_h)->v3error("Implication operator is unsupported");
+    }
     case vpiPostIncOp:
     case vpiPostDecOp: {
         auto* onep = new AstConst(make_fileline(obj_h), 1);
@@ -949,6 +954,12 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared, std::vector<AstN
     }
     case vpiCaseNeqOp: {
         return new AstNeqCase(make_fileline(obj_h), operands[0], operands[1]);
+    }
+    case vpiWildEqOp: {
+        return new AstEqWild(make_fileline(obj_h), operands[0], operands[1]);
+    }
+    case vpiWildNeqOp: {
+        return new AstNeqWild(make_fileline(obj_h), operands[0], operands[1]);
     }
     case vpiGtOp: {
         return new AstGt(make_fileline(obj_h), operands[0], operands[1]);
