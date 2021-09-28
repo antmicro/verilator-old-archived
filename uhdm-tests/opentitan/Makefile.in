@@ -1,11 +1,11 @@
 curr_dir:=$(dir $(lastword $(MAKEFILE_LIST)))
 OPENTITAN = ${curr_dir}/opentitan
-TOP_TARGET_NAME = chip_earlgrey_verilator
+TOP_TARGET_NAME = dv_chip_verilator_sim
 
 ################################
 #### verilator - simulation ####
 ################################
-OPENTITAN_BUILD = ${root_dir}/build/lowrisc_systems_$(TOP_TARGET_NAME)_0.1
+OPENTITAN_BUILD = ${root_dir}/build/lowrisc_$(TOP_TARGET_NAME)_0.1
 
 # Names of source files only read by Verilator (starting with / to avoid false matches by suffix)
 VERILATOR_ONLY_SOURCE_FILENAMES=\
@@ -18,7 +18,7 @@ VERILATOR_ONLY_REGEX=$(shell echo ${VERILATOR_ONLY_SOURCE_FILENAMES} | sed 's/\s
 VERILATOR_AND_SURELOG_REGEX=$(shell echo ${VERILATOR_AND_SURELOG_SOURCE_FILENAMES} | sed 's/\s/\\|/g')
 
 # File containing OpenTitan source paths
-VC_FILE=${OPENTITAN_BUILD}/sim-verilator/lowrisc_systems_top_earlgrey_verilator_0.1.vc
+VC_FILE=${OPENTITAN_BUILD}/sim-verilator/lowrisc_$(TOP_TARGET_NAME)_0.1.vc
 
 # Source paths read by Verilator (including those from VERILATOR_AND_SURELOG_SOURCE_FILENAMES)
 VERILATOR_SOURCES=$(shell grep -F .sv < ${VC_FILE} | grep '${VERILATOR_ONLY_REGEX}\|${VERILATOR_AND_SURELOG_REGEX}')
@@ -38,12 +38,12 @@ SURELOG_PARAMETERS = -PPMPNumRegions=16 \
 CPU_COUNT = $(shell nproc)
 
 prepare-sources:
-	virtualenv ${root_dir}/venv-opentitan
+	virtualenv --python=python3 ${root_dir}/venv-opentitan
 	(export PATH=${root_dir}/../image/bin:${PATH} && \
 		. ${root_dir}/venv-opentitan/bin/activate && \
 		pip install -r ${OPENTITAN}/python-requirements.txt && \
 		pip install git+https://github.com/antmicro/edalize@surelog && \
-		fusesoc --cores-root=${OPENTITAN} run --flag=fileset_top --target=sim --setup lowrisc:systems:$(TOP_TARGET_NAME) \
+		fusesoc --cores-root=${OPENTITAN} run --flag=fileset_top --target=sim --setup lowrisc:dv:chip_verilator_sim \
 		--verilator_options '--threads ${CPU_COUNT}')
 
 uhdm/verilator/opentitan: clean-build | prepare-sources
@@ -58,10 +58,10 @@ uhdm/verilator/opentitan: clean-build | prepare-sources
 		cp ${root_dir}/build/slpp_all/surelog.uhdm ${root_dir}/build/ibex_core.uhdm && \
 		cd ${OPENTITAN_BUILD}/sim-verilator/ && \
 		sed 's/-Wall -DVM_TRACE_FMT_FST/-DVM_TRACE_FMT_FST/g' -i config.mk && \
-		sed '/--cc/a --uhdm-ast-sv' -i lowrisc_systems_$(TOP_TARGET_NAME)_0.1.vc && \
-		sed '/--uhdm-ast-sv/a ${root_dir}/build/ibex_core.uhdm' -i lowrisc_systems_$(TOP_TARGET_NAME)_0.1.vc && \
-		sed '/\.sv$$/d' -i lowrisc_systems_$(TOP_TARGET_NAME)_0.1.vc && \
-		sed '/--top-module $(TOP_TARGET_NAME)/i ${VERILATOR_SOURCES}' -i lowrisc_systems_$(TOP_TARGET_NAME)_0.1.vc && \
+		sed '/--cc/a --uhdm-ast-sv' -i lowrisc_$(TOP_TARGET_NAME)_0.1.vc && \
+		sed '/--uhdm-ast-sv/a ${root_dir}/build/ibex_core.uhdm' -i lowrisc_$(TOP_TARGET_NAME)_0.1.vc && \
+		sed '/\.sv$$/d' -i lowrisc_$(TOP_TARGET_NAME)_0.1.vc && \
+		sed '/--top-module chip_sim_tb/i ${VERILATOR_SOURCES}' -i lowrisc_$(TOP_TARGET_NAME)_0.1.vc && \
 		$(MAKE))
 
 verilator/opentitan: clean-build | prepare-sources
