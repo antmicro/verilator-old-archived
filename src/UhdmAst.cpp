@@ -3005,6 +3005,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                             bodyp);
     }
     case vpiDisable: {
+        // We are waiting for Surelog/UHDM to handle scope names properly
         std::string scopeName = "";
         FileLine* fl = make_fileline(obj_h);
         fl->v3error("Unable to get scope name to disable");
