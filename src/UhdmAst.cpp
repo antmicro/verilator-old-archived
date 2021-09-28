@@ -2231,7 +2231,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         if (objectType == vpiBegin) {
             objectName = "";  // avoid storing parent name
         }
-        return new AstBegin(make_fileline(obj_h), "", body);
+        return new AstBegin(make_fileline(obj_h), objectName, body);
     }
     case vpiIf:
     case vpiIfElse: {
@@ -2780,6 +2780,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         AstNode* stmt = new AstBegin(make_fileline(obj_h), "", initsp);
         return stmt;
     }
+    case vpiRepeat:
     case vpiDoWhile:
     case vpiWhile: {
         AstNode* condp = nullptr;
@@ -2788,31 +2789,26 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             {
                 vpiCondition,
             },
-            obj_h, shared, [&](AstNode* item) {
-                if (condp == nullptr) {
-                    condp = item;
-                } else {
-                    condp->addNextNull(item);
-                }
+            obj_h, shared, [&](AstNode* itemp) {
+                    condp = itemp;
             });
         visit_one_to_one(
             {
                 vpiStmt,
             },
-            obj_h, shared, [&](AstNode* item) {
-                if (bodysp == nullptr) {
-                    bodysp = item;
-                } else {
-                    bodysp->addNextNull(item);
-                }
+            obj_h, shared, [&](AstNode* itemp) {
+                    bodysp = itemp;
             });
-        AstNode* loop = new AstWhile(make_fileline(obj_h), condp, bodysp);
-        if (objectType == vpiWhile) {
-            return loop;
-        } else if (objectType == vpiDoWhile) {
-            auto* first_iter = bodysp->cloneTree(true);
-            first_iter->addNextNull(loop);
-            return first_iter;
+
+        if (objectType == vpiRepeat)
+            return new AstRepeat(make_fileline(obj_h), condp, bodysp);
+        else if (objectType == vpiWhile)
+            return new AstWhile(make_fileline(obj_h), condp, bodysp);
+        else if (objectType == vpiDoWhile) {
+            AstWhile* loopp = new AstWhile(make_fileline(obj_h), condp, bodysp);
+            auto* firstIterp = bodysp->cloneTree(true);
+            firstIterp->addNext(loopp);
+            return firstIterp;
         }
         break;
     }
@@ -2970,6 +2966,9 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     case vpiBreak: {
         return new AstBreak(make_fileline(obj_h));
     }
+    case vpiContinue: {
+        return new AstContinue(make_fileline(obj_h));
+    }
     case vpiForeachStmt: {
         AstNode* arrayp = nullptr;  // Array, then index variables
         AstNode* bodyp = nullptr;
@@ -2995,6 +2994,22 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             }
         });
         return new AstForeach(make_fileline(obj_h), arrayp, bodyp);
+    }
+    case vpiForever: {
+        AstNode* bodyp = nullptr;
+        visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* itemp) {
+            bodyp = itemp;
+        });
+        return new AstWhile(make_fileline(obj_h),
+                            new AstConst(make_fileline(obj_h), AstConst::BitTrue()),
+                            bodyp);
+    }
+    case vpiDisable: {
+        // We are waiting for Surelog/UHDM to handle scope names properly
+        std::string scopeName = "";
+        FileLine* fl = make_fileline(obj_h);
+        fl->v3error("Unable to get scope name to disable");
+        return new AstDisable(fl, scopeName);
     }
     case vpiMethodFuncCall: {
         AstNode* from = nullptr;
