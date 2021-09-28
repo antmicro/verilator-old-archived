@@ -260,7 +260,7 @@ jobs:
         . venv-opentitan/bin/activate
         pip install -r uhdm-tests/opentitan/opentitan/python-requirements.txt
         cd uhdm-tests/opentitan/opentitan
-        fusesoc --cores-root=. run --flag=fileset_top --target=sim --setup lowrisc:systems:top_earlgrey_verilator
+        fusesoc --cores-root=. run --flag=fileset_top --target=sim --setup lowrisc:dv:chip_verilator_sim
         cd ../../..
         ./uhdm-integration/.github/ci.sh
       env:
