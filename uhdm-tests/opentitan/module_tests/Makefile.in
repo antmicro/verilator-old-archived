@@ -1,4 +1,3 @@
-TOP_TARGET_NAME = dv_chip_verilator_sim
 curr_dir:=$(dir $(lastword $(MAKEFILE_LIST)))
-OPENTITAN = ${curr_dir}/../opentitan
+include ${curr_dir}/../Makefile.in
 OPENTITAN_BUILD = ${OPENTITAN}/build/lowrisc_$(TOP_TARGET_NAME)_0.1
