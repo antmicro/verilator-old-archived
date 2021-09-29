@@ -258,8 +258,8 @@ jobs:
         pip install virtualenv
         virtualenv venv-opentitan
         . venv-opentitan/bin/activate
-        pip install -r uhdm-tests/opentitan/opentitan/python-requirements.txt
-        cd uhdm-tests/opentitan/opentitan
+        pip install -r uhdm-tests/opentitan/opentitan-current/python-requirements.txt
+        cd uhdm-tests/opentitan/opentitan-current
         fusesoc --cores-root=. run --flag=fileset_top --target=sim --setup lowrisc:dv:chip_verilator_sim
         cd ../../..
         ./uhdm-integration/.github/ci.sh
