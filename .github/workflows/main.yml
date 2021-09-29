@@ -380,7 +380,7 @@ jobs:
         cp trace_core_00000000.log output_uhdm_vanilla_verilator/uhdm_verilator_trace.log
       env:
         OPENTITAN_VERSION: opentitan-210214
-        TOP_TARGET_NAME: lowrisc_systems_top_earlgrey_verilator
+        TOP_TARGET_NAME: systems_top_earlgrey_verilator
         TOP_MODULE_NAME: top_earlgrey_verilator
         FUSESOC_SETUP_TARGET: lowrisc:systems:top_earlgrey_verilator
         TARGET: uhdm/verilator/opentitan
