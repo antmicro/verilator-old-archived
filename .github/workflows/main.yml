@@ -408,7 +408,7 @@ jobs:
 
     - uses: actions/upload-artifact@v2
       with:
-        name: opentitan-earl-grey-simulation-output
+        name: opentitan-earlgrey-210214-simulation-output
         path: output_uhdm_vanilla_verilator
 
   simple-system-sim:
