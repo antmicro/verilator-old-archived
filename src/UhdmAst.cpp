@@ -2262,6 +2262,10 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     }
     case vpiNamedFork:
     case vpiFork: {
+        if (objectType == vpiFork) {
+            objectName = "";  // avoid storing parent name
+        }
+
         AstFork* forkp = new AstFork(make_fileline(obj_h), objectName, nullptr);
         shared.m_symp->pushNew(forkp);
 
