@@ -302,18 +302,6 @@ jobs:
     - name: Prepare output directory
       run: mkdir output_uhdm_vanilla_verilator
 
-    - name: Build & Test (vanilla verilator)
-      run: |
-        pip install virtualenv
-        ./uhdm-integration/.github/ci.sh
-        set -o pipefail
-        ./uhdm-integration/build/lowrisc_systems_top_earlgrey_verilator_0.1/sim-verilator/Vtop_earlgrey_verilator --meminit=rom,uhdm-tests/opentitan/boot_rom_sim_verilator.elf --meminit=flash,uhdm-tests/opentitan/hello_world_sim_verilator.elf | tee output_uhdm_vanilla_verilator/vanilla_verilator_simulation.log
-        cp uart0.log output_uhdm_vanilla_verilator/vanilla_verilator_uart.log
-        cp trace_core_00000000.log output_uhdm_vanilla_verilator/vanilla_verilator_trace.log
-      env:
-        TARGET: verilator/opentitan
-        TEST_CASE: tests/opentitan
-
     - name: Build & Test (uhdm verilator)
       run: |
         pip install virtualenv
@@ -324,6 +312,18 @@ jobs:
         cp trace_core_00000000.log output_uhdm_vanilla_verilator/uhdm_verilator_trace.log
       env:
         TARGET: uhdm/verilator/opentitan
+        TEST_CASE: tests/opentitan
+
+    - name: Build & Test (vanilla verilator)
+      run: |
+        pip install virtualenv
+        ./uhdm-integration/.github/ci.sh
+        set -o pipefail
+        ./uhdm-integration/build/lowrisc_systems_top_earlgrey_verilator_0.1/sim-verilator/Vtop_earlgrey_verilator --meminit=rom,uhdm-tests/opentitan/boot_rom_sim_verilator.elf --meminit=flash,uhdm-tests/opentitan/hello_world_sim_verilator.elf | tee output_uhdm_vanilla_verilator/vanilla_verilator_simulation.log
+        cp uart0.log output_uhdm_vanilla_verilator/vanilla_verilator_uart.log
+        cp trace_core_00000000.log output_uhdm_vanilla_verilator/vanilla_verilator_trace.log
+      env:
+        TARGET: verilator/opentitan
         TEST_CASE: tests/opentitan
 
     - name: Compare results
@@ -370,22 +370,6 @@ jobs:
     - name: Prepare output directory
       run: mkdir output_uhdm_vanilla_verilator
 
-    - name: Build & Test (vanilla verilator)
-      run: |
-        pip install virtualenv
-        ./uhdm-integration/.github/ci.sh
-        set -o pipefail
-        ./uhdm-integration/build/lowrisc_systems_top_earlgrey_verilator_0.1/sim-verilator/Vtop_earlgrey_verilator --meminit=rom,uhdm-tests/opentitan/boot_rom_sim_verilator.elf --meminit=flash,uhdm-tests/opentitan/hello_world_sim_verilator.elf | tee output_uhdm_vanilla_verilator/vanilla_verilator_simulation.log
-        cp uart0.log output_uhdm_vanilla_verilator/vanilla_verilator_uart.log
-        cp trace_core_00000000.log output_uhdm_vanilla_verilator/vanilla_verilator_trace.log
-      env:
-        OPENTITAN_VERSION: opentitan-210214
-        TOP_TARGET_NAME: systems_top_earlgrey_verilator
-        TOP_MODULE_NAME: top_earlgrey_verilator
-        FUSESOC_SETUP_TARGET: lowrisc:systems:top_earlgrey_verilator
-        TARGET: verilator/opentitan
-        TEST_CASE: tests/opentitan
-
     - name: Build & Test (uhdm verilator)
       run: |
         pip install virtualenv
@@ -400,6 +384,22 @@ jobs:
         TOP_MODULE_NAME: top_earlgrey_verilator
         FUSESOC_SETUP_TARGET: lowrisc:systems:top_earlgrey_verilator
         TARGET: uhdm/verilator/opentitan
+        TEST_CASE: tests/opentitan
+
+    - name: Build & Test (vanilla verilator)
+      run: |
+        pip install virtualenv
+        ./uhdm-integration/.github/ci.sh
+        set -o pipefail
+        ./uhdm-integration/build/lowrisc_systems_top_earlgrey_verilator_0.1/sim-verilator/Vtop_earlgrey_verilator --meminit=rom,uhdm-tests/opentitan/boot_rom_sim_verilator.elf --meminit=flash,uhdm-tests/opentitan/hello_world_sim_verilator.elf | tee output_uhdm_vanilla_verilator/vanilla_verilator_simulation.log
+        cp uart0.log output_uhdm_vanilla_verilator/vanilla_verilator_uart.log
+        cp trace_core_00000000.log output_uhdm_vanilla_verilator/vanilla_verilator_trace.log
+      env:
+        OPENTITAN_VERSION: opentitan-210214
+        TOP_TARGET_NAME: systems_top_earlgrey_verilator
+        TOP_MODULE_NAME: top_earlgrey_verilator
+        FUSESOC_SETUP_TARGET: lowrisc:systems:top_earlgrey_verilator
+        TARGET: verilator/opentitan
         TEST_CASE: tests/opentitan
 
     - name: Compare results
