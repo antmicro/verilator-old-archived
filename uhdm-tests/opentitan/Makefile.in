@@ -1,6 +1,9 @@
 curr_dir:=$(dir $(lastword $(MAKEFILE_LIST)))
-OPENTITAN = ${curr_dir}/opentitan
-TOP_TARGET_NAME = dv_chip_verilator_sim
+OPENTITAN_VERSION ?= opentitan-current
+TOP_TARGET_NAME ?= dv_chip_verilator_sim
+TOP_MODULE_NAME ?= chip_sim_tb
+FUSESOC_SETUP_TARGET ?= lowrisc:dv:chip_verilator_sim
+OPENTITAN =${curr_dir}/${OPENTITAN_VERSION}
 
 ################################
 #### verilator - simulation ####
@@ -43,7 +46,7 @@ prepare-sources:
 		. ${root_dir}/venv-opentitan/bin/activate && \
 		pip install -r ${OPENTITAN}/python-requirements.txt && \
 		pip install git+https://github.com/antmicro/edalize@surelog && \
-		fusesoc --cores-root=${OPENTITAN} run --flag=fileset_top --target=sim --setup lowrisc:dv:chip_verilator_sim \
+		fusesoc --cores-root=${OPENTITAN} run --flag=fileset_top --target=sim --setup ${FUSESOC_SETUP_TARGET} \
 		--verilator_options '--threads ${CPU_COUNT}')
 
 uhdm/verilator/opentitan: clean-build | prepare-sources
@@ -61,7 +64,7 @@ uhdm/verilator/opentitan: clean-build | prepare-sources
 		sed '/--cc/a --uhdm-ast-sv' -i lowrisc_$(TOP_TARGET_NAME)_0.1.vc && \
 		sed '/--uhdm-ast-sv/a ${root_dir}/build/ibex_core.uhdm' -i lowrisc_$(TOP_TARGET_NAME)_0.1.vc && \
 		sed '/\.sv$$/d' -i lowrisc_$(TOP_TARGET_NAME)_0.1.vc && \
-		sed '/--top-module chip_sim_tb/i ${VERILATOR_SOURCES}' -i lowrisc_$(TOP_TARGET_NAME)_0.1.vc && \
+		sed '/--top-module $(TOP_MODULE_NAME)/i ${VERILATOR_SOURCES}' -i lowrisc_$(TOP_TARGET_NAME)_0.1.vc && \
 		$(MAKE))
 
 verilator/opentitan: clean-build | prepare-sources
