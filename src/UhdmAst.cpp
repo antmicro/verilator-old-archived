@@ -1184,67 +1184,6 @@ AstNode* process_assignment(vpiHandle obj_h, UhdmShared& shared) {
     return nullptr;
 }
 
-AstNode* process_function_task(vpiHandle obj_h, UhdmShared& shared) {
-    AstNode* statementsp = nullptr;
-    AstNodeFTask* taskFuncp = nullptr;
-
-    std::string objectName = get_object_name(obj_h);
-
-    const uhdm_handle* const handle = (const uhdm_handle*)obj_h;
-    const UHDM::BaseClass* const object = (const UHDM::BaseClass*)handle->object;
-    if (shared.visited_objects.find(object) != shared.visited_objects.end()) {
-        // Surelog sometimes copies function instead of creating reference under vpiImport node
-        return nullptr;
-    }
-    shared.visited_objects.insert(object);
-
-    visit_one_to_many({vpiIODecl, vpiVariables}, obj_h, shared, [&](AstNode* itemp) {
-        if (itemp) {
-            if (statementsp)
-                statementsp->addNextNull(itemp);
-            else
-                statementsp = itemp;
-        }
-    });
-    visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* itemp) {
-        if (itemp) {
-            if (statementsp)
-                statementsp->addNextNull(itemp);
-            else
-                statementsp = itemp;
-        }
-    });
-
-    if (auto return_h = vpi_handle(vpiReturn, obj_h)) {
-        AstNodeDType* returnDTypep = getDType(make_fileline(obj_h), return_h, shared);
-        taskFuncp = new AstFunc(make_fileline(obj_h), objectName, statementsp, returnDTypep);
-    } else {
-        taskFuncp = new AstTask(make_fileline(obj_h), objectName, statementsp);
-    }
-
-    if (vpi_get(vpiDPIContext, obj_h)) taskFuncp->dpiContext(true);
-    if (vpi_get(vpiDPIPure, obj_h)) taskFuncp->pure(true);
-
-    auto accessType = vpi_get(vpiAccessType, obj_h);
-    if (accessType == vpiDPIExportAcc) {
-        AstDpiExport* exportp = new AstDpiExport(make_fileline(obj_h), objectName, objectName);
-        exportp->addNext(taskFuncp);
-        v3Global.dpi(true);
-        return exportp;
-    } else if (accessType == vpiDPIImportAcc) {
-        taskFuncp->dpiImport(true);
-        v3Global.dpi(true);
-        if (vpi_get(vpiType, obj_h) == vpiTask) {
-            AstTask* taskp = reinterpret_cast<AstTask*>(taskFuncp);
-            taskp->dpiTask(true);
-        }
-        if (taskFuncp->prettyName()[0] == '$')
-            shared.m_symp->reinsert(taskFuncp, nullptr, taskFuncp->prettyName());
-        shared.m_symp->reinsert(taskFuncp);
-    }
-    return taskFuncp;
-}
-
 AstNode* process_genScopeArray(vpiHandle obj_h, UhdmShared& shared) {
     AstNode* statementsp = nullptr;
     std::string objectName = get_object_name(obj_h);
@@ -1632,6 +1571,109 @@ AstNode* process_typedef(vpiHandle obj_h, UhdmShared& shared) {
 
     shared.m_symp->reinsert(typedefp);
     return typedefp;
+}
+
+AstNode* process_scope(vpiHandle obj_h, UhdmShared& shared, AstNode* bodyp = nullptr) {
+    vpiHandle typedef_itr = vpi_iterate(vpiTypedef, obj_h);
+    while (vpiHandle typedef_obj = vpi_scan(typedef_itr)) {
+        AstNode* typedefp = process_typedef(typedef_obj, shared);
+        if (bodyp == nullptr)
+            bodyp = typedefp;
+        else
+            bodyp->addNextNull(typedefp);
+        vpi_release_handle(typedef_obj);
+    }
+    vpi_release_handle(typedef_itr);
+
+    visit_one_to_many(
+        {
+            vpiPropertyDecl,
+            vpiSequenceDecl,
+            vpiConcurrentAssertions,
+            vpiNamedEvent,
+            vpiNamedEventArray,
+            vpiVariables,
+            vpiVirtualInterfaceVar,
+            vpiReg,
+            vpiRegArray,
+            vpiMemory,
+            vpiParamAssign,
+            vpiInternalScope,
+            vpiImport,
+            vpiLetDecl
+        },
+        obj_h, shared, [&](AstNode* nodep) {
+            if (bodyp == nullptr) {
+                bodyp = nodep;
+            } else {
+                bodyp->addNextNull(nodep);
+            }
+        });
+    return bodyp;
+}
+
+AstNode* process_function_task(vpiHandle obj_h, UhdmShared& shared) {
+    AstNodeFTask* taskFuncp = nullptr;
+
+    std::string objectName = get_object_name(obj_h);
+
+    const uhdm_handle* const handle = (const uhdm_handle*)obj_h;
+    const UHDM::BaseClass* const object = (const UHDM::BaseClass*)handle->object;
+    if (shared.visited_objects.find(object) != shared.visited_objects.end()) {
+        // Surelog sometimes copies function instead of creating reference under vpiImport node
+        return nullptr;
+    }
+    shared.visited_objects.insert(object);
+
+    AstNode* statementsp = nullptr;
+    visit_one_to_many({vpiIODecl}, obj_h, shared, [&](AstNode* itemp) {
+        if (itemp) {
+            if (statementsp)
+                statementsp->addNextNull(itemp);
+            else
+                statementsp = itemp;
+        }
+    });
+
+    statementsp = process_scope(obj_h, shared, statementsp);
+
+    visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* itemp) {
+        if (itemp) {
+            if (statementsp)
+                statementsp->addNextNull(itemp);
+            else
+                statementsp = itemp;
+        }
+    });
+
+    if (auto return_h = vpi_handle(vpiReturn, obj_h)) {
+        AstNodeDType* returnDTypep = getDType(make_fileline(obj_h), return_h, shared);
+        taskFuncp = new AstFunc(make_fileline(obj_h), objectName, statementsp, returnDTypep);
+    } else {
+        taskFuncp = new AstTask(make_fileline(obj_h), objectName, statementsp);
+    }
+
+    if (vpi_get(vpiDPIContext, obj_h)) taskFuncp->dpiContext(true);
+    if (vpi_get(vpiDPIPure, obj_h)) taskFuncp->pure(true);
+
+    auto accessType = vpi_get(vpiAccessType, obj_h);
+    if (accessType == vpiDPIExportAcc) {
+        AstDpiExport* exportp = new AstDpiExport(make_fileline(obj_h), objectName, objectName);
+        exportp->addNext(taskFuncp);
+        v3Global.dpi(true);
+        return exportp;
+    } else if (accessType == vpiDPIImportAcc) {
+        taskFuncp->dpiImport(true);
+        v3Global.dpi(true);
+        if (vpi_get(vpiType, obj_h) == vpiTask) {
+            AstTask* taskp = reinterpret_cast<AstTask*>(taskFuncp);
+            taskp->dpiTask(true);
+        }
+        if (taskFuncp->prettyName()[0] == '$')
+            shared.m_symp->reinsert(taskFuncp, nullptr, taskFuncp->prettyName());
+        shared.m_symp->reinsert(taskFuncp);
+    }
+    return taskFuncp;
 }
 
 AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
@@ -2204,45 +2246,46 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     }
     case vpiNamedBegin:
     case vpiBegin: {
-        AstNode* body = nullptr;
+        AstNode* bodyp = process_scope(obj_h, shared);
+        visit_one_to_many({vpiStmt}, obj_h, shared, [&](AstNode* nodep) {
+            if (bodyp == nullptr) {
+                bodyp = nodep;
+            } else {
+                bodyp->addNextNull(nodep);
+            }
+        });
 
-        vpiHandle typedef_itr = vpi_iterate(vpiTypedef, obj_h);
-        while (vpiHandle typedef_obj = vpi_scan(typedef_itr)) {
-            AstNode* typedefp = process_typedef(typedef_obj, shared);
-            if (body == nullptr)
-                body = typedefp;
-            else
-                body->addNextNull(typedefp);
-        }
-
-        visit_one_to_many(
-            {
-                vpiStmt,
-                vpiPropertyDecl,
-                vpiSequenceDecl,
-                vpiConcurrentAssertions,
-                vpiNamedEvent,
-                vpiNamedEventArray,
-                vpiVariables,
-                vpiVirtualInterfaceVar,
-                vpiReg,
-                vpiRegArray,
-                vpiMemory,
-                vpiParamAssign,
-                vpiInternalScope,
-                vpiAttribute,
-            },
-            obj_h, shared, [&](AstNode* node) {
-                if (body == nullptr) {
-                    body = node;
-                } else {
-                    body->addNextNull(node);
-                }
-            });
         if (objectType == vpiBegin) {
             objectName = "";  // avoid storing parent name
         }
-        return new AstBegin(make_fileline(obj_h), objectName, body);
+        return new AstBegin(make_fileline(obj_h), objectName, bodyp);
+    }
+    case vpiNamedFork:
+    case vpiFork: {
+        AstFork* forkp = new AstFork(make_fileline(obj_h), objectName, nullptr);
+        shared.m_symp->pushNew(forkp);
+
+        // vpiJoinType equal to 0 (vpiJoin) is not visible in uhdm tree
+        auto join_type = vpi_get(vpiJoinType, obj_h);
+        if (join_type == vpiJoin)
+            forkp->joinType(VJoinType::JOIN);
+        else if (join_type == vpiJoinAny)
+            forkp->joinType(VJoinType::JOIN_ANY);
+        else if (join_type == vpiJoinNone)
+            forkp->joinType(VJoinType::JOIN_NONE);
+
+        AstNode* bodyp = process_scope(obj_h, shared);
+        visit_one_to_many({vpiStmt}, obj_h, shared, [&](AstNode* nodep) {
+            if (bodyp == nullptr) {
+                bodyp = nodep;
+            } else {
+                bodyp->addNextNull(nodep);
+            }
+        });
+        forkp->addStmtsp(bodyp);
+
+        shared.m_symp->popScope(forkp);
+        return forkp;
     }
     case vpiIf:
     case vpiIfElse: {
