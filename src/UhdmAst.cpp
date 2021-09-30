@@ -2629,6 +2629,10 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             vpi_release_handle(arg_itr);
             vpi_release_handle(arg_h);
             return new AstAttrOf(make_fileline(obj_h), AstAttrType::DIM_BITS, expr_datatype_p);
+        } else if (objectName == "$rtoi") {
+            return new AstRToIS(make_fileline(obj_h), arguments[0]);
+        } else if (objectName == "$itor") {
+            return new AstIToRD(make_fileline(obj_h), arguments[0]);
         } else if (objectName == "$realtobits") {
             return new AstRealToBits(make_fileline(obj_h), arguments[0]);
         } else if (objectName == "$bitstoreal") {

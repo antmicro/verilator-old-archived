@@ -258,16 +258,16 @@ jobs:
         pip install virtualenv
         virtualenv venv-opentitan
         . venv-opentitan/bin/activate
-        pip install -r uhdm-tests/opentitan/opentitan/python-requirements.txt
-        cd uhdm-tests/opentitan/opentitan
-        fusesoc --cores-root=. run --flag=fileset_top --target=sim --setup lowrisc:systems:top_earlgrey_verilator
+        pip install -r uhdm-tests/opentitan/opentitan-current/python-requirements.txt
+        cd uhdm-tests/opentitan/opentitan-current
+        fusesoc --cores-root=. run --flag=fileset_top --target=sim --setup lowrisc:dv:chip_verilator_sim
         cd ../../..
         ./uhdm-integration/.github/ci.sh
       env:
         TEST_CASE: ${{ matrix.TEST_CASE }}
         TARGET: ${{ matrix.TARGET }}
 
-  opentitan-earl-grey-sim:
+  opentitan-earlgrey-current:
     runs-on: ubuntu-latest
     needs: build-binaries
     env:
@@ -302,28 +302,28 @@ jobs:
     - name: Prepare output directory
       run: mkdir output_uhdm_vanilla_verilator
 
-    - name: Build & Test (vanilla verilator)
-      run: |
-        pip install virtualenv
-        ./uhdm-integration/.github/ci.sh
-        set -o pipefail
-        ./uhdm-integration/build/lowrisc_systems_top_earlgrey_verilator_0.1/sim-verilator/Vtop_earlgrey_verilator --meminit=rom,uhdm-tests/opentitan/boot_rom_sim_verilator.elf --meminit=flash,uhdm-tests/opentitan/hello_world_sim_verilator.elf | tee output_uhdm_vanilla_verilator/vanilla_verilator_simulation.log
-        cp uart0.log output_uhdm_vanilla_verilator/vanilla_verilator_uart.log
-        cp trace_core_00000000.log output_uhdm_vanilla_verilator/vanilla_verilator_trace.log
-      env:
-        TARGET: verilator/opentitan
-        TEST_CASE: tests/opentitan
-
     - name: Build & Test (uhdm verilator)
       run: |
         pip install virtualenv
         ./uhdm-integration/.github/ci.sh
         set -o pipefail
-        ./uhdm-integration/build/lowrisc_systems_top_earlgrey_verilator_0.1/sim-verilator/Vtop_earlgrey_verilator --meminit=rom,uhdm-tests/opentitan/boot_rom_sim_verilator.elf --meminit=flash,uhdm-tests/opentitan/hello_world_sim_verilator.elf | tee output_uhdm_vanilla_verilator/uhdm_verilator_simulation.log
+        timeout 5m ./uhdm-integration/build/lowrisc_dv_chip_verilator_sim_0.1/sim-verilator/Vchip_sim_tb --meminit=rom,uhdm-tests/opentitan/boot_rom_sim_verilator.elf --meminit=flash,uhdm-tests/opentitan/hello_world_sim_verilator.elf | tee output_uhdm_vanilla_verilator/uhdm_verilator_simulation.log
         cp uart0.log output_uhdm_vanilla_verilator/uhdm_verilator_uart.log
         cp trace_core_00000000.log output_uhdm_vanilla_verilator/uhdm_verilator_trace.log
       env:
         TARGET: uhdm/verilator/opentitan
+        TEST_CASE: tests/opentitan
+
+    - name: Build & Test (vanilla verilator)
+      run: |
+        pip install virtualenv
+        ./uhdm-integration/.github/ci.sh
+        set -o pipefail
+        timeout 5m ./uhdm-integration/build/lowrisc_dv_chip_verilator_sim_0.1/sim-verilator/Vchip_sim_tb --meminit=rom,uhdm-tests/opentitan/boot_rom_sim_verilator.elf --meminit=flash,uhdm-tests/opentitan/hello_world_sim_verilator.elf | tee output_uhdm_vanilla_verilator/vanilla_verilator_simulation.log
+        cp uart0.log output_uhdm_vanilla_verilator/vanilla_verilator_uart.log
+        cp trace_core_00000000.log output_uhdm_vanilla_verilator/vanilla_verilator_trace.log
+      env:
+        TARGET: verilator/opentitan
         TEST_CASE: tests/opentitan
 
     - name: Compare results
@@ -333,6 +333,82 @@ jobs:
     - uses: actions/upload-artifact@v2
       with:
         name: opentitan-earl-grey-simulation-output
+        path: output_uhdm_vanilla_verilator
+
+  opentitan-earlgrey-210214:
+    runs-on: ubuntu-latest
+    needs: build-binaries
+    env:
+      CC: gcc-9
+      CXX: g++-9
+
+    steps:
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update -qq
+        sudo apt install -y g++-9 build-essential cmake tclsh ant default-jre swig google-perftools libgoogle-perftools-dev python3 python3-dev uuid uuid-dev tcl-dev flex libfl-dev libelf-dev ninja-build
+
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+        fetch-depth: 1
+
+    - uses: actions/setup-python@v2
+      with:
+         python-version: '3.7'
+
+    - name: Download binaries
+      uses: actions/download-artifact@v2
+      with:
+        name: binaries
+
+    # See https://github.com/actions/upload-artifact/issues/38
+    - name: Extract
+      run: tar -xf binaries.tar
+
+    - name: Prepare output directory
+      run: mkdir output_uhdm_vanilla_verilator
+
+    - name: Build & Test (uhdm verilator)
+      run: |
+        pip install virtualenv
+        ./uhdm-integration/.github/ci.sh
+        set -o pipefail
+        timeout 5m ./uhdm-integration/build/lowrisc_systems_top_earlgrey_verilator_0.1/sim-verilator/Vtop_earlgrey_verilator --meminit=rom,uhdm-tests/opentitan/boot_rom_sim_verilator.elf --meminit=flash,uhdm-tests/opentitan/hello_world_sim_verilator.elf | tee output_uhdm_vanilla_verilator/uhdm_verilator_simulation.log
+        cp uart0.log output_uhdm_vanilla_verilator/uhdm_verilator_uart.log
+        cp trace_core_00000000.log output_uhdm_vanilla_verilator/uhdm_verilator_trace.log
+      env:
+        OPENTITAN_VERSION: opentitan-210214
+        TOP_TARGET_NAME: systems_top_earlgrey_verilator
+        TOP_MODULE_NAME: top_earlgrey_verilator
+        FUSESOC_SETUP_TARGET: lowrisc:systems:top_earlgrey_verilator
+        TARGET: uhdm/verilator/opentitan
+        TEST_CASE: tests/opentitan
+
+    - name: Build & Test (vanilla verilator)
+      run: |
+        pip install virtualenv
+        ./uhdm-integration/.github/ci.sh
+        set -o pipefail
+        timeout 5m ./uhdm-integration/build/lowrisc_systems_top_earlgrey_verilator_0.1/sim-verilator/Vtop_earlgrey_verilator --meminit=rom,uhdm-tests/opentitan/boot_rom_sim_verilator.elf --meminit=flash,uhdm-tests/opentitan/hello_world_sim_verilator.elf | tee output_uhdm_vanilla_verilator/vanilla_verilator_simulation.log
+        cp uart0.log output_uhdm_vanilla_verilator/vanilla_verilator_uart.log
+        cp trace_core_00000000.log output_uhdm_vanilla_verilator/vanilla_verilator_trace.log
+      env:
+        OPENTITAN_VERSION: opentitan-210214
+        TOP_TARGET_NAME: systems_top_earlgrey_verilator
+        TOP_MODULE_NAME: top_earlgrey_verilator
+        FUSESOC_SETUP_TARGET: lowrisc:systems:top_earlgrey_verilator
+        TARGET: verilator/opentitan
+        TEST_CASE: tests/opentitan
+
+    - name: Compare results
+      run: |
+        diff output_uhdm_vanilla_verilator/vanilla_verilator_uart.log output_uhdm_vanilla_verilator/uhdm_verilator_uart.log
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: opentitan-earlgrey-210214-simulation-output
         path: output_uhdm_vanilla_verilator
 
   simple-system-sim:
@@ -371,7 +447,7 @@ jobs:
       run: |
         pip install virtualenv
         ./uhdm-integration/.github/ci.sh
-        ./uhdm-integration/build/lowrisc_ibex_ibex_simple_system_0/sim-verilator/Vibex_simple_system --meminit=ram,uhdm-tests/ibex/hello_test.elf
+        timeout 5m ./uhdm-integration/build/lowrisc_ibex_ibex_simple_system_0/sim-verilator/Vibex_simple_system --meminit=ram,uhdm-tests/ibex/hello_test.elf
         mkdir output_uhdm
         cp ibex_simple_system.log ibex_simple_system_pcount.csv trace_core_00000000.log output_uhdm/
       env:
@@ -381,7 +457,7 @@ jobs:
     - name: Build & Test (vanilla verilator)
       run: |
         ./uhdm-integration/.github/ci.sh
-        ./uhdm-integration/build/lowrisc_ibex_ibex_simple_system_0/sim-verilator/Vibex_simple_system --meminit=ram,uhdm-tests/ibex/hello_test.elf
+        timeout 5m ./uhdm-integration/build/lowrisc_ibex_ibex_simple_system_0/sim-verilator/Vibex_simple_system --meminit=ram,uhdm-tests/ibex/hello_test.elf
         diff -y ibex_simple_system.log output_uhdm/ibex_simple_system.log
       env:
         TARGET: verilator/simple-system
