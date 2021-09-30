@@ -66,35 +66,11 @@ jobs:
 
     - name: Run MultipleCells test
       run: |
-        ./uhdm-integration/.github/ci.sh
-      env:
-        TARGET: uhdm/verilator/test-ast
-        TEST_CASE: tests/MultipleCells
-        SED_BIN: gsed
-
-    - name: Build & Test Ibex (UHDM)
-      run: |
-        pip install virtualenv
-        ./uhdm-integration/.github/ci.sh
-        ./uhdm-integration/build/lowrisc_ibex_ibex_simple_system_0/sim-verilator/Vibex_simple_system --meminit=ram,uhdm-tests/ibex/hello_test.elf
-        mkdir output_uhdm
-        cp ibex_simple_system.log ibex_simple_system_pcount.csv trace_core_00000000.log output_uhdm/
-      env:
-        TARGET: uhdm/verilator/simple-system
-        TEST_CASE: tests/ibex
-        SED_BIN: gsed
-
-    - name: Build & Test Ibex (vanilla verilator)
-      run: |
-        ./uhdm-integration/.github/ci.sh
-        ./uhdm-integration/build/lowrisc_ibex_ibex_simple_system_0/sim-verilator/Vibex_simple_system --meminit=ram,uhdm-tests/ibex/hello_test.elf
-      env:
-        TARGET: verilator/simple-system
-        TEST_CASE: tests/ibex
-
-    - name: Compare test results
-      run: |
-        diff -y ibex_simple_system.log output_uhdm/ibex_simple_system.log
+        cd uhdm-integration
+        cmake -S tests/MultipleCells -B build
+        cd build
+        make Vtop VERBOSE=1
+        ./Vtop
 
   generate-matrix:
     runs-on: ubuntu-latest
