@@ -307,7 +307,7 @@ jobs:
         pip install virtualenv
         ./uhdm-integration/.github/ci.sh
         set -o pipefail
-        ./uhdm-integration/build/lowrisc_dv_chip_verilator_sim_0.1/sim-verilator/Vchip_sim_tb --meminit=rom,uhdm-tests/opentitan/boot_rom_sim_verilator.elf --meminit=flash,uhdm-tests/opentitan/hello_world_sim_verilator.elf | tee output_uhdm_vanilla_verilator/uhdm_verilator_simulation.log
+        timeout 5m ./uhdm-integration/build/lowrisc_dv_chip_verilator_sim_0.1/sim-verilator/Vchip_sim_tb --meminit=rom,uhdm-tests/opentitan/boot_rom_sim_verilator.elf --meminit=flash,uhdm-tests/opentitan/hello_world_sim_verilator.elf | tee output_uhdm_vanilla_verilator/uhdm_verilator_simulation.log
         cp uart0.log output_uhdm_vanilla_verilator/uhdm_verilator_uart.log
         cp trace_core_00000000.log output_uhdm_vanilla_verilator/uhdm_verilator_trace.log
       env:
@@ -319,7 +319,7 @@ jobs:
         pip install virtualenv
         ./uhdm-integration/.github/ci.sh
         set -o pipefail
-        ./uhdm-integration/build/lowrisc_dv_chip_verilator_sim_0.1/sim-verilator/Vchip_sim_tb --meminit=rom,uhdm-tests/opentitan/boot_rom_sim_verilator.elf --meminit=flash,uhdm-tests/opentitan/hello_world_sim_verilator.elf | tee output_uhdm_vanilla_verilator/vanilla_verilator_simulation.log
+        timeout 5m ./uhdm-integration/build/lowrisc_dv_chip_verilator_sim_0.1/sim-verilator/Vchip_sim_tb --meminit=rom,uhdm-tests/opentitan/boot_rom_sim_verilator.elf --meminit=flash,uhdm-tests/opentitan/hello_world_sim_verilator.elf | tee output_uhdm_vanilla_verilator/vanilla_verilator_simulation.log
         cp uart0.log output_uhdm_vanilla_verilator/vanilla_verilator_uart.log
         cp trace_core_00000000.log output_uhdm_vanilla_verilator/vanilla_verilator_trace.log
       env:
@@ -375,7 +375,7 @@ jobs:
         pip install virtualenv
         ./uhdm-integration/.github/ci.sh
         set -o pipefail
-        ./uhdm-integration/build/lowrisc_systems_top_earlgrey_verilator_0.1/sim-verilator/Vtop_earlgrey_verilator --meminit=rom,uhdm-tests/opentitan/boot_rom_sim_verilator.elf --meminit=flash,uhdm-tests/opentitan/hello_world_sim_verilator.elf | tee output_uhdm_vanilla_verilator/uhdm_verilator_simulation.log
+        timeout 5m ./uhdm-integration/build/lowrisc_systems_top_earlgrey_verilator_0.1/sim-verilator/Vtop_earlgrey_verilator --meminit=rom,uhdm-tests/opentitan/boot_rom_sim_verilator.elf --meminit=flash,uhdm-tests/opentitan/hello_world_sim_verilator.elf | tee output_uhdm_vanilla_verilator/uhdm_verilator_simulation.log
         cp uart0.log output_uhdm_vanilla_verilator/uhdm_verilator_uart.log
         cp trace_core_00000000.log output_uhdm_vanilla_verilator/uhdm_verilator_trace.log
       env:
@@ -391,7 +391,7 @@ jobs:
         pip install virtualenv
         ./uhdm-integration/.github/ci.sh
         set -o pipefail
-        ./uhdm-integration/build/lowrisc_systems_top_earlgrey_verilator_0.1/sim-verilator/Vtop_earlgrey_verilator --meminit=rom,uhdm-tests/opentitan/boot_rom_sim_verilator.elf --meminit=flash,uhdm-tests/opentitan/hello_world_sim_verilator.elf | tee output_uhdm_vanilla_verilator/vanilla_verilator_simulation.log
+        timeout 5m ./uhdm-integration/build/lowrisc_systems_top_earlgrey_verilator_0.1/sim-verilator/Vtop_earlgrey_verilator --meminit=rom,uhdm-tests/opentitan/boot_rom_sim_verilator.elf --meminit=flash,uhdm-tests/opentitan/hello_world_sim_verilator.elf | tee output_uhdm_vanilla_verilator/vanilla_verilator_simulation.log
         cp uart0.log output_uhdm_vanilla_verilator/vanilla_verilator_uart.log
         cp trace_core_00000000.log output_uhdm_vanilla_verilator/vanilla_verilator_trace.log
       env:
@@ -447,7 +447,7 @@ jobs:
       run: |
         pip install virtualenv
         ./uhdm-integration/.github/ci.sh
-        ./uhdm-integration/build/lowrisc_ibex_ibex_simple_system_0/sim-verilator/Vibex_simple_system --meminit=ram,uhdm-tests/ibex/hello_test.elf
+        timeout 5m ./uhdm-integration/build/lowrisc_ibex_ibex_simple_system_0/sim-verilator/Vibex_simple_system --meminit=ram,uhdm-tests/ibex/hello_test.elf
         mkdir output_uhdm
         cp ibex_simple_system.log ibex_simple_system_pcount.csv trace_core_00000000.log output_uhdm/
       env:
@@ -457,7 +457,7 @@ jobs:
     - name: Build & Test (vanilla verilator)
       run: |
         ./uhdm-integration/.github/ci.sh
-        ./uhdm-integration/build/lowrisc_ibex_ibex_simple_system_0/sim-verilator/Vibex_simple_system --meminit=ram,uhdm-tests/ibex/hello_test.elf
+        timeout 5m ./uhdm-integration/build/lowrisc_ibex_ibex_simple_system_0/sim-verilator/Vibex_simple_system --meminit=ram,uhdm-tests/ibex/hello_test.elf
         diff -y ibex_simple_system.log output_uhdm/ibex_simple_system.log
       env:
         TARGET: verilator/simple-system
