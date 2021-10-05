@@ -110,7 +110,7 @@ LDFLAGS += $(CFG_LDFLAGS_SRC)
 CPPFLAGS += -std=c++14 -I$(SURELOG_INSTALL_DIR)/include/
 
 LDFLAGS += -L$(SURELOG_INSTALL_DIR)/lib/uhdm -L$(SURELOG_INSTALL_DIR)/lib
-LIBS += -luhdm -lcapnp -lkj -ldl -lutil -lm -lrt -lpthread
+LIBS += -luhdm -lcapnp -lkj -ldl -lutil -lm -lpthread
 
 CPPFLAGSWALL   = $(CPPFLAGS)
 CPPFLAGSPARSER = $(CPPFLAGS) $(CFG_CXXFLAGS_PARSER)
