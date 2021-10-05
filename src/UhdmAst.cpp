@@ -1113,8 +1113,35 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared, std::vector<AstN
     }
     case vpiMultiAssignmentPatternOp: {
         // '{op0{op1}}
-        AstPatMember* patMemberp
-            = new AstPatMember(make_fileline(obj_h), operands[1], nullptr, operands[0]);
+        AstPatMember* patMemberp = nullptr;
+        // in case of '{op0{op1, op2, ..., opn}}
+        // Verilator forms a list from them via addNext method
+        // and passes it as argument to constructor
+        // but Surelog returns op1, ..., opn as vpiConcatOp
+        // We need to detect that case, because it causes problems
+        vpiHandle operands_itr = vpi_iterate(vpiOperand, obj_h);
+        vpiHandle operand_h = vpi_scan(operands_itr);
+        vpi_release_handle(operand_h);
+        // we need to know only the type of 2nd operand
+        operand_h = vpi_scan(operands_itr);
+        if (vpi_get(vpiType, operand_h) == vpiOperation
+            && vpi_get(vpiOpType, operand_h) == vpiConcatOp) {
+            AstNode* elementsToReplicatep = nullptr;
+            visit_one_to_many({vpiOperand}, operand_h, shared, [&](AstNode* itemp) {
+                if (itemp) {
+                    if (elementsToReplicatep)
+                        elementsToReplicatep->addNext(itemp);
+                    else
+                        elementsToReplicatep = itemp;
+                }
+            });
+            operands[1]->deleteTree();
+            operands[1] = elementsToReplicatep;
+        }
+        vpi_release_handle(operand_h);
+        vpi_release_handle(operands_itr);
+
+        patMemberp = new AstPatMember(make_fileline(obj_h), operands[1], nullptr, operands[0]);
         return new AstPattern(make_fileline(obj_h), patMemberp);
     }
     case vpiNullOp: {
