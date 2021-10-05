@@ -3094,11 +3094,15 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                             bodyp);
     }
     case vpiDisable: {
-        // We are waiting for Surelog/UHDM to handle scope names properly
-        std::string scopeName = "";
         FileLine* fl = make_fileline(obj_h);
-        fl->v3error("Unable to get scope name to disable");
-        return new AstDisable(fl, scopeName);
+        if (vpiHandle expr_h = vpi_handle(vpiExpr, obj_h)) {
+            std::string scopeName = get_object_name(expr_h);
+            vpi_release_handle(expr_h);
+            return new AstDisable(fl, scopeName);
+        } else {
+            fl->v3error("No vpiExpr of vpiDisable, required to get the name of the disabled object");
+            return nullptr;
+        }
     }
     case vpiMethodFuncCall: {
         AstNode* from = nullptr;
