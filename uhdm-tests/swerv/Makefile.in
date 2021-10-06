@@ -1,0 +1,22 @@
+curr_dir:=$(dir $(lastword $(MAKEFILE_LIST)))
+SWERV_VERSION ?= swerv
+VENV = ${root_dir}/venv-swerv
+FUSESOC_SETUP_TARGET ?= chipsalliance.org:cores:SweRV_EH1:1.8
+SWERV =${curr_dir}/${SWERV_VERSION}
+
+CPU_COUNT = $(shell nproc)
+
+prepare-sources:
+	virtualenv --python=python3 ${VENV}
+	(export PATH=${root_dir}/../image/bin:${PATH} && \
+		. ${VENV}/bin/activate && \
+		pip install fusesoc && \
+		pip install git+https://github.com/antmicro/edalize@surelog && \
+		fusesoc --cores-root=${SWERV} run --target=sim --setup ${FUSESOC_SETUP_TARGET} \
+		--verilator_options '--threads ${CPU_COUNT}')
+
+verilator/swerv: clean-build | prepare-sources
+	(export PATH=${root_dir}/../image/bin:${PATH} && \
+		. ${VENV}/bin/activate && \
+		cd ${OPENTITAN_BUILD}/sim-verilator/ && \
+		$(MAKE))
