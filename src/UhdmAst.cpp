@@ -2767,7 +2767,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             node = it->second(obj_h, shared, arguments);
         else
             v3error("\t! Encountered unhandled SysFuncCall: " << objectName);
-        if (VN_IS(node, NodeMath)) {
+        if (VN_IS(node, NodeMath) && !VN_IS(node, Signed) && !VN_IS(node, Unsigned)) {
             auto parent_h = vpi_handle(vpiParent, obj_h);
             int parent_type = 0;
             if (parent_h) { parent_type = vpi_get(vpiType, parent_h); }
