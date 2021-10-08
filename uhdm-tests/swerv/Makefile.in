@@ -76,27 +76,25 @@ ${BUILD_DIR}/defines.h :
 uhdm/verilator-build: ${TBFILES} ${BUILD_DIR}/defines.h test_tb_top.cpp
 	echo '`undef ASSERT_ON' >> ${BUILD_DIR}/common_defines.vh
 	$(SURELOG) -nobuiltin -parse -sverilog +define+VERILATOR $(defines) $(includes) \
-                -I${RV_ROOT}/testbench \
+		-I${RV_ROOT}/testbench \
 		-f ${RV_ROOT}/testbench/flist \
-                ${TBFILES}
+		${TBFILES}
 	$(VERILATOR) --cc -CFLAGS ${CFLAGS} --uhdm-ast-sv $(root_dir)/slpp_all/surelog.uhdm \
-                -Wno-UNOPTFLAT \
-                --top-module tb_top -exe test_tb_top.cpp --autoflush $(VERILATOR_DEBUG)
+		-Wno-UNOPTFLAT \
+		--top-module tb_top -exe test_tb_top.cpp --autoflush $(VERILATOR_DEBUG)
 	cp ${RV_ROOT}/testbench/test_tb_top.cpp obj_dir
 	$(MAKE) -j $(CPU_COUNT) -C obj_dir/ -f Vtb_top.mk $(VERILATOR_MAKE_FLAGS)
-	touch verilator-build
 
 verilator-build: ${TBFILES} ${BUILD_DIR}/defines.h test_tb_top.cpp
 	echo '`undef ASSERT_ON' >> ${BUILD_DIR}/common_defines.vh
 	$(VERILATOR) --cc -CFLAGS ${CFLAGS} $(defines) $(includes) \
-                -Wno-UNOPTFLAT \
-                -I${RV_ROOT}/testbench \
+		-Wno-UNOPTFLAT \
+		-I${RV_ROOT}/testbench \
 		-f ${RV_ROOT}/testbench/flist \
-                ${TBFILES} \
-                --top-module tb_top -exe test_tb_top.cpp --autoflush $(VERILATOR_DEBUG)
+		${TBFILES} \
+		--top-module tb_top -exe test_tb_top.cpp --autoflush $(VERILATOR_DEBUG)
 	cp ${RV_ROOT}/testbench/test_tb_top.cpp obj_dir
 	$(MAKE) -j $(CPU_COUNT) -C obj_dir/ -f Vtb_top.mk $(VERILATOR_MAKE_FLAGS)
-	touch verilator-build
 
 ##################### Simulation Runs #####################################
 
