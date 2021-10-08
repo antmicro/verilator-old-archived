@@ -1,0 +1,110 @@
+curr_dir:=$(dir $(lastword $(MAKEFILE_LIST)))
+SWERV_VERSION ?= swerv
+SWERV = ${curr_dir}/${SWERV_VERSION}
+export RV_ROOT=${SWERV}
+CPU_COUNT = $(shell nproc)
+
+
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2020 Western Digital Corporation or its affiliates.
+
+CONF_PARAMS = -set iccm_enable
+TEST_CFLAGS = -g -O3 -funroll-all-loops
+ABI = -mabi=ilp32 -march=rv32imc
+
+# Allow snapshot override
+target = default
+snapshot = $(target)
+
+# Allow tool override
+SWERV_CONFIG = ${RV_ROOT}/configs/swerv.config
+VERILATOR = ${root_dir}/../image/bin/verilator
+SURELOG = ${root_dir}/../image/bin/surelog
+
+BUILD_DIR = snapshots/${snapshot}
+TBDIR = ${RV_ROOT}/testbench
+
+# Define default test name
+TEST_SWERV = hello_world
+
+# Define default test directory
+TEST_DIR = $(TBDIR)/asm
+HEX_DIR = $(TBDIR)/hex
+ifneq (,$(wildcard $(TBDIR)/tests/$(TEST_SWERV)))
+        TEST_DIR = $(TBDIR)/tests/$(TEST_SWERV)
+endif
+
+ifdef debug
+ DEBUG_PLUS = +dumpon
+ VERILATOR_DEBUG = --trace
+endif
+
+# provide specific link file
+ifeq (,$(wildcard $(TEST_DIR)/$(TEST_SWERV).ld))
+	LINK = $(TBDIR)/link.ld
+else
+	LINK = $(TEST_DIR)/$(TEST_SWERV).ld
+endif
+
+OFILES = $(TEST_SWERV).o
+
+-include $(TEST_DIR)/$(TEST_SWERV).mki
+
+VPATH = $(TEST_DIR) $(BUILD_DIR) $(TBDIR)
+TBFILES = $(TBDIR)/tb_top.sv $(TBDIR)/ahb_sif.sv
+
+defines = $(BUILD_DIR)/common_defines.vh ${RV_ROOT}/design/include/swerv_types.sv
+includes = -I${RV_ROOT}/design/include -I${RV_ROOT}/design/lib  -I${BUILD_DIR}
+
+# CFLAGS for verilator generated Makefiles. Without -std=c++11 it complains for `auto` variables
+CFLAGS += "-std=c++11"
+# Optimization for better performance; alternative is nothing for slower runtime (faster compiles)
+# -O2 for faster runtime (slower compiles), or -O for balance.
+VERILATOR_MAKE_FLAGS = OPT_FAST="-Os"
+
+clean:: clean-build
+	rm -rf *.log *.s *.hex *.dis *.tbl irun* vcs* simv* *.map snapshots swerv* \
+	verilator* *.exe obj* *.o ucli.key vc_hdrs.h csrc *.csv \
+	work dataset.asdb  library.cfg
+
+# If define files do not exist, then run swerv.config.
+${BUILD_DIR}/defines.h :
+	BUILD_PATH=${BUILD_DIR} ${SWERV_CONFIG} -target=$(target) $(CONF_PARAMS)
+
+##################### Verilog Builds #####################################
+
+uhdm/verilator-build: ${TBFILES} ${BUILD_DIR}/defines.h test_tb_top.cpp
+	echo '`undef ASSERT_ON' >> ${BUILD_DIR}/common_defines.vh
+	$(SURELOG) -nobuiltin -parse -sverilog +define+VERILATOR $(defines) $(includes) \
+		-I${RV_ROOT}/testbench \
+		-f ${RV_ROOT}/testbench/flist \
+		${TBFILES}
+	$(VERILATOR) --cc -CFLAGS ${CFLAGS} --uhdm-ast-sv $(root_dir)/slpp_all/surelog.uhdm \
+		-Wno-UNOPTFLAT \
+		--top-module tb_top -exe test_tb_top.cpp --autoflush $(VERILATOR_DEBUG)
+	cp ${RV_ROOT}/testbench/test_tb_top.cpp obj_dir
+	$(MAKE) -j $(CPU_COUNT) -C obj_dir/ -f Vtb_top.mk $(VERILATOR_MAKE_FLAGS)
+
+verilator-build: ${TBFILES} ${BUILD_DIR}/defines.h test_tb_top.cpp
+	echo '`undef ASSERT_ON' >> ${BUILD_DIR}/common_defines.vh
+	$(VERILATOR) --cc -CFLAGS ${CFLAGS} $(defines) $(includes) \
+		-Wno-UNOPTFLAT \
+		-I${RV_ROOT}/testbench \
+		-f ${RV_ROOT}/testbench/flist \
+		${TBFILES} \
+		--top-module tb_top -exe test_tb_top.cpp --autoflush $(VERILATOR_DEBUG)
+	cp ${RV_ROOT}/testbench/test_tb_top.cpp obj_dir
+	$(MAKE) -j $(CPU_COUNT) -C obj_dir/ -f Vtb_top.mk $(VERILATOR_MAKE_FLAGS)
+
+##################### Simulation Runs #####################################
+
+uhdm/verilator/swerv: clean program.hex uhdm/verilator-build
+	./obj_dir/Vtb_top ${DEBUG_PLUS}
+
+verilator/swerv: clean program.hex verilator-build
+	./obj_dir/Vtb_top ${DEBUG_PLUS}
+
+##################### Test Build #####################################
+
+program.hex: ${BUILD_DIR}/defines.h
+	cp ${HEX_DIR}/$(TEST_SWERV).hex program.hex
