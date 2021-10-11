@@ -2433,7 +2433,12 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
 
         return selbitp;
     }
+    case vpiVarBit:
     case vpiVarSelect: {
+        // According to standard, vpiVarBit should be used with packed arrays
+        // and vpiVarSelect should be used with unpacked arrays
+        // Surelog returns vpiVarSelect in both cases
+        // but the fields that we use are the same
         auto* fromp = get_referenceNode(make_fileline(obj_h), objectName, shared);
         AstNode* bitp = nullptr;
         AstNode* selectp = nullptr;
@@ -2443,6 +2448,9 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 selectp = new AstSelExtract(make_fileline(obj_h), fromp,
                                             ((AstSelExtract*)itemp)->leftp()->cloneTree(true),
                                             ((AstSelExtract*)itemp)->rightp()->cloneTree(true));
+            } else if (itemp->type() == AstType::en::atSelBit) {
+                selectp = new AstSelBit(make_fileline(obj_h), fromp,
+                                        ((AstSelBit*)itemp)->bitp()->cloneTree(true));
             } else if (itemp->type() == AstType::en::atConst) {
                 selectp = new AstSelBit(make_fileline(obj_h), fromp, bitp);
             } else if (itemp->type() == AstType::atSelPlus) {
