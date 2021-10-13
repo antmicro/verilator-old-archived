@@ -2183,6 +2183,14 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         } else {
             interfacep = new AstIface(make_fileline(obj_h), objectName);
 
+            vpiHandle typedef_itr = vpi_iterate(vpiTypedef, obj_h);
+            while (vpiHandle typedef_obj = vpi_scan(typedef_itr)) {
+                AstNode* typedefp = process_typedef(typedef_obj, shared);
+                if (typedefp != nullptr) interfacep->addStmtp(typedefp);
+                vpi_release_handle(typedef_obj);
+            }
+            vpi_release_handle(typedef_itr);
+
             visit_one_to_many(
                 {
                     vpiContAssign,
