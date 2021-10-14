@@ -22,25 +22,22 @@ VERILATOR_ONLY_REGEX=$(shell echo ${VERILATOR_ONLY_SOURCE_FILENAMES} | sed 's/\s
 VERILATOR_AND_SURELOG_REGEX=$(shell echo ${VERILATOR_AND_SURELOG_SOURCE_FILENAMES} | sed 's/\s/\\|/g')
 
 ifdef VERILATOR_ONLY_SOURCE_FILENAMES
-# Source paths read by Surelog (including those from VERILATOR_AND_SURELOG_SOURCE_FILENAMES)
-SURELOG_SOURCES=$(shell grep -F .sv < ${VC_FILE} | grep -v '${VERILATOR_ONLY_REGEX}' | sed 's@^..@${OPENTITAN_BUILD}@')
-
-ifdef VERILATOR_AND_SURELOG_SOURCE_FILENAMES
-# Source paths read by Verilator (including those from VERILATOR_AND_SURELOG_SOURCE_FILENAMES)
-VERILATOR_SOURCES=$(shell grep -F .sv < ${VC_FILE} | grep '${VERILATOR_ONLY_REGEX}\|${VERILATOR_AND_SURELOG_REGEX}')
+	# Source paths read by Surelog (including those from VERILATOR_AND_SURELOG_SOURCE_FILENAMES)
+	SURELOG_SOURCES=$(shell grep -F .sv < ${VC_FILE} | grep -v '${VERILATOR_ONLY_REGEX}' | sed 's@^..@${OPENTITAN_BUILD}@')
+	ifdef VERILATOR_AND_SURELOG_SOURCE_FILENAMES
+		# Source paths read by Verilator (including those from VERILATOR_AND_SURELOG_SOURCE_FILENAMES)
+		VERILATOR_SOURCES=$(shell grep -F .sv < ${VC_FILE} | grep '${VERILATOR_ONLY_REGEX}\|${VERILATOR_AND_SURELOG_REGEX}')
+	else
+		VERILATOR_SOURCES=$(shell grep -F .sv < ${VC_FILE} | grep '${VERILATOR_ONLY_REGEX}')
+	endif
 else
-VERILATOR_SOURCES=$(shell grep -F .sv < ${VC_FILE} | grep '${VERILATOR_ONLY_REGEX}')
-endif
-
-else
-SURELOG_SOURCES=$(shell grep -F .sv < ${VC_FILE} | sed 's@^..@${OPENTITAN_BUILD}@')
-ifdef VERILATOR_AND_SURELOG_SOURCE_FILENAMES
-VERILATOR_SOURCES=$(shell grep -F .sv < ${VC_FILE} | grep '${VERILATOR_AND_SURELOG_REGEX}')
-else
-# Backslash needed by sed command
-VERILATOR_SOURCES="\"
-endif
-
+	SURELOG_SOURCES=$(shell grep -F .sv < ${VC_FILE} | sed 's@^..@${OPENTITAN_BUILD}@')
+	ifdef VERILATOR_AND_SURELOG_SOURCE_FILENAMES
+		VERILATOR_SOURCES=$(shell grep -F .sv < ${VC_FILE} | grep '${VERILATOR_AND_SURELOG_REGEX}')
+	else
+		# Backslash needed by sed command
+		VERILATOR_SOURCES="\"
+	endif
 endif
 
 OPENTITAN_INCLUDES=$(shell grep "\-CFLAGS \-I.." < ${VC_FILE} | sed 's@-CFLAGS -I..@-I${OPENTITAN_BUILD}@g')
