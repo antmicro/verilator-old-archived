@@ -1,7 +1,8 @@
 # Filenames starting with / to avoid false matches by suffix
 
 VERILATOR_ONLY_SOURCE_FILENAMES=\
-/lc_ctrl.sv
+/lc_ctrl.sv \
+/uartdpi.sv
 
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
 /prim_lc_sync.sv \
