@@ -15,8 +15,7 @@ VC_FILE=${OPENTITAN_BUILD}/sim-verilator/lowrisc_$(TOP_TARGET_NAME)_0.1.vc
 
 # Names of source files only read by Verilator (starting with / to avoid false matches by suffix)
 VERILATOR_ONLY_SOURCE_FILENAMES=\
-/lc_ctrl.sv \
-/sw_test_status_if.sv
+/lc_ctrl.sv
 
 # Names of source files read by Verilator AND Surelog (starting with / to avoid false matches by suffix)
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
