@@ -13,21 +13,9 @@ OPENTITAN_BUILD = ${root_dir}/build/lowrisc_$(TOP_TARGET_NAME)_0.1
 # File containing OpenTitan source paths
 VC_FILE=${OPENTITAN_BUILD}/sim-verilator/lowrisc_$(TOP_TARGET_NAME)_0.1.vc
 
-# Names of source files only read by Verilator (starting with / to avoid false matches by suffix)
-VERILATOR_ONLY_SOURCE_FILENAMES=\
-/lc_ctrl.sv
-
-# Names of source files read by Verilator AND Surelog (starting with / to avoid false matches by suffix)
-VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
-/prim_lc_sync.sv \
-/prim_flop_2sync.sv \
-/prim_generic_flop_2sync.sv \
-/prim_flop.sv \
-/prim_generic_flop.sv \
-/prim_alert_sender.sv \
-/prim_fifo_sync.sv \
-/prim_buf.sv \
-/prim_diff_decode
+# List of files that have to be read only by Verilator
+# or by both Surelog and Verilator
+include $(curr_dir)/$(OPENTITAN_VERSION)_file_lists.mk
 
 # Regexes for grep
 VERILATOR_ONLY_REGEX=$(shell echo ${VERILATOR_ONLY_SOURCE_FILENAMES} | sed 's/\s/\\|/g')
