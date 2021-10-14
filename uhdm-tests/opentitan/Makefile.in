@@ -10,24 +10,35 @@ OPENTITAN =${curr_dir}/${OPENTITAN_VERSION}
 ################################
 OPENTITAN_BUILD = ${root_dir}/build/lowrisc_$(TOP_TARGET_NAME)_0.1
 
-# Names of source files only read by Verilator (starting with / to avoid false matches by suffix)
-VERILATOR_ONLY_SOURCE_FILENAMES=\
+# File containing OpenTitan source paths
+VC_FILE=${OPENTITAN_BUILD}/sim-verilator/lowrisc_$(TOP_TARGET_NAME)_0.1.vc
 
-# Names of source files read by Verilator AND Surelog (starting with / to avoid false matches by suffix)
-VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+# List of files that have to be read only by Verilator
+# or by both Surelog and Verilator
+include $(curr_dir)/$(OPENTITAN_VERSION)_file_lists.mk
 
 # Regexes for grep
 VERILATOR_ONLY_REGEX=$(shell echo ${VERILATOR_ONLY_SOURCE_FILENAMES} | sed 's/\s/\\|/g')
 VERILATOR_AND_SURELOG_REGEX=$(shell echo ${VERILATOR_AND_SURELOG_SOURCE_FILENAMES} | sed 's/\s/\\|/g')
 
-# File containing OpenTitan source paths
-VC_FILE=${OPENTITAN_BUILD}/sim-verilator/lowrisc_$(TOP_TARGET_NAME)_0.1.vc
-
-# Source paths read by Verilator (including those from VERILATOR_AND_SURELOG_SOURCE_FILENAMES)
-VERILATOR_SOURCES=$(shell grep -F .sv < ${VC_FILE} | grep '${VERILATOR_ONLY_REGEX}\|${VERILATOR_AND_SURELOG_REGEX}')
-
-# Source paths read by Surelog (including those from VERILATOR_AND_SURELOG_SOURCE_FILENAMES)
-SURELOG_SOURCES=$(shell grep -F .sv < ${VC_FILE} | grep -v '${VERILATOR_ONLY_REGEX}' | sed 's@^..@${OPENTITAN_BUILD}@')
+ifdef VERILATOR_ONLY_SOURCE_FILENAMES
+	# Source paths read by Surelog (including those from VERILATOR_AND_SURELOG_SOURCE_FILENAMES)
+	SURELOG_SOURCES=$(shell grep -F .sv < ${VC_FILE} | grep -v '${VERILATOR_ONLY_REGEX}' | sed 's@^..@${OPENTITAN_BUILD}@')
+	ifdef VERILATOR_AND_SURELOG_SOURCE_FILENAMES
+		# Source paths read by Verilator (including those from VERILATOR_AND_SURELOG_SOURCE_FILENAMES)
+		VERILATOR_SOURCES=$(shell grep -F .sv < ${VC_FILE} | grep '${VERILATOR_ONLY_REGEX}\|${VERILATOR_AND_SURELOG_REGEX}')
+	else
+		VERILATOR_SOURCES=$(shell grep -F .sv < ${VC_FILE} | grep '${VERILATOR_ONLY_REGEX}')
+	endif
+else
+	SURELOG_SOURCES=$(shell grep -F .sv < ${VC_FILE} | sed 's@^..@${OPENTITAN_BUILD}@')
+	ifdef VERILATOR_AND_SURELOG_SOURCE_FILENAMES
+		VERILATOR_SOURCES=$(shell grep -F .sv < ${VC_FILE} | grep '${VERILATOR_AND_SURELOG_REGEX}')
+	else
+		# Backslash needed by sed command
+		VERILATOR_SOURCES="\"
+	endif
+endif
 
 OPENTITAN_INCLUDES=$(shell grep "\-CFLAGS \-I.." < ${VC_FILE} | sed 's@-CFLAGS -I..@-I${OPENTITAN_BUILD}@g')
 
@@ -53,7 +64,7 @@ uhdm/verilator/opentitan: clean-build | prepare-sources
 	(export PATH=${root_dir}/../image/bin:${PATH} && \
 		. ${root_dir}/venv-opentitan/bin/activate && \
 		cd ${root_dir}/build && \
-		${root_dir}/../image/bin/surelog -nobuiltin -parse -sverilog +define+VERILATOR \
+		${root_dir}/../image/bin/surelog -nobuiltin -parse -nocache -sverilog +define+VERILATOR \
 			${SURELOG_PARAMETERS} \
 			${SURELOG_DEFINES} \
 			$(OPENTITAN_INCLUDES) \
