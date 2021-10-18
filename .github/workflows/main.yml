@@ -232,7 +232,7 @@ jobs:
       - name: Generate matrix
         id: generate-opentitan-modules
         run: |
-          matrix="$(cd uhdm-integration && python list.py -d tests/opentitan/module_tests)"
+          matrix="$(cd uhdm-integration && python list.py -d tests/opentitan/module_tests -s lc_ctrl_fsm)"
           echo "::set-output name=matrix::$matrix"
           echo "Matrix: $matrix"
 
