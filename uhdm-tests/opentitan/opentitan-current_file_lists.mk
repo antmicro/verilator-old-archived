@@ -2,25 +2,14 @@
 
 VERILATOR_ONLY_SOURCE_FILENAMES=\
 /adc_ctrl_reg_pkg.sv \
-/aes_pkg.sv \
-/aes_reg_pkg.sv \
 /aes_sbox_canright_pkg.sv \
-/alert_handler_reg_pkg.sv \
-/alert_pkg.sv \
 /aon_timer_reg_pkg.sv \
 /ast_bhv_pkg.sv \
 /ast_pkg.sv \
 /ast_reg_pkg.sv \
 /clkmgr_pkg.sv \
 /clkmgr_reg_pkg.sv \
-/csrng_pkg.sv \
-/csrng_reg_pkg.sv \
-/dm_pkg.sv \
 /dv_test_status_pkg.sv \
-/edn_pkg.sv \
-/edn_reg_pkg.sv \
-/entropy_src_pkg.sv \
-/entropy_src_reg_pkg.sv \
 /flash_ctrl_pkg.sv \
 /flash_ctrl_reg_pkg.sv \
 /flash_phy_pkg.sv \
@@ -28,14 +17,10 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /hmac_pkg.sv \
 /hmac_reg_pkg.sv \
 /i2c_reg_pkg.sv \
-/jtag_pkg.sv \
 /keymgr_pkg.sv \
 /keymgr_reg_pkg.sv \
 /kmac_pkg.sv \
 /kmac_reg_pkg.sv \
-/lc_ctrl_pkg.sv \
-/lc_ctrl_reg_pkg.sv \
-/lc_ctrl_state_pkg.sv \
 /otbn_memutil_pkg.sv \
 /otbn_model_pkg.sv \
 /otbn_pkg.sv \
@@ -47,7 +32,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /pattgen_reg_pkg.sv \
 /pinmux_pkg.sv \
 /pinmux_reg_pkg.sv \
-/prim_cipher_pkg.sv \
 /prim_count_pkg.sv \
 /prim_esc_pkg.sv \
 /prim_mubi_pkg.sv \
@@ -56,8 +40,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /prim_ram_1p_pkg.sv \
 /prim_ram_2p_pkg.sv \
 /prim_rom_pkg.sv \
-/prim_secded_pkg.sv \
-/prim_subreg_pkg.sv \
 /pwm_reg_pkg.sv \
 /pwrmgr_pkg.sv \
 /pwrmgr_reg_pkg.sv \
@@ -67,7 +49,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /rstmgr_reg_pkg.sv \
 /rv_core_ibex_pkg.sv \
 /rv_core_ibex_reg_pkg.sv \
-/rv_dm_reg_pkg.sv \
 /rv_plic_reg_pkg.sv \
 /rv_timer_reg_pkg.sv \
 /scan_role_pkg.sv \
@@ -84,7 +65,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /sysrst_ctrl_reg_pkg.sv \
 /tl_main_pkg.sv \
 /tl_peri_pkg.sv \
-/tlul_pkg.sv \
 /top_earlgrey_pkg.sv \
 /top_earlgrey_rnd_cnst_pkg.sv \
 /uart_reg_pkg.sv \
