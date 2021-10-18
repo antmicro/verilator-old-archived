@@ -1,24 +1,6 @@
 # Filenames starting with / to avoid false matches by suffix
 
 VERILATOR_ONLY_SOURCE_FILENAMES=\
-/adc_ctrl_reg_pkg.sv \
-/aes_sbox_canright_pkg.sv \
-/aon_timer_reg_pkg.sv \
-/ast_bhv_pkg.sv \
-/ast_pkg.sv \
-/ast_reg_pkg.sv \
-/clkmgr_pkg.sv \
-/clkmgr_reg_pkg.sv \
-/dv_test_status_pkg.sv \
-/flash_ctrl_pkg.sv \
-/flash_ctrl_reg_pkg.sv \
-/flash_phy_pkg.sv \
-/gpio_reg_pkg.sv \
-/hmac_pkg.sv \
-/hmac_reg_pkg.sv \
-/i2c_reg_pkg.sv \
-/keymgr_pkg.sv \
-/keymgr_reg_pkg.sv \
 /kmac_pkg.sv \
 /kmac_reg_pkg.sv \
 /otbn_memutil_pkg.sv \
