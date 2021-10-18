@@ -2086,6 +2086,18 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     }
     case vpiRefVar:
     case vpiRefObj: {
+        if (vpiHandle actual_h = vpi_handle(vpiActual, obj_h)) {
+            UINFO(7, "Got vpiActual for " << objectName << std::endl);
+            objectName = get_object_name(actual_h, {vpiFullName});
+            UINFO(7, "Got vpiActual fullname " << objectName << std::endl);
+            if (AstNode* valuep =  get_value_as_node(actual_h)) {
+                return valuep;
+            } else {
+                UINFO(6, "Failed to get value from vpiActual" << std::endl);
+            }
+        } else {
+            UINFO(6, "Failed to get vpiActual for " << objectName << std::endl);
+        }
         return get_referenceNode(make_fileline(obj_h), objectName, shared);
     }
     case vpiNetArray: {  // also defined as vpiArrayNet
