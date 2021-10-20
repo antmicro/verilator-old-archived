@@ -1703,6 +1703,17 @@ AstNode* process_function_task(vpiHandle obj_h, UhdmShared& shared) {
     return taskFuncp;
 }
 
+AstNode* vectorToAstList(std::vector<AstNode*>::const_iterator begin, std::vector<AstNode*>::const_iterator end) {
+    AstNode* nodep = nullptr;
+    for (auto it = begin; it != end; it++)
+        nodep = AstNode::addNext(nodep, *it);
+    return nodep;
+}
+
+AstNode* vectorToAstList(const std::vector<AstNode*>& nodes) {
+    return vectorToAstList(nodes.begin(), nodes.end());
+}
+
 AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     // Will keep current node
     AstNode* node = nullptr;
@@ -2538,215 +2549,242 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             if (item) { arguments.push_back(item); }
         });
 
-        if (objectName == "$signed") {
-            return new AstSigned(make_fileline(obj_h), arguments[0]);
-        } else if (objectName == "$unsigned") {
-            return new AstUnsigned(make_fileline(obj_h), arguments[0]);
-        } else if (objectName == "$cast") {
-            return new AstCastParse(make_fileline(obj_h), arguments[0], arguments[1]);
-        } else if (objectName == "$isunknown") {
-            return new AstIsUnknown(make_fileline(obj_h), arguments[0]);
-        } else if (objectName == "$time") {
-            return new AstTime(make_fileline(obj_h),
-                               VTimescale::TS_1PS);  // TODO: revisit once we have it in UHDM
-        } else if (objectName == "$display") {
-            AstNode* args = nullptr;
-            for (auto a : arguments) {
-                if (args == nullptr)
-                    args = a;
-                else
-                    args->addNextNull(a);
-            }
-            return new AstDisplay(make_fileline(obj_h), AstDisplayType(), nullptr, args);
-        } else if (objectName == "$value$plusargs") {
-            node = new AstValuePlusArgs(make_fileline(obj_h), arguments[0], arguments[1]);
-        } else if (objectName == "$sformat" || objectName == "$swrite") {
-            AstNode* args = nullptr;
-            // Start from second argument
-            for (auto it = ++arguments.begin(); it != arguments.end(); it++) {
-                if (args == nullptr)
-                    args = *it;
-                else
-                    args->addNextNull(*it);
-            }
-            return new AstSFormat(make_fileline(obj_h), arguments[0], args);
-        } else if (objectName == "$sformatf") {
-            AstNode* args = nullptr;
-            // Start from second argument
-            for (auto it = arguments.begin(); it != arguments.end(); it++) {
-                if (args == nullptr)
-                    args = *it;
-                else
-                    args->addNextNull(*it);
-            }
-            return new AstSFormatF(make_fileline(obj_h), "", false, args);
-        } else if (objectName == "$finish") {
-            return new AstFinish(make_fileline(obj_h));
-        } else if (objectName == "$fopen") {
-            // We need to obtain the variable in which the descriptor will be stored
-            // This usually will be LHS of an assignment fd = $fopen(...)
-            auto parent_h = vpi_handle({vpiParent}, obj_h);
-            auto lhs_h = vpi_handle({vpiLhs}, parent_h);
-            AstNode* fd = nullptr;
-            if (lhs_h) { fd = visit_object(lhs_h, shared); }
-            return new AstFOpen(make_fileline(obj_h), fd, arguments[0], arguments[1]);
-        } else if (objectName == "$fclose") {
-            return new AstFClose(make_fileline(obj_h), arguments[0]);
-        } else if (objectName == "$fwrite") {
-            AstNode* filep = arguments[0];
-            arguments.erase(arguments.begin());
-            AstNode* args = nullptr;
-            for (auto a : arguments) {
-                if (args == nullptr)
-                    args = a;
-                else
-                    args->addNextNull(a);
-            }
-            return new AstDisplay(make_fileline(obj_h),
-                                  AstDisplayType(AstDisplayType::en::DT_WRITE), filep, args);
-        } else if (objectName == "$fflush") {
-            return new AstFFlush(make_fileline(obj_h), arguments[0]);
-        } else if (objectName == "$clog2") {
-            return new AstCLog2(make_fileline(obj_h), arguments[0]);
-        } else if (objectName == "$left") {
-            if (arguments.size() == 1)
-                arguments.push_back(nullptr);  // provide default for optional parameter
-            return new AstAttrOf(make_fileline(obj_h), AstAttrType::DIM_LEFT, arguments[0],
-                                 arguments[1]);
-        } else if (objectName == "$right") {
-            if (arguments.size() == 1)
-                arguments.push_back(nullptr);  // provide default for optional parameter
-            return new AstAttrOf(make_fileline(obj_h), AstAttrType::DIM_RIGHT, arguments[0],
-                                 arguments[1]);
-        } else if (objectName == "$low") {
-            if (arguments.size() == 1)
-                arguments.push_back(nullptr);  // provide default for optional parameter
-            return new AstAttrOf(make_fileline(obj_h), AstAttrType::DIM_LOW, arguments[0],
-                                 arguments[1]);
-        } else if (objectName == "$high") {
-            if (arguments.size() == 1)
-                arguments.push_back(nullptr);  // provide default for optional parameter
-            return new AstAttrOf(make_fileline(obj_h), AstAttrType::DIM_HIGH, arguments[0],
-                                 arguments[1]);
-        } else if (objectName == "$increment") {
-            if (arguments.size() == 1)
-                arguments.push_back(nullptr);  // provide default for optional parameter
-            return new AstAttrOf(make_fileline(obj_h), AstAttrType::DIM_RIGHT, arguments[0],
-                                 arguments[1]);
-        } else if (objectName == "$size") {
-            if (arguments.size() == 1)
-                arguments.push_back(nullptr);  // provide default for optional parameter
-            return new AstAttrOf(make_fileline(obj_h), AstAttrType::DIM_RIGHT, arguments[0],
-                                 arguments[1]);
-        } else if (objectName == "$dimensions") {
-            return new AstAttrOf(make_fileline(obj_h), AstAttrType::DIM_DIMENSIONS, arguments[0]);
-        } else if (objectName == "$unpacked_dimensions") {
-            return new AstAttrOf(make_fileline(obj_h), AstAttrType::DIM_UNPK_DIMENSIONS,
-                                 arguments[0]);
-        } else if (objectName == "$bits") {
-            // Verilator's original parser allow $bits function to have 2 arguments
-            // but it is not defined in standard
-            if (arguments.size() != 1)
-                v3error("Number of arguments is not 1");
-            vpiHandle arg_itr = vpi_iterate(vpiArgument, obj_h);
-            vpiHandle arg_h = vpi_scan(arg_itr);
-            AstNode* expr_datatype_p = nullptr;
-            // Check if it is type/variable name or expression
-            const unsigned int objectType = vpi_get(vpiType, arg_h);
-            if (objectType == vpiRefObj) {
-                // In case of funtion arguments Surelog parses
-                // both type names and variable names as vpiRefObjs
-                // We check if vpiActual field exists.
-                // If so, we assume that the argument is variable name
-                std::string argumentName = get_object_name(arg_h);
-                if (vpiHandle actual_h = vpi_handle(vpiActual, arg_h)) {
-                    expr_datatype_p = new AstParseRef(make_fileline(arg_h), VParseRefExp::en::PX_TEXT,
-                                                      argumentName);
-                    vpi_release_handle(actual_h);
-                } else {
-                    expr_datatype_p = new AstRefDType(make_fileline(arg_h), argumentName);
-                }
-            } else {
-                expr_datatype_p = arguments[0];
-            }
-            vpi_release_handle(arg_itr);
-            vpi_release_handle(arg_h);
-            return new AstAttrOf(make_fileline(obj_h), AstAttrType::DIM_BITS, expr_datatype_p);
-        } else if (objectName == "$rtoi") {
-            return new AstRToIS(make_fileline(obj_h), arguments[0]);
-        } else if (objectName == "$itor") {
-            return new AstIToRD(make_fileline(obj_h), arguments[0]);
-        } else if (objectName == "$realtobits") {
-            return new AstRealToBits(make_fileline(obj_h), arguments[0]);
-        } else if (objectName == "$bitstoreal") {
-            return new AstBitsToRealD(make_fileline(obj_h), arguments[0]);
-        } else if (objectName == "$readmemh") {
-            if (arguments.size() == 2) {
-                return new AstReadMem(make_fileline(obj_h),
-                                      true,  // isHex
-                                      arguments[0], arguments[1], nullptr, nullptr);
-            } else if (arguments.size() == 4) {
-                return new AstReadMem(make_fileline(obj_h),
-                                      true,  // isHex
-                                      arguments[0], arguments[1], arguments[2], arguments[3]);
-            }
-        } else if (objectName == "$readmemb") {
-            if (arguments.size() == 2) {
-                return new AstReadMem(make_fileline(obj_h),
-                                      false,  // isHex
-                                      arguments[0], arguments[1], nullptr, nullptr);
-            } else if (arguments.size() == 4) {
-                return new AstReadMem(make_fileline(obj_h),
-                                      false,  // isHex
-                                      arguments[0], arguments[1], arguments[2], arguments[3]);
-            }
-        } else if (objectName == "$info" || objectName == "$warning" || objectName == "$error"
-                   || objectName == "$fatal") {
+        #define VL_SIMPLE_SYSFUNC_CALL(taskName, astName, ...) { \
+            #taskName, /* task name as map key */ \
+            [](auto obj_h, auto& shared, auto& args) { \
+                auto* fl = make_fileline(obj_h); \
+                return new Ast##astName(fl, __VA_ARGS__); \
+            } \
+        }
+        #define VL_SYSFUNC_CALL(taskName, body) { \
+            #taskName, /* task name as map key */ \
+            [](auto obj_h, auto& shared, auto& args) { \
+                auto* fl = make_fileline(obj_h); \
+                body \
+            } \
+        }
+        using SysFuncCallMaker = std::function<AstNode*(vpiHandle, UhdmShared&, std::vector<AstNode*>&)>;
+        static const std::unordered_map<std::string, SysFuncCallMaker> sysFuncCallMakers = {
+            VL_SIMPLE_SYSFUNC_CALL($acos, AcosD, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($acosh, AcoshD, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($asin, AsinD, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($asinh, AsinhD, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($atan, AtanD, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($atan2, Atan2D, args[0], args[1]),
+            VL_SIMPLE_SYSFUNC_CALL($atanh, AtanhD, args[0]),
+            VL_SYSFUNC_CALL($bits, {
+                        // Verilator's original parser allow $bits function to have 2 arguments
+                        // but it is not defined in standard
+                        if (args.size() != 1)
+                            fl->v3error("Number of arguments is not 1");
+                        vpiHandle arg_itr = vpi_iterate(vpiArgument, obj_h);
+                        vpiHandle arg_h = vpi_scan(arg_itr);
+                        AstNode* expr_datatype_p = nullptr;
+                        // Check if it is type/variable name or expression
+                        const unsigned int objectType = vpi_get(vpiType, arg_h);
+                        if (objectType == vpiRefObj) {
+                            // In case of funtion arguments Surelog parses
+                            // both type names and variable names as vpiRefObjs
+                            // We check if vpiActual field exists.
+                            // If so, we assume that the argument is variable name
+                            std::string argumentName = get_object_name(arg_h);
+                            if (vpiHandle actual_h = vpi_handle(vpiActual, arg_h)) {
+                                expr_datatype_p = new AstParseRef(make_fileline(arg_h), VParseRefExp::en::PX_TEXT,
+                                                                  argumentName);
+                                vpi_release_handle(actual_h);
+                            } else {
+                                expr_datatype_p = new AstRefDType(make_fileline(arg_h), argumentName);
+                            }
+                        } else {
+                            expr_datatype_p = args[0];
+                        }
+                        vpi_release_handle(arg_itr);
+                        vpi_release_handle(arg_h);
+                        return new AstAttrOf(make_fileline(obj_h), AstAttrType::DIM_BITS, expr_datatype_p);
+                    }),
+            VL_SIMPLE_SYSFUNC_CALL($bitstoreal, BitsToRealD, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($ceil, CeilD, args[0]),
+            VL_SYSFUNC_CALL($changed, {
+                    if (args.size() > 1) fl->v3warn(E_UNSUPPORTED, "Unsupported: $changed and clock arguments");
+                    return new AstLogNot(fl, new AstStable(fl, args[0]));
+                }),
+            VL_SIMPLE_SYSFUNC_CALL($clog2, CLog2, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($cos, CosD, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($cosh, CoshD, args[0]),
+            VL_SYSFUNC_CALL($countbits, {
+                    if (args.size() > 3) return new AstCountBits(fl, args[0], args[1], args[2], args[3]);
+                    else if (args.size() > 2) return new AstCountBits(fl, args[0], args[1], args[2]);
+                    else return new AstCountBits(fl, args[0], args[1]);
+                }),
+            VL_SIMPLE_SYSFUNC_CALL($countones, CountOnes, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($dimensions, AttrOf, AstAttrType::DIM_DIMENSIONS, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($exp, ExpD, args[0]),
+            VL_SYSFUNC_CALL($fell, {
+                    if (args.size() > 1) fl->v3warn(E_UNSUPPORTED, "Unsupported: $fell and clock arguments");
+                    return new AstFell(fl, args[0]);
+                }),
+            VL_SIMPLE_SYSFUNC_CALL($feof, FEof, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($ferror, FError, args[0], args[1]),
+            VL_SIMPLE_SYSFUNC_CALL($fgetc, FGetC, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($fgets, FGetS, args[0], args[1]),
+            VL_SIMPLE_SYSFUNC_CALL($fread, FRead, args[0], args[1], args.size() > 2 ? args[2] : nullptr, args.size() > 3 ? args[3] : nullptr),
+            VL_SIMPLE_SYSFUNC_CALL($frewind, FRewind, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($floor, FloorD, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($fseek, FSeek, args[0], args[1], args[2]),
+            VL_SIMPLE_SYSFUNC_CALL($ftell, FTell, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($high, AttrOf, AstAttrType::DIM_HIGH, args[0], args.size() > 1 ? args[1] : nullptr),
+            VL_SIMPLE_SYSFUNC_CALL($hypot, HypotD, args[0], args[1]),
+            VL_SIMPLE_SYSFUNC_CALL($increment, AttrOf, AstAttrType::DIM_INCREMENT, args[0], args.size() > 1 ? args[1] : nullptr),
+            VL_SIMPLE_SYSFUNC_CALL($isunbounded, IsUnbounded, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($isunknown, IsUnknown, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($itor, IToRD, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($left, AttrOf, AstAttrType::DIM_LEFT, args[0], args.size() > 1 ? args[1] : nullptr),
+            VL_SIMPLE_SYSFUNC_CALL($ln, LogD, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($log10, Log10D, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($low, AttrOf, AstAttrType::DIM_LOW, args[0], args.size() > 1 ? args[1] : nullptr),
+            VL_SIMPLE_SYSFUNC_CALL($onehot, OneHot, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($onehot0, OneHot0, args[0]),
+            VL_SYSFUNC_CALL($past, {
+                    if (args.size() > 2) fl->v3warn(E_UNSUPPORTED, "Unsupported: $past expr2 and clock arguments");
+                    return new AstPast(fl, args[0], args.size() > 1 ? args[1] : nullptr);
+                }),
+            VL_SIMPLE_SYSFUNC_CALL($pow, PowD, args[0], args[1]),
+            VL_SIMPLE_SYSFUNC_CALL($random, Rand, args.empty() ? nullptr : args[0], false),
+            VL_SIMPLE_SYSFUNC_CALL($realtime, TimeD, VTimescale::NONE),
+            VL_SIMPLE_SYSFUNC_CALL($realtobits, RealToBits, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($rewind, FSeek, args[0], new AstConst(fl, 0), new AstConst(fl, 0)),
+            VL_SIMPLE_SYSFUNC_CALL($right, AttrOf, AstAttrType::DIM_RIGHT, args[0], args.size() > 1 ? args[1] : nullptr),
+            VL_SIMPLE_SYSFUNC_CALL($rose, Rose, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($rtoi, RToIS, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($sampled, Sampled, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($sformat, SFormat, args[0], vectorToAstList(args.begin() + 1, args.end())),
+            VL_SIMPLE_SYSFUNC_CALL($sformatf, SFormatF, AstSFormatF::NoFormat(), vectorToAstList(args)),
+            VL_SIMPLE_SYSFUNC_CALL($signed, Signed, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($sin, SinD, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($sinh, SinhD, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($size, AttrOf, AstAttrType::DIM_SIZE, args[0], args.size() > 1 ? args[1] : nullptr),
+            VL_SIMPLE_SYSFUNC_CALL($sqrt, SqrtD, args[0]),
+            VL_SYSFUNC_CALL($stable, {
+                    if (args.size() > 1) fl->v3warn(E_UNSUPPORTED, "Unsupported: $stable and clock arguments");
+                    return new AstStable(fl, args[0]);
+                }),
+            VL_SIMPLE_SYSFUNC_CALL($stime, Sel, new AstTime(fl, VTimescale(VTimescale::NONE)), 0, 32),
+            VL_SIMPLE_SYSFUNC_CALL($tan, TanD, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($tanh, TanhD, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($time, Time, VTimescale(VTimescale::NONE)),
+            VL_SIMPLE_SYSFUNC_CALL($typename, AttrOf, AstAttrType::TYPENAME, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($ungetc, FUngetC, args[1], args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($unpacked_dimensions, AttrOf, AstAttrType::DIM_UNPK_DIMENSIONS, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($unsigned, Unsigned, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($urandom, Rand, args.empty()? nullptr : args[0], true),
+            VL_SIMPLE_SYSFUNC_CALL($urandom_range, URandomRange, args[0], args.size() > 1 ? args[1] : new AstConst(fl, 0)),
+            VL_SIMPLE_SYSFUNC_CALL($value$plusargs, ValuePlusArgs, args[0], args[1]),
 
-            AstDisplayType type;
-            if (objectName == "$info") {
-                type = AstDisplayType::DT_INFO;
-            } else if (objectName == "$warning") {
-                type = AstDisplayType::DT_WARNING;
-            } else if (objectName == "$error") {
-                type = AstDisplayType::DT_ERROR;
-            } else if (objectName == "$fatal") {
-                type = AstDisplayType::DT_FATAL;
-                // Verilator discards the finish number - first argument
-                if (arguments.size()) arguments.erase(arguments.begin());
-            }
+            VL_SIMPLE_SYSFUNC_CALL($dumpports, DumpCtl, VDumpCtlType::FILE, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($dumpfile, DumpCtl, VDumpCtlType::FILE, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($dumpvars, DumpCtl, VDumpCtlType::VARS, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($dumpall, DumpCtl, VDumpCtlType::ALL),
+            VL_SIMPLE_SYSFUNC_CALL($dumpflush, DumpCtl, VDumpCtlType::FLUSH),
+            VL_SIMPLE_SYSFUNC_CALL($dumplimit, DumpCtl, VDumpCtlType::LIMIT, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($dumpoff, DumpCtl, VDumpCtlType::OFF),
+            VL_SIMPLE_SYSFUNC_CALL($dumpon, DumpCtl, VDumpCtlType::ON),
+            VL_SIMPLE_SYSFUNC_CALL($system, SystemT, args[0]),
+            VL_SYSFUNC_CALL($exit, { return new AstFinish(fl); }),
+            VL_SIMPLE_SYSFUNC_CALL($fclose, FClose, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($fflush, FFlush, nullptr),
+            VL_SYSFUNC_CALL($finish, { return new AstFinish(fl); }),
+            VL_SIMPLE_SYSFUNC_CALL($stop, Stop, false),
+            VL_SIMPLE_SYSFUNC_CALL($sformat, SFormat, args[0], args[1]),
+            VL_SIMPLE_SYSFUNC_CALL($swrite, SFormat, args[0], args[1]),
+            VL_SIMPLE_SYSFUNC_CALL($swriteb, SFormat, args[0], args[1], 'b'),
+            VL_SIMPLE_SYSFUNC_CALL($swriteh, SFormat, args[0], args[1], 'h'),
+            VL_SIMPLE_SYSFUNC_CALL($swriteo, SFormat, args[0], args[1], 'o'),
+            VL_SIMPLE_SYSFUNC_CALL($display, Display, AstDisplayType::DT_DISPLAY, nullptr, vectorToAstList(args)),
+            VL_SIMPLE_SYSFUNC_CALL($displayb, Display, AstDisplayType::DT_DISPLAY, nullptr, vectorToAstList(args), 'b'),
+            VL_SIMPLE_SYSFUNC_CALL($displayh, Display, AstDisplayType::DT_DISPLAY, nullptr, vectorToAstList(args), 'h'),
+            VL_SIMPLE_SYSFUNC_CALL($displayo, Display, AstDisplayType::DT_DISPLAY, nullptr, vectorToAstList(args), 'o'),
+            VL_SIMPLE_SYSFUNC_CALL($monitor, Display, AstDisplayType::DT_MONITOR, nullptr, vectorToAstList(args)),
+            VL_SIMPLE_SYSFUNC_CALL($monitorb, Display, AstDisplayType::DT_MONITOR, nullptr, vectorToAstList(args), 'b'),
+            VL_SIMPLE_SYSFUNC_CALL($monitorh, Display, AstDisplayType::DT_MONITOR, nullptr, vectorToAstList(args), 'h'),
+            VL_SIMPLE_SYSFUNC_CALL($monitoro, Display, AstDisplayType::DT_MONITOR, nullptr, vectorToAstList(args), 'o'),
+            VL_SIMPLE_SYSFUNC_CALL($strobe, Display, AstDisplayType::DT_STROBE, nullptr, vectorToAstList(args)),
+            VL_SIMPLE_SYSFUNC_CALL($strobeb, Display, AstDisplayType::DT_STROBE, nullptr, vectorToAstList(args), 'b'),
+            VL_SIMPLE_SYSFUNC_CALL($strobeh, Display, AstDisplayType::DT_STROBE, nullptr, vectorToAstList(args), 'h'),
+            VL_SIMPLE_SYSFUNC_CALL($strobeo, Display, AstDisplayType::DT_STROBE, nullptr, vectorToAstList(args), 'o'),
+            VL_SIMPLE_SYSFUNC_CALL($write, Display, AstDisplayType::DT_WRITE, nullptr, vectorToAstList(args)),
+            VL_SIMPLE_SYSFUNC_CALL($writeb, Display, AstDisplayType::DT_WRITE, nullptr, vectorToAstList(args), 'b'),
+            VL_SIMPLE_SYSFUNC_CALL($writeh, Display, AstDisplayType::DT_WRITE, nullptr, vectorToAstList(args), 'h'),
+            VL_SIMPLE_SYSFUNC_CALL($writeo, Display, AstDisplayType::DT_WRITE, nullptr, vectorToAstList(args), 'o'),
+            VL_SIMPLE_SYSFUNC_CALL($fdisplay, Display, AstDisplayType::DT_DISPLAY, args[0], vectorToAstList(args.begin() + 1, args.end())),
+            VL_SIMPLE_SYSFUNC_CALL($fdisplayb, Display, AstDisplayType::DT_DISPLAY, args[0], vectorToAstList(args.begin() + 1, args.end()), 'b'),
+            VL_SIMPLE_SYSFUNC_CALL($fdisplayh, Display, AstDisplayType::DT_DISPLAY, args[0], vectorToAstList(args.begin() + 1, args.end()), 'h'),
+            VL_SIMPLE_SYSFUNC_CALL($fdisplayo, Display, AstDisplayType::DT_DISPLAY, args[0], vectorToAstList(args.begin() + 1, args.end()), 'o'),
+            VL_SIMPLE_SYSFUNC_CALL($fmonitor, Display, AstDisplayType::DT_MONITOR, args[0], vectorToAstList(args.begin() + 1, args.end())),
+            VL_SIMPLE_SYSFUNC_CALL($fmonitorb, Display, AstDisplayType::DT_MONITOR, args[0], vectorToAstList(args.begin() + 1, args.end()), 'b'),
+            VL_SIMPLE_SYSFUNC_CALL($fmonitorh, Display, AstDisplayType::DT_MONITOR, args[0], vectorToAstList(args.begin() + 1, args.end()), 'h'),
+            VL_SIMPLE_SYSFUNC_CALL($fmonitoro, Display, AstDisplayType::DT_MONITOR, args[0], vectorToAstList(args.begin() + 1, args.end()), 'o'),
+            VL_SIMPLE_SYSFUNC_CALL($fstrobe, Display, AstDisplayType::DT_STROBE, args[0], vectorToAstList(args.begin() + 1, args.end())),
+            VL_SIMPLE_SYSFUNC_CALL($fstrobeb, Display, AstDisplayType::DT_STROBE, args[0], vectorToAstList(args.begin() + 1, args.end()), 'b'),
+            VL_SIMPLE_SYSFUNC_CALL($fstrobeh, Display, AstDisplayType::DT_STROBE, args[0], vectorToAstList(args.begin() + 1, args.end()), 'h'),
+            VL_SIMPLE_SYSFUNC_CALL($fstrobeo, Display, AstDisplayType::DT_STROBE, args[0], vectorToAstList(args.begin() + 1, args.end()), 'o'),
+            VL_SIMPLE_SYSFUNC_CALL($fwrite, Display, AstDisplayType::DT_WRITE, args[0], vectorToAstList(args.begin() + 1, args.end())),
+            VL_SIMPLE_SYSFUNC_CALL($fwriteb, Display, AstDisplayType::DT_WRITE, args[0], vectorToAstList(args.begin() + 1, args.end()), 'b'),
+            VL_SIMPLE_SYSFUNC_CALL($fwriteh, Display, AstDisplayType::DT_WRITE, args[0], vectorToAstList(args.begin() + 1, args.end()), 'h'),
+            VL_SIMPLE_SYSFUNC_CALL($fwriteo, Display, AstDisplayType::DT_WRITE, args[0], vectorToAstList(args.begin() + 1, args.end()), 'o'),
+            VL_SIMPLE_SYSFUNC_CALL($info, Display, AstDisplayType::DT_INFO, nullptr, args[0]),
+            VL_SIMPLE_SYSFUNC_CALL($warning, Display, AstDisplayType::DT_WARNING, nullptr, args[0]),
+            VL_SYSFUNC_CALL($error, {
+                    auto* displayp = new AstDisplay(fl, AstDisplayType::DT_ERROR, nullptr, vectorToAstList(args));
+                    displayp->addNext(new AstStop(fl, true));
+                    return displayp;
+                }),
+            VL_SYSFUNC_CALL($fatal, {
+                    auto* displayp = new AstDisplay(fl, AstDisplayType::DT_FATAL, nullptr, vectorToAstList(args));
+                    displayp->addNext(new AstStop(fl, false));
+                    return displayp;
+                }),
+            VL_SIMPLE_SYSFUNC_CALL($monitoroff, MonitorOff, true),
+            VL_SIMPLE_SYSFUNC_CALL($monitoron, MonitorOff, false),
+            VL_SYSFUNC_CALL($printtimescale, { return new AstPrintTimeScale(fl); }),
+            VL_SIMPLE_SYSFUNC_CALL($timeformat, TimeFormat, args[0], args[1], args[2], args[3]),
+            VL_SIMPLE_SYSFUNC_CALL($readmemb, ReadMem, false, args[0], args[1], args.size() > 2 ? args[2] : nullptr, args.size() > 3 ? args[3] : nullptr),
+            VL_SIMPLE_SYSFUNC_CALL($readmemh, ReadMem, true, args[0], args[1], args.size() > 2 ? args[2] : nullptr, args.size() > 3 ? args[3] : nullptr),
+            VL_SIMPLE_SYSFUNC_CALL($writememb, WriteMem, false, args[0], args[1], args.size() > 2 ? args[2] : nullptr, args.size() > 3 ? args[3] : nullptr),
+            VL_SIMPLE_SYSFUNC_CALL($writememh, WriteMem, true, args[0], args[1], args.size() > 2 ? args[2] : nullptr, args.size() > 3 ? args[3] : nullptr),
+            VL_SIMPLE_SYSFUNC_CALL($cast, CastParse, args[0], args[1]),
 
-            AstNode* args = nullptr;
-            for (auto a : arguments) {
-                if (args == nullptr)
-                    args = a;
-                else
-                    args->addNextNull(a);
-            }
-            node = new AstDisplay(make_fileline(obj_h), type, nullptr, args);
-            if (type == AstDisplayType::DT_ERROR || type == AstDisplayType::DT_FATAL) {
-                auto* stop = new AstStop(make_fileline(obj_h), (type == AstDisplayType::DT_ERROR));
-                node->addNext(stop);
-            }
-            return node;
-        } else if (objectName == "$__BAD_SYMBOL__") {
-            v3info("\t! Bad symbol encountered @ " << file_name << ":" << currentLine);
-            // Dummy statement to keep parsing
-            return new AstTime(make_fileline(obj_h),
-                               VTimescale::TS_1PS);  // TODO: revisit once we have it in UHDM
-        } else {
+            VL_SYSFUNC_CALL($fopen, {
+                    auto parent_h = vpi_handle({vpiParent}, obj_h);
+                    auto lhs_h = vpi_handle({vpiLhs}, parent_h);
+                    AstNode* fd = nullptr;
+                    if (lhs_h) { fd = visit_object(lhs_h, shared); }
+                    return new AstFOpen(make_fileline(obj_h), fd, args[0], args[1]);
+                }),
+            VL_SYSFUNC_CALL($__BAD_SYMBOL__, {
+                    fl->v3info("Bad symbol encountered!");
+                    // Dummy statement to keep parsing
+                    return new AstTime(make_fileline(obj_h), VTimescale::NONE);
+                })
+        };
+        auto it = sysFuncCallMakers.find(objectName);
+        if (it != sysFuncCallMakers.end())
+            node = it->second(obj_h, shared, arguments);
+        else
             v3error("\t! Encountered unhandled SysFuncCall: " << objectName);
+        if (VN_IS(node, NodeMath) && !VN_IS(node, Signed) && !VN_IS(node, Unsigned)) {
+            auto parent_h = vpi_handle(vpiParent, obj_h);
+            int parent_type = 0;
+            if (parent_h) {
+                parent_type = vpi_get(vpiType, parent_h);
+                vpi_release_handle(parent_h);
+                if (parent_type == vpiBegin) {  // TODO: Are other contexts missing here?
+                    // Intask-like context return values are discarded
+                    // This is indicated by wrapping the node
+                    return new AstSysFuncAsTask(make_fileline(obj_h), node);
+                }
+            }
         }
-        auto parent_h = vpi_handle(vpiParent, obj_h);
-        int parent_type = 0;
-        if (parent_h) { parent_type = vpi_get(vpiType, parent_h); }
-        if (parent_type == vpiBegin) {  // TODO: Are other contexts missing here?
-            // In task-like context return values are discarded
-            // This is indicated by wrapping the node
-            return new AstSysFuncAsTask(make_fileline(obj_h), node);
-        } else {
-            return node;
-        }
+        return node;
     }
     case vpiRange: {
         AstNode* msbNode = nullptr;
