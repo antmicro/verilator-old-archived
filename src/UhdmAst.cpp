@@ -2776,12 +2776,12 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             int parent_type = 0;
             if (parent_h) {
                 parent_type = vpi_get(vpiType, parent_h);
+                vpi_release_handle(parent_h);
                 if (parent_type == vpiBegin) {  // TODO: Are other contexts missing here?
                     // Intask-like context return values are discarded
                     // This is indicated by wrapping the node
                     return new AstSysFuncAsTask(make_fileline(obj_h), node);
                 }
-                vpi_release_handle(parent_h);
             }
         }
         return node;
