@@ -1704,14 +1704,10 @@ AstNode* process_function_task(vpiHandle obj_h, UhdmShared& shared) {
 }
 
 AstNode* vectorToAstList(std::vector<AstNode*>::const_iterator begin, std::vector<AstNode*>::const_iterator end) {
-    AstNode* node = nullptr;
-    for (auto it = begin; it != end; it++) {
-        if (!node)
-            node = *it;
-        else
-            node->addNextNull(*it);
-    }
-    return node;
+    AstNode* nodep = nullptr;
+    for (auto it = begin; it != end; it++)
+        nodep = AstNode::addNext(nodep, *it);
+    return nodep;
 }
 
 AstNode* vectorToAstList(const std::vector<AstNode*>& nodes) {
@@ -2553,12 +2549,20 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             if (item) { arguments.push_back(item); }
         });
 
-        #define VL_SIMPLE_SYSFUNC_CALL(taskName, astName, ...) {#taskName, [](auto obj_h, auto& shared, auto& args) { \
-            auto* fl = make_fileline(obj_h); \
-            return new Ast##astName(fl, __VA_ARGS__); }}
-        #define VL_SYSFUNC_CALL(taskName, body) {#taskName, [](auto obj_h, auto& shared, auto& args) { \
-            auto* fl = make_fileline(obj_h); \
-            body }}
+        #define VL_SIMPLE_SYSFUNC_CALL(taskName, astName, ...) { \
+            #taskName, /* task name as map key */ \
+            [](auto obj_h, auto& shared, auto& args) { \
+                auto* fl = make_fileline(obj_h); \
+                return new Ast##astName(fl, __VA_ARGS__); \
+            } \
+        }
+        #define VL_SYSFUNC_CALL(taskName, body) { \
+            #taskName, /* task name as map key */ \
+            [](auto obj_h, auto& shared, auto& args) { \
+                auto* fl = make_fileline(obj_h); \
+                body \
+            } \
+        }
         using SysFuncCallMaker = std::function<AstNode*(vpiHandle, UhdmShared&, std::vector<AstNode*>&)>;
         static const std::unordered_map<std::string, SysFuncCallMaker> sysFuncCallMakers = {
             VL_SIMPLE_SYSFUNC_CALL($acos, AcosD, args[0]),
@@ -2770,11 +2774,14 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         if (VN_IS(node, NodeMath) && !VN_IS(node, Signed) && !VN_IS(node, Unsigned)) {
             auto parent_h = vpi_handle(vpiParent, obj_h);
             int parent_type = 0;
-            if (parent_h) { parent_type = vpi_get(vpiType, parent_h); }
-            if (parent_type == vpiBegin) {  // TODO: Are other contexts missing here?
-                // Intask-like context return values are discarded
-                // This is indicated by wrapping the node
-                return new AstSysFuncAsTask(make_fileline(obj_h), node);
+            if (parent_h) {
+                parent_type = vpi_get(vpiType, parent_h);
+                if (parent_type == vpiBegin) {  // TODO: Are other contexts missing here?
+                    // Intask-like context return values are discarded
+                    // This is indicated by wrapping the node
+                    return new AstSysFuncAsTask(make_fileline(obj_h), node);
+                }
+                vpi_release_handle(parent_h);
             }
         }
         return node;
