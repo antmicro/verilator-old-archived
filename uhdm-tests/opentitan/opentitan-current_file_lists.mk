@@ -107,7 +107,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /otbn.sv \
 /otp_ctrl_core_reg_top.sv \
 /otp_ctrl_dai.sv \
-/otp_ctrl_ecc_reg.sv \
 /otp_ctrl_kdi.sv \
 /otp_ctrl_lci.sv \
 /otp_ctrl_lfsr_timer.sv \
@@ -128,7 +127,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /prim_arbiter_fixed.sv \
 /prim_arbiter_ppc.sv \
 /prim_arbiter_tree.sv \
-/prim_buf.sv \
 /prim_clock_buf.sv \
 /prim_clock_div.sv \
 /prim_clock_gating.sv \
@@ -146,25 +144,14 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /prim_fifo_async.sv \
 /prim_fifo_sync.sv \
 /prim_flash.sv \
-/prim_flop_2sync.sv \
-/prim_flop.sv \
-/prim_generic_buf.sv \
 /prim_generic_flash_bank.sv \
 /prim_generic_flash.sv \
 /prim_generic_flop_2sync.sv \
-/prim_generic_flop.sv \
-/prim_generic_otp.sv \
 /prim_generic_ram_1p.sv \
 /prim_generic_rom.sv \
-/prim_lc_dec.sv \
-/prim_lc_sender.sv \
 /prim_lc_sync.sv \
-/prim_lfsr.sv \
-/prim_otp.sv \
-/prim_packer_fifo.sv \
 /prim_packer.sv \
 /prim_present.sv \
-/prim_prince.sv \
 /prim_pulse_sync.sv \
 /prim_ram_1p_adv.sv \
 /prim_ram_1p_scr.sv \
@@ -313,3 +300,16 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /xbar_peri.sv \
 
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/prim_prince.sv \
+/prim_packer_fifo.sv \
+/prim_otp.sv \
+/prim_lfsr.sv \
+/prim_lc_sender.sv \
+/prim_lc_dec.sv \
+/prim_generic_otp.sv \
+/prim_generic_flop.sv \
+/prim_generic_buf.sv \
+/prim_flop.sv \
+/prim_flop_2sync.sv \
+/prim_buf.sv \
+/otp_ctrl_ecc_reg.sv \
