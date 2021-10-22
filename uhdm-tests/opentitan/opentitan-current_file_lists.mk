@@ -2,7 +2,6 @@
 
 VERILATOR_ONLY_SOURCE_FILENAMES=\
 /kmac_pkg.sv \
-/otbn_model_pkg.sv \
 /tl_main_pkg.sv \
 /tl_peri_pkg.sv \
 /top_earlgrey_rnd_cnst_pkg.sv \
@@ -13,7 +12,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /aes_ctrl_reg_shadowed.sv \
 /aes_key_expand.sv \
 /aes_reg_top.sv \
-/aes_sbox_dom.sv \
 /aes_sub_bytes.sv \
 /aes.sv \
 /alert_handler_reg_top.sv \
