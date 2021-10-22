@@ -17,7 +17,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /aes_sub_bytes.sv \
 /aes.sv \
 /alert_handler_reg_top.sv \
-/alert_handler_reg_wrap.sv \
 /alert_handler.sv \
 /aon_osc.sv \
 /aon_timer_reg_top.sv \
@@ -25,9 +24,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /ast_dft.sv \
 /ast_reg_top.sv \
 /ast.sv \
-/clkmgr_byp.sv \
-/clkmgr_reg_top.sv \
-/clkmgr.sv \
 /csrng_core.sv \
 /csrng_reg_top.sv \
 /csrng.sv \
@@ -296,6 +292,7 @@ VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
 /prim_flop.sv \
 /prim_flop_2sync.sv \
 /prim_buf.sv \
+/prim_intr_hw.sv \
 /otp_ctrl_ecc_reg.sv \
 /aes_cipher_control.sv \
 /aes_cipher_core.sv \
