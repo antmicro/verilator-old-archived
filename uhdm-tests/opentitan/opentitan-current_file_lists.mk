@@ -122,22 +122,24 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /usbdev.sv \
 /xbar_main.sv \
 /xbar_peri.sv \
-
-VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
-/usb_osc.sv \
-/usbdev_linkstate.sv \
-/usbdev_iomux.sv \
-/usb_clk.sv \
-/uart.sv \
-/uart_core.sv \
-/sysrst_ctrl.sv \
-/sysrst_ctrl_reg_top.sv \
-/sys_osc.sv \
-/sys_clk.sv \
 /sram_ctrl.sv \
 /sram_ctrl_regs_reg_top.sv \
 /spi_host.sv \
 /sensor_ctrl.sv \
+/uart.sv \
+/uart_core.sv \
+/prim_edn_req.sv \
+
+VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/prim_esc_sender.sv \
+/prim_esc_receiver.sv \
+/sysrst_ctrl.sv \
+/sysrst_ctrl_reg_top.sv \
+/sys_osc.sv \
+/sys_clk.sv \
+/prim_clock_meas.sv \
+/prim_clock_gating_sync.sv \
+/prim_clock_div.sv \
 /rv_plic.sv \
 /rv_plic_reg_top.sv \
 /rv_dm_regs_reg_top.sv \
@@ -153,12 +155,10 @@ VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
 /prim_sram_arbiter.sv \
 /prim_reg_cdc.sv \
 /prim_lc_sync.sv \
-/prim_esc_sender.sv \
-/prim_esc_receiver.sv \
-/prim_edn_req.sv \
-/prim_clock_meas.sv \
-/prim_clock_gating_sync.sv \
-/prim_clock_div.sv \
+/usb_osc.sv \
+/usbdev_linkstate.sv \
+/usbdev_iomux.sv \
+/usb_clk.sv \
 /prim_alert_sender.sv \
 /prim_alert_receiver.sv \
 /pinmux_wkup.sv \
