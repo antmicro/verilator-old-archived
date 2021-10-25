@@ -11,26 +11,17 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /aes_core.sv \
 /aes_ctrl_reg_shadowed.sv \
 /aes_key_expand.sv \
-/aes_reg_top.sv \
 /aes_sub_bytes.sv \
-/aes.sv \
 /alert_handler_reg_top.sv \
-/alert_handler.sv \
-/aon_timer_reg_top.sv \
 /aon_timer.sv \
 /ast_dft.sv \
-/ast_reg_top.sv \
-/ast.sv \
 /clkmgr_byp.sv \
-/clkmgr_reg_top.sv \
 /clkmgr.sv \
 /csrng_core.sv \
 /csrng_reg_top.sv \
-/csrng.sv \
 /dmi_cdc.sv \
 /edn_core.sv \
 /edn_reg_top.sv \
-/edn.sv \
 /entropy_src_core.sv \
 /entropy_src_reg_top.sv \
 /entropy_src.sv \
@@ -42,8 +33,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /flash_phy.sv \
 /gpio.sv \
 /hmac_reg_top.sv \
-/hmac.sv \
-/i2c.sv \
 /keccak_2share.sv \
 /keccak_round.sv \
 /keymgr_kmac_if.sv \
@@ -131,6 +120,17 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /prim_edn_req.sv \
 
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/hmac.sv \
+/i2c.sv \
+/edn.sv \
+/csrng.sv \
+/clkmgr_reg_top.sv \
+/ast_reg_top.sv \
+/ast.sv \
+/aon_timer_reg_top.sv \
+/alert_handler.sv \
+/aes.sv \
+/aes_reg_top.sv \
 /prim_esc_sender.sv \
 /prim_esc_receiver.sv \
 /sysrst_ctrl.sv \
