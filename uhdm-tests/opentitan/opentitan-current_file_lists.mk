@@ -1,6 +1,13 @@
 # Filenames starting with / to avoid false matches by suffix
 
 VERILATOR_ONLY_SOURCE_FILENAMES=\
+/prim_edn_req.sv \
+/sram_ctrl.sv \
+/sram_ctrl_regs_reg_top.sv \
+/spi_host.sv \
+/sensor_ctrl.sv \
+/uart.sv \
+/uart_core.sv \
 /kmac_pkg.sv \
 /tl_main_pkg.sv \
 /tl_peri_pkg.sv \
@@ -111,13 +118,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /usbdev.sv \
 /xbar_main.sv \
 /xbar_peri.sv \
-/sram_ctrl.sv \
-/sram_ctrl_regs_reg_top.sv \
-/spi_host.sv \
-/sensor_ctrl.sv \
-/uart.sv \
-/uart_core.sv \
-/prim_edn_req.sv \
 
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
 /hmac.sv \
