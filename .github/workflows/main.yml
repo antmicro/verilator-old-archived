@@ -40,7 +40,9 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: binaries
-        path: binaries.tar
+        path: |
+          binaries.tar
+          **/plot_*.svg
 
   build-macos:
     runs-on: macos-latest
@@ -359,7 +361,9 @@ jobs:
     - uses: actions/upload-artifact@v2
       with:
         name: opentitan-earl-grey-simulation-output
-        path: output_uhdm_vanilla_verilator
+        path: |
+          output_uhdm_vanilla_verilator
+          **/plot_*.svg
 
   opentitan-earlgrey-210214:
     runs-on: [self-hosted, Linux, X64]
@@ -434,7 +438,9 @@ jobs:
     - uses: actions/upload-artifact@v2
       with:
         name: opentitan-earlgrey-210214-simulation-output
-        path: output_uhdm_vanilla_verilator
+        path: |
+          output_uhdm_vanilla_verilator
+          **/plot_*.svg
 
   simple-system-sim:
     runs-on: [self-hosted, Linux, X64]
@@ -490,7 +496,9 @@ jobs:
     - uses: actions/upload-artifact@v2
       with:
         name: simple-system-simulation-output
-        path: output_uhdm
+        path: |
+          output_uhdm
+          **/plot_*.svg
 
   generate-matrix-vcddiff:
     runs-on: [self-hosted, Linux, X64]
