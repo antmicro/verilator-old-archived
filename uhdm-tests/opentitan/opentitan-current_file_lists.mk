@@ -25,7 +25,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /entropy_src_watermark_reg.sv \
 /flash_ctrl_core_reg_top.sv \
 /flash_ctrl.sv \
-/flash_mp_data_region_sel.sv \
 /flash_mp.sv \
 /hmac_reg_top.sv \
 /keccak_2share.sv \
@@ -98,6 +97,7 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /xbar_peri.sv \
 
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/flash_mp_data_region_sel.sv \
 /usbdev_aon_wake.sv \
 /sensor_ctrl_reg_top.sv \
 /rv_timer.sv \
