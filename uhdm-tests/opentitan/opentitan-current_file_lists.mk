@@ -1,27 +1,18 @@
 # Filenames starting with / to avoid false matches by suffix
 
 VERILATOR_ONLY_SOURCE_FILENAMES=\
-/prim_edn_req.sv \
 /sram_ctrl.sv \
 /sram_ctrl_regs_reg_top.sv \
-/spi_host.sv \
-/sensor_ctrl.sv \
-/uart.sv \
-/uart_core.sv \
 /kmac_pkg.sv \
 /tl_main_pkg.sv \
 /tl_peri_pkg.sv \
 /top_earlgrey_rnd_cnst_pkg.sv \
 /adc_ctrl_core.sv \
-/adc_ctrl_intr.sv \
-/adc_ctrl_reg_top.sv \
 /aes_core.sv \
 /aes_ctrl_reg_shadowed.sv \
 /aes_key_expand.sv \
 /aes_sub_bytes.sv \
 /alert_handler_reg_top.sv \
-/aon_timer.sv \
-/ast_dft.sv \
 /clkmgr_byp.sv \
 /clkmgr.sv \
 /csrng_core.sv \
@@ -31,14 +22,11 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /edn_reg_top.sv \
 /entropy_src_core.sv \
 /entropy_src_reg_top.sv \
-/entropy_src.sv \
 /entropy_src_watermark_reg.sv \
 /flash_ctrl_core_reg_top.sv \
 /flash_ctrl.sv \
 /flash_mp_data_region_sel.sv \
 /flash_mp.sv \
-/flash_phy.sv \
-/gpio.sv \
 /hmac_reg_top.sv \
 /keccak_2share.sv \
 /keccak_round.sv \
@@ -64,11 +52,7 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /otp_ctrl_part_buf.sv \
 /otp_ctrl_scrmbl.sv \
 /otp_ctrl.sv \
-/pattgen.sv \
 /pinmux_reg_top.sv \
-/pinmux_strap_sampling.sv \
-/pinmux.sv \
-/prim_arbiter_ppc.sv \
 /prim_dom_and_2share.sv \
 /prim_fifo_async.sv \
 /prim_flash.sv \
@@ -76,7 +60,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /prim_generic_flash.sv \
 /prim_generic_ram_1p.sv \
 /prim_generic_rom.sv \
-/prim_packer.sv \
 /prim_present.sv \
 /prim_ram_1p_scr.sv \
 /prim_ram_1p.sv \
@@ -94,10 +77,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /rv_core_ibex_cfg_reg_top.sv \
 /rv_core_ibex.sv \
 /rv_dm.sv \
-/rv_plic_target.sv \
-/rv_timer_reg_top.sv \
-/rv_timer.sv \
-/sensor_ctrl_reg_top.sv \
 /sha3pad.sv \
 /sha3.sv \
 /spi_device_reg_top.sv \
@@ -113,13 +92,34 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /top_earlgrey.sv \
 /uartdpi.sv \
 /uart_reg_top.sv \
-/usbdev_aon_wake.sv \
 /usbdev_reg_top.sv \
 /usbdev.sv \
 /xbar_main.sv \
 /xbar_peri.sv \
 
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/usbdev_aon_wake.sv \
+/sensor_ctrl_reg_top.sv \
+/rv_timer.sv \
+/rv_timer_reg_top.sv \
+/rv_plic_target.sv \
+/prim_packer.sv \
+/prim_arbiter_ppc.sv \
+/pinmux.sv \
+/pinmux_strap_sampling.sv \
+/pattgen.sv \
+/gpio.sv \
+/flash_phy.sv \
+/entropy_src.sv \
+/ast_dft.sv \
+/aon_timer.sv \
+/adc_ctrl_reg_top.sv \
+/adc_ctrl_intr.sv \
+/uart_core.sv \
+/uart.sv \
+/sensor_ctrl.sv \
+/spi_host.sv \
+/prim_edn_req.sv \
 /hmac.sv \
 /i2c.sv \
 /edn.sv \
