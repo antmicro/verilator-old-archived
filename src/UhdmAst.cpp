@@ -1236,22 +1236,58 @@ AstNode* process_genScopeArray(vpiHandle obj_h, UhdmShared& shared) {
     }
 }
 
-AstNode* process_hierPath(vpiHandle obj_h, UhdmShared& shared) {
-    AstNode* lhsp = nullptr;
-    AstNode* rhsp = nullptr;
-
-    visit_one_to_many({vpiActual}, obj_h, shared, [&](AstNode* childp) {
-        if (lhsp == nullptr) {
-            lhsp = childp;
-        } else if (rhsp == nullptr) {
-            rhsp = childp;
+AstMethodCall* process_method_call(vpiHandle obj_h, AstNode* fromp, UhdmShared& shared) {
+    // Surelog doesn't use vpiPrefix field to pass the object on which the method is called
+    // It handles method calls using vpiHierPath
+    // See https://github.com/chipsalliance/Surelog/issues/2129
+    AstNode* args = nullptr;
+    if (fromp == nullptr) {
+        fromp = new AstParseRef(make_fileline(obj_h), VParseRefExp::en::PX_TEXT, "this", nullptr,
+                                nullptr);
+    }
+    visit_one_to_many({vpiArgument}, obj_h, shared, [&](AstNode* itemp) {
+        AstNode* argp = new AstArg(make_fileline(obj_h), "", itemp);
+        if (args == nullptr) {
+            args = argp;
         } else {
-            lhsp = new AstDot(make_fileline(obj_h), false, lhsp, rhsp);
-            rhsp = childp;
+            args->addNextNull(argp);
         }
     });
+    std::string methodName = get_object_name(obj_h);
+    return new AstMethodCall(make_fileline(obj_h), fromp, methodName, args);
+}
 
-    return new AstDot(make_fileline(obj_h), false, lhsp, rhsp);
+AstNode* process_hierPath(vpiHandle obj_h, UhdmShared& shared) {
+    AstNode* hierPathp = nullptr;
+    AstNode* hierItemp = nullptr;
+
+    vpiHandle actual_itr = vpi_iterate(vpiActual, obj_h);
+    while (vpiHandle actual_h = vpi_scan(actual_itr)) {
+        switch (vpi_get(vpiType, actual_h)) {
+        case vpiRefObj: {
+            std::string refName = get_object_name(actual_h);
+            hierItemp = get_referenceNode(make_fileline(actual_h), refName, shared);
+            if (hierPathp == nullptr)
+                hierPathp = hierItemp;
+            else
+                hierPathp = new AstDot(make_fileline(obj_h), false, hierPathp, hierItemp);
+
+            break;
+        }
+        case vpiMethodFuncCall: {
+            hierPathp = process_method_call(actual_h, hierPathp, shared);
+            break;
+        }
+        default: {
+            make_fileline(obj_h)->v3error(
+                "Unhandled type of vpiHierPath item: " << UHDM::VpiTypeName(obj_h));
+        }
+        }
+        vpi_release_handle(actual_h);
+    }
+    vpi_release_handle(actual_itr);
+
+    return hierPathp;
 }
 
 AstNode* process_ioDecl(vpiHandle obj_h, UhdmShared& shared) {
@@ -3159,22 +3195,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         }
     }
     case vpiMethodFuncCall: {
-        AstNode* from = nullptr;
-        AstNode* args = nullptr;
-        visit_one_to_one({vpiPrefix}, obj_h, shared, [&](AstNode* item) { from = item; });
-        if (from == nullptr) {
-            from = new AstParseRef(make_fileline(obj_h), VParseRefExp::en::PX_TEXT, "this",
-                                   nullptr, nullptr);
-        }
-        visit_one_to_many({vpiArgument}, obj_h, shared, [&](AstNode* item) {
-            AstNode* argp = new AstArg(make_fileline(obj_h), "", item);
-            if (args == nullptr) {
-                args = argp;
-            } else {
-                args->addNextNull(argp);
-            }
-        });
-        return new AstMethodCall(make_fileline(obj_h), from, objectName, args);
+        return process_method_call(obj_h, nullptr, shared);
     }
     // What we can see (but don't support yet)
     case vpiClassObj: break;
