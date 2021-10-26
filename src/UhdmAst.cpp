@@ -1237,13 +1237,19 @@ AstNode* process_genScopeArray(vpiHandle obj_h, UhdmShared& shared) {
 }
 
 AstMethodCall* process_method_call(vpiHandle obj_h, AstNode* fromp, UhdmShared& shared) {
-    // Surelog doesn't use vpiPrefix field to pass the object on which the method is called
-    // It handles method calls using vpiHierPath
-    // See https://github.com/chipsalliance/Surelog/issues/2129
+    // Surelog sometimes doesn't use vpiPrefix field to pass the object on which the method is
+    // called. Then that object is parsed using vpiHierPath, passed to this function by fromp
+    // argument. See https://github.com/chipsalliance/Surelog/issues/2129
     AstNode* args = nullptr;
     if (fromp == nullptr) {
-        fromp = new AstParseRef(make_fileline(obj_h), VParseRefExp::en::PX_TEXT, "this", nullptr,
-                                nullptr);
+        if (vpiHandle prefix_h = vpi_handle(vpiPrefix, obj_h)) {
+            std::string refName = get_object_name(prefix_h);
+            fromp = get_referenceNode(make_fileline(prefix_h), refName, shared);
+            vpi_release_handle(prefix_h);
+        } else {
+            fromp = new AstParseRef(make_fileline(obj_h), VParseRefExp::en::PX_TEXT, "this",
+                                    nullptr, nullptr);
+        }
     }
     visit_one_to_many({vpiArgument}, obj_h, shared, [&](AstNode* itemp) {
         AstNode* argp = new AstArg(make_fileline(obj_h), "", itemp);
