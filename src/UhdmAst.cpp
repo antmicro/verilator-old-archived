@@ -1269,25 +1269,14 @@ AstNode* process_hierPath(vpiHandle obj_h, UhdmShared& shared) {
 
     vpiHandle actual_itr = vpi_iterate(vpiActual, obj_h);
     while (vpiHandle actual_h = vpi_scan(actual_itr)) {
-        switch (vpi_get(vpiType, actual_h)) {
-        case vpiRefObj: {
-            std::string refName = get_object_name(actual_h);
-            hierItemp = get_referenceNode(make_fileline(actual_h), refName, shared);
+        if(vpi_get(vpiType, actual_h) == vpiMethodFuncCall) {
+            hierPathp = process_method_call(actual_h, hierPathp, shared);
+        } else {
+            hierItemp = visit_object(actual_h, shared);
             if (hierPathp == nullptr)
                 hierPathp = hierItemp;
             else
                 hierPathp = new AstDot(make_fileline(obj_h), false, hierPathp, hierItemp);
-
-            break;
-        }
-        case vpiMethodFuncCall: {
-            hierPathp = process_method_call(actual_h, hierPathp, shared);
-            break;
-        }
-        default: {
-            make_fileline(obj_h)->v3error(
-                "Unhandled type of vpiHierPath item: " << UHDM::VpiTypeName(obj_h));
-        }
         }
         vpi_release_handle(actual_h);
     }
