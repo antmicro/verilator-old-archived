@@ -603,6 +603,19 @@ jobs:
           var matchArtifact = artifacts.data.artifacts.filter((artifact) => {
             return !artifact.name.localeCompare(TESTNAME)
           })[0];
+          // TODO: make it more robust, for now, it only handles at most 200 artifacts
+          if (matchArtifact == undefined) {
+            artifacts = await github.actions.listWorkflowRunArtifacts({
+              owner: process.env.OWNER,
+              repo: process.env.REPO,
+              run_id: runID,
+              per_page: 100,
+              page: 2,
+            });
+            matchArtifact = artifacts.data.artifacts.filter((artifact) => {
+              return !artifact.name.localeCompare(TESTNAME)
+            })[0];
+          }
           var download = await github.actions.downloadArtifact({
             owner: process.env.OWNER,
             repo: process.env.REPO,
