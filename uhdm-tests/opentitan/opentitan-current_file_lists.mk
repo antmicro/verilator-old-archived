@@ -15,10 +15,8 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /alert_handler_reg_top.sv \
 /clkmgr_byp.sv \
 /clkmgr.sv \
-/csrng_core.sv \
 /csrng_reg_top.sv \
 /dmi_cdc.sv \
-/edn_core.sv \
 /edn_reg_top.sv \
 /entropy_src_core.sv \
 /entropy_src_reg_top.sv \
@@ -97,6 +95,8 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /xbar_peri.sv \
 
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/edn_core.sv \
+/csrng_core.sv \
 /flash_mp_data_region_sel.sv \
 /usbdev_aon_wake.sv \
 /sensor_ctrl_reg_top.sv \
