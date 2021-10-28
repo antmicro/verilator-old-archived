@@ -1240,7 +1240,7 @@ AstMethodCall* process_method_call(vpiHandle obj_h, AstNode* fromp, UhdmShared& 
     // Surelog sometimes doesn't use vpiPrefix field to pass the object on which the method is
     // called. Then that object is parsed using vpiHierPath, passed to this function by fromp
     // argument. See https://github.com/chipsalliance/Surelog/issues/2129
-    AstNode* args = nullptr;
+    AstNode* argsp = nullptr;
     if (fromp == nullptr) {
         if (vpiHandle prefix_h = vpi_handle(vpiPrefix, obj_h)) {
             std::string refName = get_object_name(prefix_h);
@@ -1253,14 +1253,14 @@ AstMethodCall* process_method_call(vpiHandle obj_h, AstNode* fromp, UhdmShared& 
     }
     visit_one_to_many({vpiArgument}, obj_h, shared, [&](AstNode* itemp) {
         AstNode* argp = new AstArg(make_fileline(obj_h), "", itemp);
-        if (args == nullptr) {
-            args = argp;
+        if (argsp == nullptr) {
+            argsp = argp;
         } else {
-            args->addNextNull(argp);
+            argsp->addNextNull(argp);
         }
     });
     std::string methodName = get_object_name(obj_h);
-    return new AstMethodCall(make_fileline(obj_h), fromp, methodName, args);
+    return new AstMethodCall(make_fileline(obj_h), fromp, methodName, argsp);
 }
 
 AstNode* process_hierPath(vpiHandle obj_h, UhdmShared& shared) {
