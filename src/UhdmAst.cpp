@@ -358,7 +358,7 @@ AstNode* get_value_as_node(vpiHandle obj_h, bool need_decompile = false) {
                     }
                     auto* constp = new AstConst(make_fileline(obj_h), AstConst::StringToParse(), valStr.c_str());
                     auto& num = constp->num();
-                    if (num.width() > 32 && num.widthMin() <= 32) {
+                    if (num.width() >= 32 && num.widthMin() <= 32) {
                         num.width(32, false);
                         num.isSigned(true);
                         constp = new AstConst(make_fileline(obj_h), num);
@@ -398,7 +398,7 @@ AstNode* get_value_as_node(vpiHandle obj_h, bool need_decompile = false) {
             valStr = std::to_string(size) + "'d" + valStr;
         auto* constp = new AstConst(make_fileline(obj_h), AstConst::StringToParse(), valStr.c_str());
         auto& num = constp->num();
-        if (num.width() > 32 && num.widthMin() <= 32) {
+        if (num.width() >= 32 && num.widthMin() <= 32) {
             num.width(32, false);
             num.isSigned(true);
             constp = new AstConst(make_fileline(obj_h), num);
