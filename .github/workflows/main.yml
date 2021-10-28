@@ -89,7 +89,7 @@ jobs:
       - name: Generate matrix
         id: generate-matrix
         run: |
-          matrix="$(cd uhdm-integration && python list.py -d tests -s cmake ibex synthesis swerv OneClass hello-uvm OneThis opentitan CastStructArray)"
+          matrix="$(cd uhdm-integration && python list.py -d tests -s cmake ibex synthesis swerv OneClass hello-uvm OneThis opentitan CastStructArray StringAssignment)"
           echo "::set-output name=matrix::$matrix"
           echo "Matrix: $matrix"
 
@@ -521,7 +521,7 @@ jobs:
       - name: Generate matrix (vcddiff)
         id: generate-matrix-vcddiff
         run: |
-          matrix="$(cd uhdm-integration && python list.py -d tests -s ibex swerv synthesis opentitan hello-uvm assignment-pattern Forever BitsCallOnType OneClass Continue AnonymousUnion FunctionOnDesignLevel ParameterUnpackedArray VoidFunction2Returns PatternStruct ImportedFunctionCallInModuleAndSubmodule VoidFunctionWithoutReturn cmake PutC OneThis CastInFunctionInGenBlock PatternType FunctionOutputArgument GetC ForkJoinTypes EnumFirstInInitial ImportFunction DpiChandle Disable EnumFirst TypedefOnFileLevel UnsizedConstantsParameterParsing Fork PatternInFunction TypedefVariableDimensions ParameterUnpackedLogicArray SelectFromUnpackedInFunction PatternReplication VoidFunction MultiplePrints BitSelectPartSelectInFunction ImportPackageWithFunction ParameterPackedArray StringAssignment SystemFunctions 2DFunctionArg ArrayInit array-copy FunctionColonReference ParameterColonReference ParameterSizeOfInstance PkgParamAsFunctionArg xor_assignment fsm_using_always OneNetInterf cs_registers UnpackedArray InterfaceAssign fsm_using_function OneNetRange ParameterWithUnderscoreValueDividedPassedFromCommandLine FunctionExportDPI OnePackage InterfaceInitial InterfaceAlways OneCast fsm_single_always TaskExportDPI OneImport hier_path CastStructArray InterfaceAsPort)"
+          matrix="$(cd uhdm-integration && python list.py -d tests -s ibex swerv synthesis opentitan hello-uvm assignment-pattern Forever BitsCallOnType OneClass Continue AnonymousUnion FunctionOnDesignLevel ParameterUnpackedArray VoidFunction2Returns PatternStruct ImportedFunctionCallInModuleAndSubmodule VoidFunctionWithoutReturn cmake PutC OneThis CastInFunctionInGenBlock PatternType FunctionOutputArgument GetC ForkJoinTypes EnumFirstInInitial ImportFunction DpiChandle Disable EnumFirst TypedefOnFileLevel UnsizedConstantsParameterParsing Fork PatternInFunction TypedefVariableDimensions ParameterUnpackedLogicArray SelectFromUnpackedInFunction PatternReplication VoidFunction MultiplePrints BitSelectPartSelectInFunction ImportPackageWithFunction ParameterPackedArray StringAssignment SystemFunctions 2DFunctionArg ArrayInit array-copy FunctionColonReference ParameterColonReference ParameterSizeOfInstance PkgParamAsFunctionArg xor_assignment fsm_using_always OneNetInterf cs_registers UnpackedArray InterfaceAssign fsm_using_function OneNetRange ParameterWithUnderscoreValueDividedPassedFromCommandLine FunctionExportDPI OnePackage InterfaceInitial InterfaceAlways OneCast fsm_single_always TaskExportDPI OneImport hier_path CastStructArray InterfaceAsPort ParameterInitializedByPartSelectOfParameters ParameterInitializedByPartSelectOfParametersAssignedToVar StringAssignment)"
           echo "::set-output name=matrix::$matrix"
           echo "matrix vcddiff: $matrix"
 
