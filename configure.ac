@@ -363,12 +363,8 @@ _MY_CXX_CHECK_SET(CFG_CXXFLAGS_STD_NEWEST,-std=c++11)
 AC_SUBST(CFG_CXXFLAGS_STD_NEWEST)
 # And likewise oldest standard (same list above, backwards)
 # This is used for internal testing
-_MY_CXX_CHECK_SET(CFG_CXXFLAGS_STD_OLDEST,-std=c++03)
-_MY_CXX_CHECK_SET(CFG_CXXFLAGS_STD_OLDEST,-std=c++11)
-_MY_CXX_CHECK_SET(CFG_CXXFLAGS_STD_OLDEST,-std=c++14)
-_MY_CXX_CHECK_SET(CFG_CXXFLAGS_STD_OLDEST,-std=c++17)
-#_MY_CXX_CHECK_SET(CFG_CXXFLAGS_STD_OLDEST,-std=c++20)
-AC_SUBST(CFG_CXXFLAGS_STD_OLDEST)
+
+CFG_CXXFLAGS_STD_OLDEST="-std=c++17"
 
 # Flags for compiling Verilator internals including parser, and Verilated files
 # These turn on extra warnings and are only used with 'configure --enable-ccwarn'
