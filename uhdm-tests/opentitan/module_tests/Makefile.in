@@ -1,3 +1,0 @@
-curr_dir:=$(dir $(lastword $(MAKEFILE_LIST)))
-include ${curr_dir}/../Makefile.in
-OPENTITAN_BUILD = ${OPENTITAN}/build/lowrisc_$(TOP_TARGET_NAME)_0.1
