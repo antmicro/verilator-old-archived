@@ -421,7 +421,7 @@ jobs:
         cp trace_core_00000000.log output_uhdm_vanilla_verilator/uhdm_verilator_trace.log
       env:
         TARGET: uhdm/verilator/opentitan
-        TEST_CASE: tests/opentitan
+        TEST_CASE: tests/opentitan-current
 
     - name: Build & Test (vanilla verilator)
       run: |
@@ -433,7 +433,7 @@ jobs:
         cp trace_core_00000000.log output_uhdm_vanilla_verilator/vanilla_verilator_trace.log
       env:
         TARGET: verilator/opentitan
-        TEST_CASE: tests/opentitan
+        TEST_CASE: tests/opentitan-current
 
     - name: Compare results
       run: |
@@ -489,12 +489,8 @@ jobs:
         cp uart0.log output_uhdm_vanilla_verilator/uhdm_verilator_uart.log
         cp trace_core_00000000.log output_uhdm_vanilla_verilator/uhdm_verilator_trace.log
       env:
-        OPENTITAN_VERSION: opentitan-210214
-        TOP_TARGET_NAME: systems_top_earlgrey_verilator
-        TOP_MODULE_NAME: top_earlgrey_verilator
-        FUSESOC_SETUP_TARGET: lowrisc:systems:top_earlgrey_verilator
         TARGET: uhdm/verilator/opentitan
-        TEST_CASE: tests/opentitan
+        TEST_CASE: tests/opentitan-210214
 
     - name: Build & Test (vanilla verilator)
       run: |
@@ -505,12 +501,8 @@ jobs:
         cp uart0.log output_uhdm_vanilla_verilator/vanilla_verilator_uart.log
         cp trace_core_00000000.log output_uhdm_vanilla_verilator/vanilla_verilator_trace.log
       env:
-        OPENTITAN_VERSION: opentitan-210214
-        TOP_TARGET_NAME: systems_top_earlgrey_verilator
-        TOP_MODULE_NAME: top_earlgrey_verilator
-        FUSESOC_SETUP_TARGET: lowrisc:systems:top_earlgrey_verilator
         TARGET: verilator/opentitan
-        TEST_CASE: tests/opentitan
+        TEST_CASE: tests/opentitan-210214
 
     - name: Compare results
       run: |
