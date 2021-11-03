@@ -89,7 +89,7 @@ jobs:
       - name: Generate matrix
         id: generate-matrix
         run: |
-          matrix="$(cd uhdm-integration && python list.py -d tests -s cmake ibex synthesis swerv OneClass hello-uvm OneThis opentitan CastStructArray StringAssignment)"
+          matrix="$(cd uhdm-integration && python list.py -d tests -s cmake ibex synthesis swerv OneClass hello-uvm OneThis opentitan-210214 opentitan-current CastStructArray StringAssignment)"
           echo "::set-output name=matrix::$matrix"
           echo "Matrix: $matrix"
 
@@ -217,11 +217,11 @@ jobs:
         TEST_CASE: ${{ matrix.TEST_CASE }}
         TARGET: ${{ matrix.TARGET }}
 
-  generate-opentitan-modules:
+  generate-opentitan-current-modules:
     runs-on: [self-hosted, Linux, X64]
     container: ubuntu:latest
     outputs:
-      matrix: ${{ steps.generate-opentitan-modules.outputs.matrix }}
+      matrix: ${{ steps.generate-opentitan-current-modules.outputs.matrix }}
     steps:
       - name: Install dependencies
         run: |
@@ -236,19 +236,19 @@ jobs:
           fetch-depth: 1
 
       - name: Generate matrix
-        id: generate-opentitan-modules
+        id: generate-opentitan-current-modules
         run: |
-          matrix="$(cd uhdm-integration && python list.py -d tests/opentitan/module_tests -s lc_ctrl_fsm)"
+          matrix="$(cd uhdm-integration && python list.py -d tests/opentitan-current/module_tests -s lc_ctrl_fsm)"
           echo "::set-output name=matrix::$matrix"
           echo "Matrix: $matrix"
 
-  opentitan-module-tests:
+  opentitan-current-module-tests:
     runs-on: [self-hosted, Linux, X64]
     container: ubuntu:latest
-    needs: [build-binaries, generate-opentitan-modules]
+    needs: [build-binaries, generate-opentitan-current-modules]
     strategy:
       matrix:
-        TEST_CASE: ${{ fromJson(needs.generate-opentitan-modules.outputs.matrix) }}
+        TEST_CASE: ${{ fromJson(needs.generate-opentitan-current-modules.outputs.matrix) }}
         TARGET:
           - uhdm/verilator/test-ast
       fail-fast:
@@ -293,6 +293,87 @@ jobs:
         cd ../../..
         ./uhdm-integration/.github/ci.sh
       env:
+        TEST_CASE: ${{ matrix.TEST_CASE }}
+        TARGET: ${{ matrix.TARGET }}
+
+  generate-opentitan-210214-modules:
+    runs-on: [self-hosted, Linux, X64]
+    container: ubuntu:latest
+    outputs:
+      matrix: ${{ steps.generate-opentitan-210214-modules.outputs.matrix }}
+    steps:
+      - name: Install dependencies
+        run: |
+          apt-get update -qq
+          apt install -y python3
+          update-alternatives --install /usr/bin/python python /usr/bin/python3 1
+
+      - name: Checkout master
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Generate matrix
+        id: generate-opentitan-210214-modules
+        run: |
+          matrix="$(cd uhdm-integration && python list.py -d tests/opentitan-210214/module_tests)"
+          echo "::set-output name=matrix::$matrix"
+          echo "Matrix: $matrix"
+
+  opentitan-210214-module-tests:
+    runs-on: [self-hosted, Linux, X64]
+    container: ubuntu:latest
+    needs: [build-binaries, generate-opentitan-210214-modules]
+    strategy:
+      matrix:
+        TEST_CASE: ${{ fromJson(needs.generate-opentitan-210214-modules.outputs.matrix) }}
+        TARGET:
+          - uhdm/verilator/test-ast
+      fail-fast:
+        false
+    env:
+      CC: gcc-9
+      CXX: g++-9
+      GIT_HTTP_LOW_SPEED_LIMIT: 1
+      GIT_HTTP_LOW_SPEED_TIME: 600
+
+    steps:
+
+    - name: Install dependencies
+      run: |
+        apt-get update -qq
+        apt install -y g++-9 build-essential python3 python3-pip google-perftools git
+        update-alternatives --install /usr/bin/python python /usr/bin/python3 1
+        update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
+
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+        fetch-depth: 1
+
+    - name: Download binaries
+      uses: actions/download-artifact@v2
+      with:
+        name: binaries
+
+    # See https://github.com/actions/upload-artifact/issues/38
+    - name: Extract
+      run: tar -xf binaries.tar
+
+    - name: Build & Test
+      run: |
+        pip install virtualenv
+        virtualenv venv-opentitan
+        . venv-opentitan/bin/activate
+        pip install -r uhdm-tests/opentitan/opentitan-210214/python-requirements.txt
+        cd uhdm-tests/opentitan/opentitan-210214
+        fusesoc --cores-root=. run --flag=fileset_top --target=sim --setup lowrisc:systems:top_earlgrey_verilator
+        cd ../../..
+        ./uhdm-integration/.github/ci.sh
+      env:
+        OPENTITAN_VERSION: opentitan-210214
+        TOP_TARGET_NAME: systems_top_earlgrey_verilator
         TEST_CASE: ${{ matrix.TEST_CASE }}
         TARGET: ${{ matrix.TARGET }}
 
@@ -521,7 +602,7 @@ jobs:
       - name: Generate matrix (vcddiff)
         id: generate-matrix-vcddiff
         run: |
-          matrix="$(cd uhdm-integration && python list.py -d tests -s ibex swerv synthesis opentitan hello-uvm assignment-pattern Forever BitsCallOnType OneClass Continue AnonymousUnion FunctionOnDesignLevel ParameterUnpackedArray VoidFunction2Returns PatternStruct ImportedFunctionCallInModuleAndSubmodule VoidFunctionWithoutReturn cmake PutC OneThis CastInFunctionInGenBlock PatternType FunctionOutputArgument GetC ForkJoinTypes EnumFirstInInitial ImportFunction DpiChandle Disable EnumFirst TypedefOnFileLevel UnsizedConstantsParameterParsing Fork PatternInFunction TypedefVariableDimensions ParameterUnpackedLogicArray SelectFromUnpackedInFunction PatternReplication VoidFunction MultiplePrints BitSelectPartSelectInFunction ImportPackageWithFunction ParameterPackedArray StringAssignment SystemFunctions 2DFunctionArg ArrayInit array-copy FunctionColonReference ParameterColonReference ParameterSizeOfInstance PkgParamAsFunctionArg xor_assignment fsm_using_always OneNetInterf cs_registers UnpackedArray InterfaceAssign fsm_using_function OneNetRange ParameterWithUnderscoreValueDividedPassedFromCommandLine FunctionExportDPI OnePackage InterfaceInitial InterfaceAlways OneCast fsm_single_always TaskExportDPI OneImport hier_path CastStructArray InterfaceAsPort ParameterInitializedByPartSelectOfParameters ParameterInitializedByPartSelectOfParametersAssignedToVar StringAssignment)"
+          matrix="$(cd uhdm-integration && python list.py -d tests -s ibex swerv synthesis opentitan-210214 opentitan-current hello-uvm assignment-pattern Forever BitsCallOnType OneClass Continue AnonymousUnion FunctionOnDesignLevel ParameterUnpackedArray VoidFunction2Returns PatternStruct ImportedFunctionCallInModuleAndSubmodule VoidFunctionWithoutReturn cmake PutC OneThis CastInFunctionInGenBlock PatternType FunctionOutputArgument GetC ForkJoinTypes EnumFirstInInitial ImportFunction DpiChandle Disable EnumFirst TypedefOnFileLevel UnsizedConstantsParameterParsing Fork PatternInFunction TypedefVariableDimensions ParameterUnpackedLogicArray SelectFromUnpackedInFunction PatternReplication VoidFunction MultiplePrints BitSelectPartSelectInFunction ImportPackageWithFunction ParameterPackedArray StringAssignment SystemFunctions 2DFunctionArg ArrayInit array-copy FunctionColonReference ParameterColonReference ParameterSizeOfInstance PkgParamAsFunctionArg xor_assignment fsm_using_always OneNetInterf cs_registers UnpackedArray InterfaceAssign fsm_using_function OneNetRange ParameterWithUnderscoreValueDividedPassedFromCommandLine FunctionExportDPI OnePackage InterfaceInitial InterfaceAlways OneCast fsm_single_always TaskExportDPI OneImport hier_path CastStructArray InterfaceAsPort ParameterInitializedByPartSelectOfParameters ParameterInitializedByPartSelectOfParametersAssignedToVar StringAssignment)"
           echo "::set-output name=matrix::$matrix"
           echo "matrix vcddiff: $matrix"
 
