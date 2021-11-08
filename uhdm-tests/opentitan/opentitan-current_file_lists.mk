@@ -8,11 +8,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /tl_peri_pkg.sv \
 /top_earlgrey_rnd_cnst_pkg.sv \
 /adc_ctrl_core.sv \
-/aes_core.sv \
-/aes_ctrl_reg_shadowed.sv \
-/aes_key_expand.sv \
-/aes_sub_bytes.sv \
-/alert_handler_reg_top.sv \
 /clkmgr_byp.sv \
 /clkmgr.sv \
 /csrng_reg_top.sv \
@@ -95,6 +90,8 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /xbar_peri.sv \
 
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/aes_ctrl_reg_shadowed.sv \
+/alert_handler_reg_top.sv \
 /edn_core.sv \
 /csrng_core.sv \
 /flash_mp_data_region_sel.sv \
@@ -223,3 +220,7 @@ VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
 /prim_clock_gating.sv \
 /prim_generic_clock_gating.sv \
 /prim_subreg_ext.sv \
+/prim_subreg_shadow.sv \
+/prim_edge_detector.sv \
+/prim_ram_2p.sv \
+/tlul_adapter_host.sv \
