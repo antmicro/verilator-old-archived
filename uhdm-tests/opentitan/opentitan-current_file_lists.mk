@@ -55,7 +55,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /prim_present.sv \
 /prim_ram_1p_scr.sv \
 /prim_ram_1p.sv \
-/prim_ram_2p_async_adv.sv \
 /prim_rom_adv.sv \
 /prim_rom.sv \
 /prim_slicer.sv \
@@ -72,7 +71,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /sha3pad.sv \
 /sha3.sv \
 /spi_device_reg_top.sv \
-/spi_device.sv \
 /spi_fwmode.sv \
 /spi_host_data_cdc.sv \
 /spi_host_reg_top.sv \
@@ -90,6 +88,8 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /xbar_peri.sv \
 
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/spi_device.sv \
+/prim_ram_2p_async_adv.sv \
 /aes_ctrl_reg_shadowed.sv \
 /alert_handler_reg_top.sv \
 /edn_core.sv \
@@ -224,3 +224,4 @@ VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
 /prim_edge_detector.sv \
 /prim_ram_2p.sv \
 /tlul_adapter_host.sv \
+/prim_generic_ram_2p.sv \
