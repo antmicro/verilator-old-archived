@@ -1,4 +1,9 @@
 curr_dir:=$(dir $(lastword $(MAKEFILE_LIST)))
+
+OPENTITAN_VERSION ?= opentitan-current
+# Include version-specific makefile with additional target variables
+include $(curr_dir)/Makefile_$(OPENTITAN_VERSION).in
+
 OPENTITAN =${curr_dir}/${OPENTITAN_VERSION}
 
 ################################
