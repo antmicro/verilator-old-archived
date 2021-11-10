@@ -17,13 +17,11 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /entropy_src_reg_top.sv \
 /entropy_src_watermark_reg.sv \
 /flash_ctrl_core_reg_top.sv \
-/flash_ctrl.sv \
 /flash_mp.sv \
 /hmac_reg_top.sv \
 /keccak_2share.sv \
 /keccak_round.sv \
 /keymgr_kmac_if.sv \
-/keymgr_reg_top.sv \
 /keymgr_sideload_key_ctrl.sv \
 /keymgr.sv \
 /kmac_app.sv \
@@ -36,7 +34,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /kmac.sv \
 /lc_ctrl_fsm.sv \
 /lc_ctrl_kmac_if.sv \
-/lc_ctrl.sv \
 /otbn_reg_top.sv \
 /otbn_rnd.sv \
 /otbn.sv \
@@ -87,6 +84,9 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /xbar_peri.sv \
 
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/lc_ctrl.sv \
+/keymgr_reg_top.sv \
+/flash_ctrl.sv \
 /rv_dm.sv \
 /spi_device.sv \
 /prim_ram_2p_async_adv.sv \
