@@ -67,7 +67,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /rv_core_addr_trans.sv \
 /rv_core_ibex_cfg_reg_top.sv \
 /rv_core_ibex.sv \
-/rv_dm.sv \
 /sha3pad.sv \
 /sha3.sv \
 /spi_device_reg_top.sv \
@@ -88,6 +87,7 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /xbar_peri.sv \
 
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/rv_dm.sv \
 /spi_device.sv \
 /prim_ram_2p_async_adv.sv \
 /aes_ctrl_reg_shadowed.sv \
