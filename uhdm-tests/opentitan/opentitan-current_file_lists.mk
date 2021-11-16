@@ -44,14 +44,9 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /pinmux_reg_top.sv \
 /prim_dom_and_2share.sv \
 /prim_fifo_async.sv \
-/prim_flash.sv \
-/prim_generic_flash_bank.sv \
-/prim_generic_flash.sv \
-/prim_generic_ram_1p.sv \
 /prim_generic_rom.sv \
 /prim_present.sv \
 /prim_ram_1p_scr.sv \
-/prim_ram_1p.sv \
 /prim_rom_adv.sv \
 /prim_rom.sv \
 /prim_slicer.sv \
@@ -225,3 +220,9 @@ VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
 /prim_ram_2p.sv \
 /tlul_adapter_host.sv \
 /prim_generic_ram_2p.sv \
+/prim_flash.sv \
+/prim_generic_flash_bank.sv \
+/prim_generic_flash.sv \
+/tlul_err.sv \
+/prim_generic_ram_1p.sv \
+/prim_ram_1p.sv \
