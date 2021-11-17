@@ -42,6 +42,7 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /otp_ctrl_scrmbl.sv \
 /otp_ctrl.sv \
 /pinmux_reg_top.sv \
+/pinmux.sv \
 /prim_dom_and_2share.sv \
 /prim_fifo_async.sv \
 /prim_generic_rom.sv \
