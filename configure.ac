@@ -348,17 +348,10 @@ AC_SUBST(CFG_CXXFLAGS_PROFILE)
 
 # Flag to select newest language standard supported
 # Macros work such that first option that passes is the one we take
-# Currently enabled c++14 due to packaged SystemC dependency
-# c++17 is the newest that Verilator supports
-# c++03 is the oldest that Verilator supports
+# c++17 is needed for UHDM
 #_MY_CXX_CHECK_SET(CFG_CXXFLAGS_STD_NEWEST,-std=c++20)
 _MY_CXX_CHECK_SET(CFG_CXXFLAGS_STD_NEWEST,-std=c++17)
-_MY_CXX_CHECK_SET(CFG_CXXFLAGS_STD_NEWEST,-std=c++14)
-_MY_CXX_CHECK_SET(CFG_CXXFLAGS_STD_NEWEST,-std=c++11)
-_MY_CXX_CHECK_SET(CFG_CXXFLAGS_STD_NEWEST,-std=c++03)
 AC_SUBST(CFG_CXXFLAGS_STD_NEWEST)
-# And likewise oldest standard (same list above, backwards)
-# This is used for internal testing
 
 CFG_CXXFLAGS_STD_OLDEST="-std=c++17"
 
