@@ -353,16 +353,11 @@ AC_SUBST(CFG_CXXFLAGS_PROFILE)
 # c++11 is the oldest that Verilator supports
 # gnu is requried for Cygwin to compile verilated.h successfully
 #_MY_CXX_CHECK_SET(CFG_CXXFLAGS_STD_NEWEST,-std=gnu++20)
+# c++17 is needed for UHDM
 #_MY_CXX_CHECK_SET(CFG_CXXFLAGS_STD_NEWEST,-std=c++20)
 #_MY_CXX_CHECK_SET(CFG_CXXFLAGS_STD_NEWEST,-std=gnu++17)
 _MY_CXX_CHECK_SET(CFG_CXXFLAGS_STD_NEWEST,-std=c++17)
-#_MY_CXX_CHECK_SET(CFG_CXXFLAGS_STD_NEWEST,-std=gnu++14)
-_MY_CXX_CHECK_SET(CFG_CXXFLAGS_STD_NEWEST,-std=c++14)
-_MY_CXX_CHECK_SET(CFG_CXXFLAGS_STD_NEWEST,-std=gnu++11)
-_MY_CXX_CHECK_SET(CFG_CXXFLAGS_STD_NEWEST,-std=c++11)
 AC_SUBST(CFG_CXXFLAGS_STD_NEWEST)
-# And likewise oldest standard (same list above, backwards)
-# This is used for internal testing
 
 CFG_CXXFLAGS_STD_OLDEST="-std=c++17"
 
