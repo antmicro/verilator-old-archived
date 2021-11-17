@@ -1,6 +1,9 @@
 # Filenames starting with / to avoid false matches by suffix
 
 VERILATOR_ONLY_SOURCE_FILENAMES=\
+/dv_test_status_pkg.sv \
+/sw_test_status_if.sv \
+/chip_sim_tb.sv \
 /sram_ctrl.sv \
 /sram_ctrl_regs_reg_top.sv \
 /kmac_pkg.sv \
