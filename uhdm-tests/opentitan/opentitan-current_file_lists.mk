@@ -6,7 +6,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /chip_sim_tb.sv \
 /sram_ctrl.sv \
 /sram_ctrl_regs_reg_top.sv \
-/kmac_pkg.sv \
 /tl_main_pkg.sv \
 /tl_peri_pkg.sv \
 /top_earlgrey_rnd_cnst_pkg.sv \
@@ -60,7 +59,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /rom_ctrl_mux.sv \
 /rom_ctrl_scrambled_rom.sv \
 /rom_ctrl.sv \
-/rv_core_addr_trans.sv \
 /rv_core_ibex_cfg_reg_top.sv \
 /rv_core_ibex.sv \
 /sha3pad.sv \
@@ -230,3 +228,4 @@ VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
 /tlul_err.sv \
 /prim_generic_ram_1p.sv \
 /prim_ram_1p.sv \
+/rv_core_addr_trans.sv \
