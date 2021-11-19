@@ -1823,7 +1823,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         AstNodeDType* dtype = nullptr;
         auto parent_h = vpi_handle(vpiParent, obj_h);
         std::string netName = "";
-        for (auto net : {vpiNet, vpiNetArray, vpiArrayVar, vpiArrayNet, vpiVariables}) {
+        for (auto net : {vpiNet, vpiNetArray, vpiArrayNet, vpiVariables}) {
             vpiHandle itr = vpi_iterate(net, parent_h);
             while (vpiHandle vpi_child_obj = vpi_scan(itr)) {
                 netName = get_object_name(vpi_child_obj);
