@@ -3303,12 +3303,7 @@ std::vector<AstNodeModule*> visit_designs(const std::vector<vpiHandle>& designs,
 
         visit_one_to_many(
             {
-                vpiParamAssign,
-                vpiProgram,
-                vpiProgramArray,
                 vpiTaskFunc,
-                vpiSpecParam,
-                vpiAssertion,
             },
             design, shared, [&](AstNode* itemp) {
                 if (itemp != nullptr) {
