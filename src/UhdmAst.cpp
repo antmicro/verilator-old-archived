@@ -160,12 +160,12 @@ bool is_expr_context(vpiHandle obj_h) {
             return false;
         }
         default: {
-            v3info("Encountered unhandled parent type in " << __FUNCTION__ << std::endl);
+            UINFO(3, "Encountered unhandled parent type in " << __FUNCTION__ << std::endl);
             return false;
         }
         }
     } else {
-        v3info("Missing parent handle in " << __FUNCTION__ << std::endl);
+        UINFO(3, "Missing parent handle in " << __FUNCTION__ << std::endl);
         // TODO: it seems that this happens only in expr context?
         return true;
     }
@@ -568,9 +568,6 @@ AstBasicDTypeKwd get_kwd_for_type(int vpi_var_type) {
 }
 
 AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
-    if (vpiHandle alias_h = vpi_handle(vpiTypedefAlias, obj_h)) {
-        return getDType(fl, alias_h, shared);
-    }
 
     AstNodeDType* dtypep = nullptr;
     auto type = vpi_get(vpiType, obj_h);
@@ -657,6 +654,9 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
     case vpiStructTypespec:
     case vpiEnumTypespec:
     case vpiUnionTypespec: {
+        if (vpiHandle alias_h = vpi_handle(vpiTypedefAlias, obj_h)) {
+            return getDType(fl, alias_h, shared);
+        }
         std::string typespec_name = get_object_name(obj_h);
         std::string full_type_name;
         if (typespec_name != "") {
@@ -1823,7 +1823,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         AstNodeDType* dtype = nullptr;
         auto parent_h = vpi_handle(vpiParent, obj_h);
         std::string netName = "";
-        for (auto net : {vpiNet, vpiNetArray, vpiArrayVar, vpiArrayNet, vpiVariables}) {
+        for (auto net : {vpiNet, vpiNetArray, vpiArrayNet, vpiVariables}) {
             vpiHandle itr = vpi_iterate(net, parent_h);
             while (vpiHandle vpi_child_obj = vpi_scan(itr)) {
                 netName = get_object_name(vpi_child_obj);
@@ -1850,7 +1850,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                              dtype);
 
             if (const int n = vpi_get(vpiDirection, obj_h)) {
-                v3info("Got direction for " << objectName);
+                UINFO(6, "Got direction for " << objectName << std::endl);
                 if (n == vpiInput) {
                     var->declDirection(VDirection::INPUT);
                     var->direction(VDirection::INPUT);
@@ -1864,7 +1864,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                     var->direction(VDirection::INOUT);
                 }
             } else {
-                v3info("Got no direction for " << objectName << ", skipping");
+                UINFO(6, "Got no direction for " << objectName << ", skipping");
                 return nullptr;
             }
         }
@@ -3303,12 +3303,7 @@ std::vector<AstNodeModule*> visit_designs(const std::vector<vpiHandle>& designs,
 
         visit_one_to_many(
             {
-                vpiParamAssign,
-                vpiProgram,
-                vpiProgramArray,
                 vpiTaskFunc,
-                vpiSpecParam,
-                vpiAssertion,
             },
             design, shared, [&](AstNode* itemp) {
                 if (itemp != nullptr) {
