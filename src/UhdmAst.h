@@ -21,6 +21,7 @@ struct UhdmShared {
     // Store parameters here (values can be updated for each instance)
     // Final values will be added in respective module/package
     std::map<std::string, NameNodeMap> top_param_map;
+    std::stack<std::string> moduleNamesStack;
     std::set<std::tuple<std::string, int, std::string>> coverage_set;
     V3ParseSym* m_symp;
     // Used to distinguish between task/function calls inside statement hierarchy
