@@ -72,11 +72,11 @@ void V3Global::readFiles() {
             if (v3Global.opt.dumpUhdm()) {
                 std::cout << UHDM::visit_designs(restoredDesigns) << std::endl;
             }
-            uhdm_lines_dump << UHDM::dump_visited(restoredDesigns);
 
             /* Parse */
             if (coverage_file != "") {
                 /* Report coverage */
+                uhdm_lines_dump << UHDM::dump_visited(restoredDesigns);
                 std::cout << "Writing coverage report to: " << coverage_file << std::endl;
                 std::ofstream coverage_output(coverage_file);
                 coverage_output << "UHDM contents:" << std::endl;
@@ -124,13 +124,10 @@ void V3Global::readFiles() {
             UHDM::Serializer serializer;
             std::vector<AstNodeModule*> modules;
             std::vector<vpiHandle> restoredDesigns = serializer.Restore(uhdmFile);
-            std::ostringstream uhdm_lines_dump;
 
             if (v3Global.opt.dumpUhdm()) {
                 std::cout << UHDM::visit_designs(restoredDesigns) << std::endl;
             }
-
-            uhdm_lines_dump << UHDM::dump_visited(restoredDesigns);
 
             std::ostringstream dummy;
             modules = UhdmAst::visit_designs(restoredDesigns, dummy, &parseSyms);
