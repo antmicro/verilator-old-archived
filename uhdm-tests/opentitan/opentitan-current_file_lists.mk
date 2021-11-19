@@ -8,7 +8,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /sram_ctrl_regs_reg_top.sv \
 /tl_main_pkg.sv \
 /tl_peri_pkg.sv \
-/top_earlgrey_rnd_cnst_pkg.sv \
 /adc_ctrl_core.sv \
 /clkmgr_byp.sv \
 /clkmgr.sv \
@@ -54,7 +53,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /rv_core_ibex_cfg_reg_top.sv \
 /rv_core_ibex.sv \
 /sha3pad.sv \
-/sha3.sv \
 /spi_device_reg_top.sv \
 /spi_fwmode.sv \
 /spi_host_data_cdc.sv \
@@ -231,3 +229,4 @@ VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
 /lc_ctrl_kmac_if.sv \
 /prim_pulse_sync.sv \
 /adc_ctrl_core.sv \
+/sha3.sv \
