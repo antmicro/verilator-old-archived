@@ -568,9 +568,6 @@ AstBasicDTypeKwd get_kwd_for_type(int vpi_var_type) {
 }
 
 AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
-    if (vpiHandle alias_h = vpi_handle(vpiTypedefAlias, obj_h)) {
-        return getDType(fl, alias_h, shared);
-    }
 
     AstNodeDType* dtypep = nullptr;
     auto type = vpi_get(vpiType, obj_h);
@@ -657,6 +654,9 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
     case vpiStructTypespec:
     case vpiEnumTypespec:
     case vpiUnionTypespec: {
+        if (vpiHandle alias_h = vpi_handle(vpiTypedefAlias, obj_h)) {
+            return getDType(fl, alias_h, shared);
+        }
         std::string typespec_name = get_object_name(obj_h);
         std::string full_type_name;
         if (typespec_name != "") {
