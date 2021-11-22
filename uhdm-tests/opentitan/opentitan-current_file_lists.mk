@@ -20,8 +20,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /flash_ctrl_core_reg_top.sv \
 /hmac_reg_top.sv \
 /keccak_2share.sv \
-/keccak_round.sv \
-/keymgr_sideload_key_ctrl.sv \
 /keymgr.sv \
 /kmac_app.sv \
 /kmac_core.sv \
@@ -52,7 +50,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /rom_ctrl.sv \
 /rv_core_ibex_cfg_reg_top.sv \
 /rv_core_ibex.sv \
-/sha3pad.sv \
 /spi_device_reg_top.sv \
 /spi_fwmode.sv \
 /spi_host_data_cdc.sv \
@@ -71,6 +68,9 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /xbar_peri.sv \
 
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/sha3pad.sv \
+/keccak_round.sv \
+/keymgr_sideload_key_ctrl.sv \
 /lc_ctrl.sv \
 /keymgr_reg_top.sv \
 /flash_ctrl.sv \
