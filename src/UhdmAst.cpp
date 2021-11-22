@@ -2071,6 +2071,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             if (v3Global.opt.trace()) { module->modTrace(true); }
             shared.top_param_map[modDefName] = param_map;
         }
+        shared.moduleNamesStack.pop();
 
         // If available, check vpiFullName instead of vpiName, as vpiName can equal vpiDefName
         std::string fullName = objectName;
@@ -2155,10 +2156,8 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             AstCell* cell = new AstCell(make_fileline(obj_h), make_fileline(obj_h), objectName,
                                         modType, modPins, modParams, nullptr);
             if (v3Global.opt.trace()) { cell->trace(true); }
-            shared.moduleNamesStack.pop();
             return cell;
         }
-        shared.moduleNamesStack.pop();
         break;
     }
     case vpiAssignment:
