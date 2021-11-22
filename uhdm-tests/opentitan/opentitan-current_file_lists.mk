@@ -41,7 +41,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /prim_ram_1p_scr.sv \
 /prim_rom_adv.sv \
 /prim_rom.sv \
-/prim_slicer.sv \
 /prim_subst_perm.sv \
 /rom_ctrl_counter.sv \
 /rom_ctrl_fsm.sv \
@@ -68,6 +67,7 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /xbar_peri.sv \
 
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/prim_slicer.sv \
 /sha3pad.sv \
 /keccak_round.sv \
 /keymgr_sideload_key_ctrl.sv \
