@@ -1277,25 +1277,26 @@ AstNode* process_hierPath(vpiHandle obj_h, UhdmShared& shared) {
     AstNode* hierPathp = nullptr;
     AstNode* hierItemp = nullptr;
     FileLine* fl = make_fileline(obj_h);
-    bool expr_present = false;
+    bool expr_const_present = false;
     std::string objectName;
     
     if (vpiHandle expr_h = vpi_handle(vpiExpr, obj_h)) {
-        expr_present = true;
-        objectName = get_object_name(obj_h);
-        objectName = std::regex_replace(objectName, std::regex("\\."), "_");
-        if (vpi_get(vpiType, expr_h) != vpiConstant)
-            fl->v3error("vpiExpr of vpiHierPath is not a constant" << std::endl);
-        AstNode* constp = get_value_as_node(expr_h, true);
-        vpiHandle typespec_h = vpi_handle(vpiTypespec, expr_h);
-        AstNodeDType* dtypep = getDType(fl, typespec_h, shared);
-        vpi_release_handle(typespec_h);
+        if (vpi_get(vpiType, expr_h) == vpiConstant) {
+            expr_const_present = true;
+            objectName = get_object_name(obj_h);
+            objectName = std::regex_replace(objectName, std::regex("\\."), "_");
 
-        std::string moduleName = shared.moduleNamesStack.top();
-        AstVar* temporaryParam = new AstVar(fl, AstVarType::LPARAM, objectName, VFlagChildDType(), dtypep);
-        temporaryParam->valuep(constp);
+            AstNode* constp = get_value_as_node(expr_h, true);
+            vpiHandle typespec_h = vpi_handle(vpiTypespec, expr_h);
+            AstNodeDType* dtypep = getDType(fl, typespec_h, shared);
+            vpi_release_handle(typespec_h);
 
-        shared.top_param_map[moduleName][objectName] = temporaryParam;
+            std::string moduleName = shared.moduleNamesStack.top();
+            AstVar* temporaryParam = new AstVar(fl, AstVarType::LPARAM, objectName, VFlagChildDType(), dtypep);
+            temporaryParam->valuep(constp);
+
+            shared.top_param_map[moduleName][objectName] = temporaryParam;
+        }
         vpi_release_handle(expr_h);
     }
 
@@ -1304,9 +1305,9 @@ AstNode* process_hierPath(vpiHandle obj_h, UhdmShared& shared) {
         if(vpi_get(vpiType, actual_h) == vpiMethodFuncCall) {
             hierPathp = process_method_call(actual_h, hierPathp, shared);
         } else {
-            if (expr_present) {
+            if (expr_const_present) {
                 hierItemp = get_referenceNode(make_fileline(obj_h), objectName, shared);
-                expr_present = false;
+                expr_const_present = false;
             } else {
                 hierItemp = visit_object(actual_h, shared);
             }
