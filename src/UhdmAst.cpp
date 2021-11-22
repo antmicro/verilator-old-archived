@@ -1192,12 +1192,20 @@ AstNode* process_assignment(vpiHandle obj_h, UhdmShared& shared) {
             }
         } else {
             AstNode* assignp;
-            if (lvaluep->type() == AstType::en::atVar) {
-                // This is not a true assignment
-                // Set initial value to a variable and return it
-                AstVar* varp = static_cast<AstVar*>(lvaluep);
-                varp->valuep(rvaluep);
-                return varp;
+            if (AstVar* varp = VN_CAST(lvaluep, Var)) {
+                // Assign on variable declaration
+                if (objectType == vpiContAssign) {
+                    // Return both the variable and assignment
+                    assignp = new AstAssignW(make_fileline(obj_h),
+                            new AstVarRef(make_fileline(obj_h), varp, VAccess::WRITE),
+                            rvaluep);
+                    varp->addNextNull(assignp);
+                    return varp;
+                } else {
+                    // Set initial value to a variable and return it
+                    varp->valuep(rvaluep);
+                    return varp;
+                }
             } else {
                 if (objectType == vpiContAssign)
                     assignp = new AstAssignW(make_fileline(obj_h), lvaluep, rvaluep);
