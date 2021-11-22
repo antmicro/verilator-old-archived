@@ -1601,7 +1601,8 @@ AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
         return dtypep;
     }
     case vpiUnsupportedTypespec: {
-        v3info("\t! This typespec is unsupported in UHDM: " << file_name << ":" << currentLine);
+        auto* fl = make_fileline(obj_h);
+        fl->v3info("\t! This typespec is unsupported in UHDM: " << file_name << ":" << currentLine);
         // Create a reference and try to resolve later
         return get_referenceNode(make_fileline(obj_h), objectName, shared);
     }
@@ -3244,20 +3245,25 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         });
         return assert;
     }
-    case vpiUnsupportedStmt:
-        v3info("\t! This statement is unsupported in UHDM: " << file_name << ":" << currentLine);
+    case vpiUnsupportedStmt: {
+        auto* fl = make_fileline(obj_h);
+        fl->v3info("\t! This statement is unsupported in UHDM: " << file_name << ":" << currentLine);
         // Dummy statement to keep parsing
         return new AstTime(make_fileline(obj_h),
                            VTimescale::TS_1PS);  // TODO: revisit once we have it in UHDM
         break;
-    case vpiUnsupportedExpr:
-        v3info("\t! This expression is unsupported in UHDM: " << file_name << ":" << currentLine);
+    }
+    case vpiUnsupportedExpr: {
+        auto* fl = make_fileline(obj_h);
+        fl->v3info("\t! This expression is unsupported in UHDM: " << file_name << ":" << currentLine);
         // Dummy expression to keep parsing
         return new AstConst(make_fileline(obj_h), 1);
         break;
+    }
     default: {
         // Notify we have something unhandled
-        v3error("\t! Unhandled type: " << objectType << ":" << UHDM::VpiTypeName(obj_h));
+        auto* fl = make_fileline(obj_h);
+        fl->v3error("\t! Unhandled type: " << objectType << ":" << UHDM::VpiTypeName(obj_h));
         break;
     }
     }
