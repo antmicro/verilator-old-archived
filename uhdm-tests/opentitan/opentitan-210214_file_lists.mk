@@ -1,15 +1,11 @@
 # Filenames starting with / to avoid false matches by suffix
 
 VERILATOR_ONLY_SOURCE_FILENAMES=\
-/dv_test_status_pkg.sv \
-/top_earlgrey_verilator.sv \
-/sw_test_status_if.sv \
 /top_earlgrey.sv \
 /prim_generic_rom.sv \
 /prim_rom.sv \
 /prim_rom_adv.sv \
 /lc_ctrl.sv \
-/uartdpi.sv
 
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
 /tlul_adapter_sram.sv \
