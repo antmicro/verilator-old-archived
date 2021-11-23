@@ -1,9 +1,6 @@
 # Filenames starting with / to avoid false matches by suffix
 
 VERILATOR_ONLY_SOURCE_FILENAMES=\
-/dv_test_status_pkg.sv \
-/sw_test_status_if.sv \
-/chip_sim_tb.sv \
 /sram_ctrl.sv \
 /sram_ctrl_regs_reg_top.sv \
 /tl_main_pkg.sv \
@@ -230,3 +227,5 @@ VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
 /prim_pulse_sync.sv \
 /adc_ctrl_core.sv \
 /sha3.sv \
+/sw_test_status_if.sv \
+/chip_sim_tb.sv \
