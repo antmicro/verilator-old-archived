@@ -2161,8 +2161,24 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     case vpiPackedArrayNet:
     case vpiLogicNet: {  // also defined as vpiNet
         AstNodeDType* dtype = nullptr;
-        AstVarType net_type = AstVarType::VAR;
-        AstBasicDTypeKwd dtypeKwd = AstBasicDTypeKwd::LOGIC_IMPLICIT;
+        auto vpi_net_type = vpi_get(vpiNetType, obj_h);
+        AstVarType net_type = AstVarType::UNKNOWN;
+        if (vpi_net_type == vpiWire ) {
+           net_type = AstVarType::WIRE;
+        } else if (vpi_net_type == vpiTri0) {
+           net_type = AstVarType::TRI0;
+        } else if (vpi_net_type == vpiTri1) {
+           net_type = AstVarType::TRI1;
+        } else if (vpi_net_type == vpiWand
+                   || vpi_net_type == vpiWor
+                   || vpi_net_type == vpiTri
+                   || vpi_net_type == vpiTriReg
+                   || vpi_net_type == vpiTriAnd
+                   || vpi_net_type == vpiTriOr ) {
+            make_fileline(obj_h)->v3error("Unsupported net type: " << vpi_net_type << std::endl);
+        } else {
+           net_type = AstVarType::VAR;
+        }
         vpiHandle obj_net;
         dtype = getDType(make_fileline(obj_h), obj_h, shared);
 
