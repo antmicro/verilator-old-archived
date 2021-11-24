@@ -1194,10 +1194,10 @@ AstNode* process_assignment(vpiHandle obj_h, UhdmShared& shared) {
             AstNode* assignp;
             if (AstVar* varp = VN_CAST(lvaluep, Var)) {
                 // Assign on variable declaration
-                if (objectType == vpiContAssign) {
+                if (varp->varType() != AstVarType::VAR && objectType == vpiContAssign) {
                     // Return both the variable and assignment
                     assignp = new AstAssignW(make_fileline(obj_h),
-                            new AstVarRef(make_fileline(obj_h), varp, VAccess::WRITE),
+                            new AstVarRef(make_fileline(obj_h), varp->name(), VAccess::WRITE),
                             rvaluep);
                     varp->addNextNull(assignp);
                     return varp;
