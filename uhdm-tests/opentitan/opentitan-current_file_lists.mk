@@ -56,7 +56,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /tlul_socket_1n.sv \
 /tlul_socket_m1.sv \
 /top_earlgrey.sv \
-/uartdpi.sv \
 /uart_reg_top.sv \
 /usbdev_reg_top.sv \
 /usbdev.sv \
@@ -229,3 +228,4 @@ VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
 /sha3.sv \
 /sw_test_status_if.sv \
 /chip_sim_tb.sv \
+/uartdpi.sv \
