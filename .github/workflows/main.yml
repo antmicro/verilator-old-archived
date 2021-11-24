@@ -39,8 +39,8 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{ env.CCACHE_DIR }}
-        key: cache_${{ steps.cache_timestamp.outputs.time }}
-        restore-keys: cache_
+        key: cache_linux_${{ steps.cache_timestamp.outputs.time }}
+        restore-keys: cache_linux_
 
     - name: Build binaries
       run: |
@@ -61,8 +61,14 @@ jobs:
 
   build-macos:
     runs-on: macos-latest
+    env:
+      CCACHE_DIR: "/Users/runner/work/verilator/verilator/.cache/"
 
     steps:
+    - name: Install dependencies
+      run: |
+        brew install --HEAD ccache
+
     - uses: actions/checkout@v2
       with:
         submodules: recursive
@@ -72,8 +78,22 @@ jobs:
       with:
          python-version: '3.7'
 
+    - name: Create Cache Timestamp
+      id: cache_timestamp
+      uses: nanzm/get-time-action@v1.1
+      with:
+        format: 'YYYY-MM-DD-HH-mm-ss'
+
+    - name: Setup cache
+      uses: actions/cache@v2
+      with:
+        path: ${{ env.CCACHE_DIR }}
+        key: cache_macos_${{ steps.cache_timestamp.outputs.time }}
+        restore-keys: cache_macos_
+
     - name: Build binaries
       run: |
+        export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
         export CPU_COUNT=`sysctl -n hw.logicalcpu`
         ./build_binaries.sh
 
