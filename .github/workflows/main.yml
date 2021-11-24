@@ -14,13 +14,14 @@ jobs:
     env:
       CC: gcc-9
       CXX: g++-9
+      CCACHE_DIR: "/root/verilator/verilator/.cache/"
 
     steps:
 
     - name: Install dependencies
       run: |
         apt-get update -qq
-        apt install -y g++-9 build-essential cmake tclsh ant default-jre swig google-perftools libgoogle-perftools-dev python3 python3-dev uuid uuid-dev tcl-dev flex libfl-dev python3 git pkg-config libreadline-dev bison libffi-dev wget autoconf
+        apt install -y g++-9 build-essential cmake tclsh ant default-jre swig google-perftools libgoogle-perftools-dev python3 python3-dev uuid uuid-dev tcl-dev flex libfl-dev python3 git pkg-config libreadline-dev bison libffi-dev wget autoconf ccache
         update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 
     - uses: actions/checkout@v2
@@ -28,8 +29,22 @@ jobs:
         submodules: recursive
         fetch-depth: 1
 
+    - name: Create Cache Timestamp
+      id: cache_timestamp
+      uses: nanzm/get-time-action@v1.1
+      with:
+        format: 'YYYY-MM-DD-HH-mm-ss'
+
+    - name: Setup cache
+      uses: actions/cache@v2
+      with:
+        path: ${{ env.CCACHE_DIR }}
+        key: cache_linux_${{ steps.cache_timestamp.outputs.time }}
+        restore-keys: cache_linux_
+
     - name: Build binaries
       run: |
+        export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
         ./build_binaries.sh
         # By default actions/upload-artifact@v2 do not preserve file permissions
         # tar directory to workaround this issue
@@ -46,8 +61,14 @@ jobs:
 
   build-macos:
     runs-on: macos-latest
+    env:
+      CCACHE_DIR: "/Users/runner/work/verilator/verilator/.cache/"
 
     steps:
+    - name: Install dependencies
+      run: |
+        brew install --HEAD ccache
+
     - uses: actions/checkout@v2
       with:
         submodules: recursive
@@ -57,8 +78,22 @@ jobs:
       with:
          python-version: '3.7'
 
+    - name: Create Cache Timestamp
+      id: cache_timestamp
+      uses: nanzm/get-time-action@v1.1
+      with:
+        format: 'YYYY-MM-DD-HH-mm-ss'
+
+    - name: Setup cache
+      uses: actions/cache@v2
+      with:
+        path: ${{ env.CCACHE_DIR }}
+        key: cache_macos_${{ steps.cache_timestamp.outputs.time }}
+        restore-keys: cache_macos_
+
     - name: Build binaries
       run: |
+        export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
         export CPU_COUNT=`sysctl -n hw.logicalcpu`
         ./build_binaries.sh
 
@@ -139,7 +174,7 @@ jobs:
     - name: Install dependencies
       run: |
         apt-get update -qq
-        apt install -y g++-9 build-essential python3 google-perftools
+        apt install -y g++-9 build-essential python3 google-perftools ccache
         update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 
     - uses: actions/checkout@v2
@@ -184,7 +219,7 @@ jobs:
     - name: Install dependencies
       run: |
         apt-get update -qq
-        apt install -y g++-9 build-essential python3 python3-pip google-perftools git
+        apt install -y g++-9 build-essential python3 python3-pip google-perftools git ccache
         update-alternatives --install /usr/bin/python python /usr/bin/python3 1
         update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
 
@@ -264,7 +299,7 @@ jobs:
     - name: Install dependencies
       run: |
         apt-get update -qq
-        apt install -y g++-9 build-essential python3 python3-pip google-perftools git
+        apt install -y g++-9 build-essential python3 python3-pip google-perftools git ccache
         update-alternatives --install /usr/bin/python python /usr/bin/python3 1
         update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
 
@@ -343,7 +378,7 @@ jobs:
     - name: Install dependencies
       run: |
         apt-get update -qq
-        apt install -y g++-9 build-essential python3 python3-pip google-perftools git
+        apt install -y g++-9 build-essential python3 python3-pip google-perftools git ccache
         update-alternatives --install /usr/bin/python python /usr/bin/python3 1
         update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
 
@@ -390,7 +425,7 @@ jobs:
     - name: Install dependencies
       run: |
         apt-get update -qq
-        apt install -y g++-9 build-essential python3 python3-pip google-perftools libelf-dev ninja-build git
+        apt install -y g++-9 build-essential python3 python3-pip google-perftools libelf-dev ninja-build git ccache
         update-alternatives --install /usr/bin/python python /usr/bin/python3 1
         update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
 
@@ -459,7 +494,7 @@ jobs:
     - name: Install dependencies
       run: |
         apt-get update -qq
-        apt install -y g++-9 build-essential python3 python3-pip google-perftools libelf-dev ninja-build git
+        apt install -y g++-9 build-essential python3 python3-pip google-perftools libelf-dev ninja-build git ccache
         update-alternatives --install /usr/bin/python python /usr/bin/python3 1
         update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
 
@@ -528,7 +563,7 @@ jobs:
     - name: Install dependencies
       run: |
         apt-get update -qq
-        apt install -y g++-9 build-essential python3 python3-pip google-perftools libelf-dev ninja-build git
+        apt install -y g++-9 build-essential python3 python3-pip google-perftools libelf-dev ninja-build git ccache
         update-alternatives --install /usr/bin/python python /usr/bin/python3 1
         update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
 
@@ -617,7 +652,7 @@ jobs:
     - name: Install dependencies
       run: |
         apt-get update -qq
-        apt install -y g++-9 build-essential python3 unzip google-perftools
+        apt install -y g++-9 build-essential python3 unzip google-perftools ccache
         update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 
     - uses: actions/checkout@v2
