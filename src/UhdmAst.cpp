@@ -1059,6 +1059,10 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared, std::vector<AstN
             else
                 sizeNodep = get_value_as_node(typespec_h);
         }
+        if (type == vpiExpressionTypespec) {
+            vpiHandle expr_h = vpi_handle(vpiStmt, typespec_h);
+            sizeNodep = visit_object(expr_h, shared);
+        }
 
         if (sizeNodep != nullptr) {
             return new AstCastParse(make_fileline(obj_h), operands[0], sizeNodep);
