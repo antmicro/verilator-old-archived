@@ -3247,17 +3247,13 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     }
     case vpiUnsupportedStmt: {
         auto* fl = make_fileline(obj_h);
-        fl->v3info("\t! This statement is unsupported in UHDM: " << file_name << ":" << currentLine);
-        // Dummy statement to keep parsing
-        return new AstTime(make_fileline(obj_h),
-                           VTimescale::TS_1PS);  // TODO: revisit once we have it in UHDM
+        fl->v3error("\t! This statement is unsupported in UHDM: " << file_name << ":" << currentLine);
         break;
     }
     case vpiUnsupportedExpr: {
         auto* fl = make_fileline(obj_h);
-        fl->v3info("\t! This expression is unsupported in UHDM: " << file_name << ":" << currentLine);
-        // Dummy expression to keep parsing
-        return new AstConst(make_fileline(obj_h), 1);
+        // Note: this can also happen if Surelog could not resolve a type
+        fl->v3error("\t! This expression is unsupported in UHDM: " << file_name << ":" << currentLine);
         break;
     }
     default: {
