@@ -1287,7 +1287,7 @@ AstNode* process_hierPath(vpiHandle obj_h, UhdmShared& shared) {
             objectName = std::regex_replace(objectName, std::regex("\\."), "_");
 
             AstNode* constp = get_value_as_node(expr_h, true);
-            vpiHandle typespec_h = vpi_handle(vpiTypespec, expr_h);
+            vpiHandle typespec_h = vpi_handle(vpiTypespec, obj_h);
             AstNodeDType* dtypep = getDType(fl, typespec_h, shared);
             vpi_release_handle(typespec_h);
 
