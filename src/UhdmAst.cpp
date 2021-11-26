@@ -1192,12 +1192,20 @@ AstNode* process_assignment(vpiHandle obj_h, UhdmShared& shared) {
             }
         } else {
             AstNode* assignp;
-            if (lvaluep->type() == AstType::en::atVar) {
-                // This is not a true assignment
-                // Set initial value to a variable and return it
-                AstVar* varp = static_cast<AstVar*>(lvaluep);
-                varp->valuep(rvaluep);
-                return varp;
+            if (AstVar* varp = VN_CAST(lvaluep, Var)) {
+                // Assign on variable declaration
+                if (varp->varType() != AstVarType::VAR && objectType == vpiContAssign) {
+                    // Return both the variable and assignment
+                    assignp = new AstAssignW(make_fileline(obj_h),
+                            new AstVarRef(make_fileline(obj_h), varp->name(), VAccess::WRITE),
+                            rvaluep);
+                    varp->addNextNull(assignp);
+                    return varp;
+                } else {
+                    // Set initial value to a variable and return it
+                    varp->valuep(rvaluep);
+                    return varp;
+                }
             } else {
                 if (objectType == vpiContAssign)
                     assignp = new AstAssignW(make_fileline(obj_h), lvaluep, rvaluep);
@@ -1593,7 +1601,8 @@ AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
         return dtypep;
     }
     case vpiUnsupportedTypespec: {
-        v3info("\t! This typespec is unsupported in UHDM: " << file_name << ":" << currentLine);
+        auto* fl = make_fileline(obj_h);
+        fl->v3info("\t! This typespec is unsupported in UHDM: " << file_name << ":" << currentLine);
         // Create a reference and try to resolve later
         return get_referenceNode(make_fileline(obj_h), objectName, shared);
     }
@@ -2153,8 +2162,24 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     case vpiPackedArrayNet:
     case vpiLogicNet: {  // also defined as vpiNet
         AstNodeDType* dtype = nullptr;
-        AstVarType net_type = AstVarType::VAR;
-        AstBasicDTypeKwd dtypeKwd = AstBasicDTypeKwd::LOGIC_IMPLICIT;
+        auto vpi_net_type = vpi_get(vpiNetType, obj_h);
+        AstVarType net_type = AstVarType::UNKNOWN;
+        if (vpi_net_type == vpiWire ) {
+           net_type = AstVarType::WIRE;
+        } else if (vpi_net_type == vpiTri0) {
+           net_type = AstVarType::TRI0;
+        } else if (vpi_net_type == vpiTri1) {
+           net_type = AstVarType::TRI1;
+        } else if (vpi_net_type == vpiWand
+                   || vpi_net_type == vpiWor
+                   || vpi_net_type == vpiTri
+                   || vpi_net_type == vpiTriReg
+                   || vpi_net_type == vpiTriAnd
+                   || vpi_net_type == vpiTriOr ) {
+            make_fileline(obj_h)->v3error("Unsupported net type: " << vpi_net_type << std::endl);
+        } else {
+           net_type = AstVarType::VAR;
+        }
         vpiHandle obj_net;
         dtype = getDType(make_fileline(obj_h), obj_h, shared);
 
@@ -3220,20 +3245,21 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         });
         return assert;
     }
-    case vpiUnsupportedStmt:
-        v3info("\t! This statement is unsupported in UHDM: " << file_name << ":" << currentLine);
-        // Dummy statement to keep parsing
-        return new AstTime(make_fileline(obj_h),
-                           VTimescale::TS_1PS);  // TODO: revisit once we have it in UHDM
+    case vpiUnsupportedStmt: {
+        auto* fl = make_fileline(obj_h);
+        fl->v3error("\t! This statement is unsupported in UHDM: " << file_name << ":" << currentLine);
         break;
-    case vpiUnsupportedExpr:
-        v3info("\t! This expression is unsupported in UHDM: " << file_name << ":" << currentLine);
-        // Dummy expression to keep parsing
-        return new AstConst(make_fileline(obj_h), 1);
+    }
+    case vpiUnsupportedExpr: {
+        auto* fl = make_fileline(obj_h);
+        // Note: this can also happen if Surelog could not resolve a type
+        fl->v3error("\t! This expression is unsupported in UHDM: " << file_name << ":" << currentLine);
         break;
+    }
     default: {
         // Notify we have something unhandled
-        v3error("\t! Unhandled type: " << objectType << ":" << UHDM::VpiTypeName(obj_h));
+        auto* fl = make_fileline(obj_h);
+        fl->v3error("\t! Unhandled type: " << objectType << ":" << UHDM::VpiTypeName(obj_h));
         break;
     }
     }
