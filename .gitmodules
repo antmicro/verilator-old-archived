@@ -19,3 +19,6 @@
 [submodule "uhdm-tests/swerv/swerv"]
 	path = uhdm-tests/swerv/swerv
 	url = https://github.com/chipsalliance/Cores-SweRV/
+[submodule "uhdm-tests/serv/serv"]
+	path = uhdm-tests/serv/serv
+	url = https://github.com/olofk/serv.git
