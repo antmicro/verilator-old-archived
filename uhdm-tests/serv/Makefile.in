@@ -1,0 +1,81 @@
+curr_dir:=$(dir $(lastword $(MAKEFILE_LIST)))
+SERV = ${curr_dir}/serv
+
+################################
+#### verilator - simulation ####
+################################
+SERV_BUILD = ${root_dir}/build/servant_1.1.0/
+
+SURELOG_PARAMETERS = -systemverilog
+RUNTIME_PARAMETERS = +uart_baudrate=57600 +firmware=${SERV}/sw/zephyr_hello.hex +timeout=500000000
+
+
+SERV_SOURCES = \
+        $(shell \
+                cat ${SERV_BUILD}/verilator_tb-verilator/servant_1.1.0.vc | \
+                grep -F .v | \
+                sed 's@^..@${SERV_BUILD}@')
+
+SERV_SOURCES_DELETE = \
+        $(shell \
+                cat ${SERV_BUILD}/verilator_tb-verilator/servant_1.1.0.vc | \
+                grep -F .v | sed "s/.*\///" )
+
+SERV_SOURCES_DELETE_OR = \
+	$(shell \
+		echo ${SERV_SOURCES_DELETE} | sed 's/\s/\\|/g')
+
+# Use up to 8 threads for simulated model (related to design parallelism factor)
+CPU_COUNT := $(shell nproc)
+CPUS_GT_8 := $(shell [ ${CPU_COUNT} -gt 8 ] && echo true )
+ifeq ($(CPUS_GT_8),true)
+	THREAD_COUNT = 8
+else
+	THREAD_COUNT = ${CPU_COUNT}
+endif
+
+prepare-sources:
+	virtualenv --python=python3 ${root_dir}/venv-serv
+	(export PATH=${root_dir}/../image/bin:${PATH} && \
+		. ${root_dir}/venv-serv/bin/activate && \
+		pip install fusesoc && \
+		fusesoc --cores-root=${SERV} run \
+			--target=verilator_tb \
+			--setup \
+			servant \
+			--uart_baudrate=57600 \
+			--memsize=32768 \
+			--firmware=${SERV}/sw/zephyr_hello.hex \
+			)
+
+uhdm/verilator/servant: clean-build | prepare-sources
+	(export PATH=${root_dir}/../image/bin:${PATH} && \
+		. ${root_dir}/venv-serv/bin/activate && \
+		cd ${root_dir}/build && \
+		${root_dir}/../image/bin/surelog -parse -sverilog +define+VERILATOR \
+			${SURELOG_PARAMETERS} \
+			$(SERV_SOURCES) && \
+		cp ${root_dir}/build/slpp_all/surelog.uhdm ${root_dir}/build/servant.uhdm && \
+		cd ${SERV_BUILD}/verilator_tb-verilator/ && \
+		sed 's/-Wall --unroll-count 72/--unroll-count 72/g' -i config.mk && \
+		sed '/${SERV_SOURCES_DELETE_OR}/d' -i servant_1.1.0.vc && \
+		sed '/--cc/a --uhdm-ast-sv' -i servant_1.1.0.vc && \
+		sed '/--top-module.*/i ${root_dir}/build/servant_1.1.0/src/serv_1.1.0/data/verilator_waiver.vlt ${root_dir}/build/servant.uhdm' -i servant_1.1.0.vc && \
+		$(MAKE))
+
+uhdm/verilator/servant/run: uhdm/verilator/servant
+	(cd ${root_dir}/build/servant_1.1.0/verilator_tb-verilator/ && \
+		./Vservant_sim ${RUNTIME_PARAMETERS} \
+		)
+
+
+verilator/servant: clean-build | prepare-sources
+	(export PATH=${root_dir}/../image/bin:${PATH} && \
+		. ${root_dir}/venv-serv/bin/activate && \
+		cd ${SERV_BUILD}/verilator_tb-verilator/ && \
+		$(MAKE))
+
+verilator/servant/run: verilator/servant
+	(cd ${root_dir}/build/servant_1.1.0/verilator_tb-verilator/ && \
+		./Vservant_sim ${RUNTIME_PARAMETERS} \
+		)
