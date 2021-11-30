@@ -124,7 +124,7 @@ jobs:
       - name: Generate matrix
         id: generate-matrix
         run: |
-          matrix="$(cd uhdm-integration && python list.py -d tests -s cmake ibex synthesis swerv OneClass hello-uvm OneThis opentitan CastStructArray StringAssignment)"
+          matrix="$(cd uhdm-integration && python list.py -d tests -s cmake ibex synthesis serv swerv OneClass hello-uvm OneThis opentitan CastStructArray StringAssignment)"
           echo "::set-output name=matrix::$matrix"
           echo "Matrix: $matrix"
 
@@ -608,6 +608,45 @@ jobs:
           output_uhdm
           **/plot_*.svg
 
+  servant-soc-sim:
+    runs-on: [self-hosted, Linux, X64]
+    container: ubuntu:latest
+    needs: build-binaries
+    env:
+      CC: gcc-9
+      CXX: g++-9
+
+    steps:
+
+    - name: Install dependencies
+      run: |
+        apt-get update -qq
+        apt install -y g++-9 build-essential python3 python3-pip google-perftools libelf-dev ninja-build git ccache
+        update-alternatives --install /usr/bin/python python /usr/bin/python3 1
+        update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
+
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+        fetch-depth: 1
+
+    - name: Download binaries
+      uses: actions/download-artifact@v2
+      with:
+        name: binaries
+
+    # See https://github.com/actions/upload-artifact/issues/38
+    - name: Extract
+      run: tar -xf binaries.tar
+
+    - name: Build & Test (uhdm verilator)
+      run: |
+        pip install virtualenv
+        ./uhdm-integration/.github/ci.sh
+      env:
+        TARGET: uhdm/verilator/servant/run
+        TEST_CASE: tests/serv
+
   generate-matrix-vcddiff:
     runs-on: [self-hosted, Linux, X64]
     container: ubuntu:latest
@@ -629,7 +668,7 @@ jobs:
       - name: Generate matrix (vcddiff)
         id: generate-matrix-vcddiff
         run: |
-          matrix="$(cd uhdm-integration && python list.py -d tests -s ibex swerv synthesis opentitan hello-uvm assignment-pattern Forever BitsCallOnType OneClass Continue AnonymousUnion FunctionOnDesignLevel ParameterUnpackedArray VoidFunction2Returns PatternStruct ImportedFunctionCallInModuleAndSubmodule VoidFunctionWithoutReturn cmake PutC OneThis CastInFunctionInGenBlock PatternType FunctionOutputArgument GetC ForkJoinTypes EnumFirstInInitial ImportFunction DpiChandle Disable EnumFirst TypedefOnFileLevel UnsizedConstantsParameterParsing Fork PatternInFunction TypedefVariableDimensions ParameterUnpackedLogicArray SelectFromUnpackedInFunction PatternReplication VoidFunction MultiplePrints BitSelectPartSelectInFunction ImportPackageWithFunction ParameterPackedArray StringAssignment SystemFunctions 2DFunctionArg ArrayInit array-copy FunctionColonReference ParameterColonReference ParameterSizeOfInstance PkgParamAsFunctionArg xor_assignment fsm_using_always OneNetInterf cs_registers UnpackedArray InterfaceAssign fsm_using_function OneNetRange ParameterWithUnderscoreValueDividedPassedFromCommandLine FunctionExportDPI OnePackage InterfaceInitial InterfaceAlways OneCast fsm_single_always TaskExportDPI OneImport hier_path CastStructArray InterfaceAsPort ParameterInitializedByPartSelectOfParameters ParameterInitializedByPartSelectOfParametersAssignedToVar StringAssignment EnumParameterInNestedModules 2DeclarationsInFor 1DUnpackedArray 2DUnpackedArray ArraySize AssignBitsCallToSubmoduleParameter DeclarationInFor EnumArrayListedElements EnumArray DivisionOfSize ImportedPackageEnumItemInInterface InterfaceVariable ConstSizes InterfaceParameterSetValue InterfaceWithPort InterfaceAsPortAssignValueInSubmodule InterfaceParameter LogicPackedArray NestedParamSubstitution MultiAssignmentPatternOfConcat MixedPatterns NegationOfPatternParameterInInstance OneArithShift ParameterPackedArraySurelogSubstitution PatternDefault PatternAsParameterOfInstance Repeat Shortreal TypedefedRangedFunctionArgument RealValue TaskImportDPI TaskOutputArgument TypedefAliasInPackage PartSelectOfPartSelectedBitSelect TaskReturn PatternAsFunctionArgument PatternIndexes ReturnEnumArray unary_op_minus TypedefPackedDimensions unary_op_plus UnsizedConstantParameter unary_op_not_log UnsizedConstantParameterInInstance UnsizedConstantsParsing UnsizedConstant FunctionWithOverriddenParameter ImportedDoubleCastedParameter ImportedEnumCast ParameterInitializationWithNegation StringAssignConcatenation StringLocalParamInitByConcatenation StructParameterInitializedWithPatternAndReferenced StringWithBackslash serv-minimal conditional_if)"
+          matrix="$(cd uhdm-integration && python list.py -d tests -s ibex swerv synthesis opentitan hello-uvm assignment-pattern Forever BitsCallOnType OneClass Continue AnonymousUnion FunctionOnDesignLevel ParameterUnpackedArray VoidFunction2Returns PatternStruct ImportedFunctionCallInModuleAndSubmodule VoidFunctionWithoutReturn cmake PutC OneThis CastInFunctionInGenBlock PatternType FunctionOutputArgument GetC ForkJoinTypes EnumFirstInInitial ImportFunction DpiChandle Disable EnumFirst TypedefOnFileLevel UnsizedConstantsParameterParsing Fork PatternInFunction TypedefVariableDimensions ParameterUnpackedLogicArray SelectFromUnpackedInFunction PatternReplication VoidFunction MultiplePrints BitSelectPartSelectInFunction ImportPackageWithFunction ParameterPackedArray StringAssignment SystemFunctions 2DFunctionArg ArrayInit array-copy FunctionColonReference ParameterColonReference ParameterSizeOfInstance PkgParamAsFunctionArg xor_assignment fsm_using_always OneNetInterf cs_registers UnpackedArray InterfaceAssign fsm_using_function OneNetRange ParameterWithUnderscoreValueDividedPassedFromCommandLine FunctionExportDPI OnePackage InterfaceInitial InterfaceAlways OneCast fsm_single_always TaskExportDPI OneImport hier_path CastStructArray InterfaceAsPort ParameterInitializedByPartSelectOfParameters ParameterInitializedByPartSelectOfParametersAssignedToVar StringAssignment EnumParameterInNestedModules 2DeclarationsInFor 1DUnpackedArray 2DUnpackedArray ArraySize AssignBitsCallToSubmoduleParameter DeclarationInFor EnumArrayListedElements EnumArray DivisionOfSize ImportedPackageEnumItemInInterface InterfaceVariable ConstSizes InterfaceParameterSetValue InterfaceWithPort InterfaceAsPortAssignValueInSubmodule InterfaceParameter LogicPackedArray NestedParamSubstitution MultiAssignmentPatternOfConcat MixedPatterns NegationOfPatternParameterInInstance OneArithShift ParameterPackedArraySurelogSubstitution PatternDefault PatternAsParameterOfInstance Repeat Shortreal TypedefedRangedFunctionArgument RealValue TaskImportDPI TaskOutputArgument TypedefAliasInPackage PartSelectOfPartSelectedBitSelect TaskReturn PatternAsFunctionArgument PatternIndexes ReturnEnumArray unary_op_minus TypedefPackedDimensions unary_op_plus UnsizedConstantParameter unary_op_not_log UnsizedConstantParameterInInstance UnsizedConstantsParsing UnsizedConstant FunctionWithOverriddenParameter ImportedDoubleCastedParameter ImportedEnumCast ParameterInitializationWithNegation StringAssignConcatenation StringLocalParamInitByConcatenation StructParameterInitializedWithPatternAndReferenced StringWithBackslash serv-minimal serv conditional_if)"
           echo "::set-output name=matrix::$matrix"
           echo "matrix vcddiff: $matrix"
 
