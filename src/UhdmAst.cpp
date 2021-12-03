@@ -813,6 +813,19 @@ AstAlways* process_always(vpiHandle obj_h, UhdmShared& shared) {
     return new AstAlways(make_fileline(obj_h), alwaysType, nullptr, bodyp);
 }
 
+AstNode* process_delay_control(vpiHandle obj_h, UhdmShared& shared) {
+    AstNode* statement = nullptr;
+    visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* node) { statement = node; });
+    s_vpi_delay delay;
+    vpi_get_delays(obj_h, &delay);
+    if (delay.da) {
+        auto* delayp = new AstDelay(make_fileline(obj_h), new AstConst(make_fileline(obj_h), delay.da[0].low));
+        if (statement) delayp->addNextHere(statement);
+        return delayp;
+    }
+    return statement;
+}
+
 AstTimingControl* process_event_control(vpiHandle obj_h, UhdmShared& shared) {
     AstSenItem* senItemRootp = nullptr;
     visit_one_to_one({vpiCondition}, obj_h, shared, [&](AstNode* nodep) {
@@ -827,6 +840,21 @@ AstTimingControl* process_event_control(vpiHandle obj_h, UhdmShared& shared) {
     AstNode* bodyp = nullptr;
     visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* nodep) { bodyp = nodep; });
     return new AstTimingControl(make_fileline(obj_h), senTreep, bodyp);
+}
+
+AstAssignDly* process_event_stmt(vpiHandle obj_h, UhdmShared& shared) {
+    return new AstAssignDly(make_fileline(obj_h),
+                            new AstParseRef(make_fileline(obj_h),
+                                            VParseRefExp::en::PX_TEXT, get_object_name(obj_h)),
+                                            new AstConst(make_fileline(obj_h), AstConst::BitTrue()));
+}
+
+AstWait* process_wait(vpiHandle obj_h, UhdmShared& shared) {
+    AstNode* condition = nullptr;
+    AstNode* statement = nullptr;
+    visit_one_to_one({vpiCondition}, obj_h, shared, [&](AstNode* node) { condition = node; });
+    visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* node) { statement = node; });
+    return new AstWait(make_fileline(obj_h), condition, statement);
 }
 
 AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared, std::vector<AstNode*>&& operands) {
@@ -2336,6 +2364,12 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     case vpiEventControl: {
         return process_event_control(obj_h, shared);
     }
+    case vpiEventStmt: {
+        return process_event_stmt(obj_h, shared);
+    }
+    case vpiWait: {
+        return process_wait(obj_h, shared);
+    }
     case vpiInitial: {
         AstNode* body = nullptr;
         visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* node) { body = node; });
@@ -3153,14 +3187,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return statements;
     }
     case vpiDelayControl: {
-        s_vpi_delay delay;
-        vpi_get_delays(obj_h, &delay);
-
-        // Verilator ignores delay statements, just grab the first one for simplicity
-        if (delay.da != nullptr) {
-            auto* delay_c = new AstConst(make_fileline(obj_h), delay.da[0].real);
-            return new AstDelay(make_fileline(obj_h), delay_c);
-        }
+        return process_delay_control(obj_h, shared);
     }
     case vpiBreak: {
         return new AstBreak(make_fileline(obj_h));
