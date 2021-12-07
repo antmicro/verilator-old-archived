@@ -1105,8 +1105,8 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared, std::vector<AstN
         }
         auto patternp = new AstPattern(make_fileline(obj_h), itemsp);
         if (auto typespec_h = vpi_handle(vpiTypespec, obj_h)) {
-            AstNodeDType* dtypep = getDType(make_fileline(obj_h), typespec_h, shared);
-            patternp->childDTypep(dtypep);
+            AstNode* dtypep = process_typespec(typespec_h, shared, true);
+            patternp->childDTypep(VN_CAST(dtypep, NodeDType));
             vpi_release_handle(typespec_h);
         }
         return patternp;
@@ -1274,17 +1274,45 @@ AstMethodCall* process_method_call(vpiHandle obj_h, AstNode* fromp, UhdmShared& 
 AstNode* process_hierPath(vpiHandle obj_h, UhdmShared& shared) {
     AstNode* hierPathp = nullptr;
     AstNode* hierItemp = nullptr;
+    FileLine* fl = make_fileline(obj_h);
+    bool expr_const_present = false;
+    std::string objectName;
+    
+    if (vpiHandle expr_h = vpi_handle(vpiExpr, obj_h)) {
+        if (vpi_get(vpiType, expr_h) == vpiConstant) {
+            expr_const_present = true;
+            objectName = get_object_name(obj_h);
+            objectName = std::regex_replace(objectName, std::regex("\\."), "_");
+
+            AstNode* constp = get_value_as_node(expr_h, true);
+            vpiHandle typespec_h = vpi_handle(vpiTypespec, obj_h);
+            AstNodeDType* dtypep = getDType(fl, typespec_h, shared);
+            vpi_release_handle(typespec_h);
+
+            std::string moduleName = shared.moduleNamesStack.top();
+            AstVar* temporaryParam = new AstVar(fl, AstVarType::LPARAM, objectName, VFlagChildDType(), dtypep);
+            temporaryParam->valuep(constp);
+
+            shared.top_param_map[moduleName][objectName] = temporaryParam;
+        }
+        vpi_release_handle(expr_h);
+    }
 
     vpiHandle actual_itr = vpi_iterate(vpiActual, obj_h);
     while (vpiHandle actual_h = vpi_scan(actual_itr)) {
         if(vpi_get(vpiType, actual_h) == vpiMethodFuncCall) {
             hierPathp = process_method_call(actual_h, hierPathp, shared);
         } else {
-            hierItemp = visit_object(actual_h, shared);
+            if (expr_const_present) {
+                hierItemp = get_referenceNode(make_fileline(obj_h), objectName, shared);
+                expr_const_present = false;
+            } else {
+                hierItemp = visit_object(actual_h, shared);
+            }
             if (hierPathp == nullptr)
                 hierPathp = hierItemp;
             else
-                hierPathp = new AstDot(make_fileline(obj_h), false, hierPathp, hierItemp);
+                hierPathp = new AstDot(fl, false, hierPathp, hierItemp);
         }
         vpi_release_handle(actual_h);
     }
@@ -1444,7 +1472,7 @@ AstMemberDType* process_typespec_member(vpiHandle obj_h, UhdmShared& shared) {
     return nullptr;
 }
 
-AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
+AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared, bool forceCopy) {
     if (vpiHandle alias_h = vpi_handle(vpiTypedefAlias, obj_h)) {
         return getDType(make_fileline(obj_h), alias_h, shared);
     }
@@ -1522,7 +1550,8 @@ AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
         if (shared.visited_types_map.find(object) != shared.visited_types_map.end()) {
             // Already seen this, do not create a duplicate
             // References are handled using getDType, not in visit_object
-            return nullptr;
+            if (!forceCopy)
+                return nullptr;
         }
 
         shared.visited_types_map[object] = objectName;
@@ -1567,7 +1596,8 @@ AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
         const UHDM::BaseClass* const object = (const UHDM::BaseClass*)handle->object;
         if (shared.visited_types_map.find(object) != shared.visited_types_map.end()) {
             UINFO(6, "Object " << objectName << " was already visited" << std::endl);
-            return nullptr;
+            if (!forceCopy)
+                return nullptr;
         }
 
         shared.visited_types_map[object] = objectName;
@@ -1620,7 +1650,15 @@ AstNode* process_typedef(vpiHandle obj_h, UhdmShared& shared) {
     std::string objectName = get_object_name(obj_h);
 
     auto pos = objectName.rfind("::");
-    if (pos != std::string::npos) objectName = objectName.substr(pos + 2);
+    if (pos != std::string::npos) {
+        std::string packageName = objectName.substr(0, pos + 2);
+        std::string baseName = objectName.substr(pos + 2);
+        if (packageName != shared.package_prefix) {
+            return get_type_reference(make_fileline(obj_h), baseName, objectName, shared);
+        } else {
+            objectName = baseName;
+        }
+    }
 
     AstNodeDType* refp = nullptr;
     if (vpiHandle alias_h = vpi_handle(vpiTypedefAlias, obj_h)) {
@@ -1891,6 +1929,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     case vpiModule: {
         std::string modDefName = get_object_name(obj_h, {vpiDefName});
         std::string modType = modDefName;
+        shared.moduleNamesStack.push(modDefName);
         remove_scope(modType);
         AstModule* module;
 
@@ -1900,6 +1939,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         if (it != shared.top_nodes.end()) {
             // Was created before, fill missing
             module = reinterpret_cast<AstModule*>(it->second);
+
             // If available, check vpiFullName instead of vpiName, as vpiName can equal vpiDefName
             std::string fullName = objectName;
             if (auto* s = vpi_get_str(vpiFullName, obj_h)) {
@@ -2039,6 +2079,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             if (v3Global.opt.trace()) { module->modTrace(true); }
             shared.top_param_map[modDefName] = param_map;
         }
+        shared.moduleNamesStack.pop();
 
         // If available, check vpiFullName instead of vpiName, as vpiName can equal vpiDefName
         std::string fullName = objectName;
