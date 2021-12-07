@@ -31,7 +31,7 @@ struct UhdmShared {
 };
 
 // Parse vpi*Typespec nodes
-AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared);
+AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared, bool forceCopy = false);
 
 // Visits single VPI object and creates proper AST node
 AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared);

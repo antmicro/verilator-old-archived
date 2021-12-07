@@ -1105,8 +1105,8 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared, std::vector<AstN
         }
         auto patternp = new AstPattern(make_fileline(obj_h), itemsp);
         if (auto typespec_h = vpi_handle(vpiTypespec, obj_h)) {
-            AstNodeDType* dtypep = getDType(make_fileline(obj_h), typespec_h, shared);
-            patternp->childDTypep(dtypep);
+            AstNode* dtypep = process_typespec(typespec_h, shared, true);
+            patternp->childDTypep(VN_CAST(dtypep, NodeDType));
             vpi_release_handle(typespec_h);
         }
         return patternp;
@@ -1472,7 +1472,7 @@ AstMemberDType* process_typespec_member(vpiHandle obj_h, UhdmShared& shared) {
     return nullptr;
 }
 
-AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
+AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared, bool forceCopy) {
     if (vpiHandle alias_h = vpi_handle(vpiTypedefAlias, obj_h)) {
         return getDType(make_fileline(obj_h), alias_h, shared);
     }
@@ -1550,7 +1550,8 @@ AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
         if (shared.visited_types_map.find(object) != shared.visited_types_map.end()) {
             // Already seen this, do not create a duplicate
             // References are handled using getDType, not in visit_object
-            return nullptr;
+            if (!forceCopy)
+                return nullptr;
         }
 
         shared.visited_types_map[object] = objectName;
@@ -1595,7 +1596,8 @@ AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
         const UHDM::BaseClass* const object = (const UHDM::BaseClass*)handle->object;
         if (shared.visited_types_map.find(object) != shared.visited_types_map.end()) {
             UINFO(6, "Object " << objectName << " was already visited" << std::endl);
-            return nullptr;
+            if (!forceCopy)
+                return nullptr;
         }
 
         shared.visited_types_map[object] = objectName;
