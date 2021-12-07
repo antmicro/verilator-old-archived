@@ -1650,7 +1650,15 @@ AstNode* process_typedef(vpiHandle obj_h, UhdmShared& shared) {
     std::string objectName = get_object_name(obj_h);
 
     auto pos = objectName.rfind("::");
-    if (pos != std::string::npos) objectName = objectName.substr(pos + 2);
+    if (pos != std::string::npos) {
+        std::string packageName = objectName.substr(0, pos + 2);
+        std::string baseName = objectName.substr(pos + 2);
+        if (packageName != shared.package_prefix) {
+            return get_type_reference(make_fileline(obj_h), baseName, objectName, shared);
+        } else {
+            objectName = baseName;
+        }
+    }
 
     AstNodeDType* refp = nullptr;
     if (vpiHandle alias_h = vpi_handle(vpiTypedefAlias, obj_h)) {
