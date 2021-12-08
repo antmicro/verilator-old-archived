@@ -3259,6 +3259,7 @@ public:
     class Illegal {};  // for creator type-overload selection
     class Initial {};  // for creator type-overload selection
     class Settle {};  // for creator type-overload selection
+    class Postponed {};  // for creator type-overload selection
     class Never {};  // for creator type-overload selection
     AstSenItem(FileLine* fl, VEdgeType edgeType, AstNode* varrefp)
         : ASTGEN_SUPER_SenItem(fl)
@@ -3277,6 +3278,9 @@ public:
     AstSenItem(FileLine* fl, Settle)
         : ASTGEN_SUPER_SenItem(fl)
         , m_edgeType{VEdgeType::ET_SETTLE} {}
+    AstSenItem(FileLine* fl, Postponed)
+        : ASTGEN_SUPER_SenItem(fl)
+        , m_edgeType{VEdgeType::ET_POSTPONED} {}
     AstSenItem(FileLine* fl, Never)
         : ASTGEN_SUPER_SenItem(fl)
         , m_edgeType{VEdgeType::ET_NEVER} {}
@@ -3300,8 +3304,11 @@ public:
     bool isInitial() const { return edgeType() == VEdgeType::ET_INITIAL; }
     bool isIllegal() const { return edgeType() == VEdgeType::ET_ILLEGAL; }
     bool isSettle() const { return edgeType() == VEdgeType::ET_SETTLE; }
+    bool isPostponed() const { return edgeType() == VEdgeType::ET_POSTPONED; }
     bool isNever() const { return edgeType() == VEdgeType::ET_NEVER; }
-    bool hasVar() const { return !(isCombo() || isInitial() || isSettle() || isNever()); }
+    bool hasVar() const {
+        return !(isCombo() || isInitial() || isSettle() || isPostponed() || isNever());
+    }
 };
 
 class AstSenTree final : public AstNode {
@@ -3328,6 +3335,7 @@ public:
     bool hasSettle() const;  // Includes a SETTLE SenItem
     bool hasInitial() const;  // Includes a INITIAL SenItem
     bool hasCombo() const;  // Includes a COMBO SenItem
+    bool hasPostponed() const;  // Includes a POSTPONED SenItem
 };
 
 class AstFinal final : public AstNodeProcedure {
@@ -3714,15 +3722,17 @@ public:
 class AstDelay final : public AstNodeStmt {
     // Delay statement
 public:
-    AstDelay(FileLine* fl, AstNode* lhsp)
+    AstDelay(FileLine* fl, AstNode* lhsp, AstNode* stmtsp)
         : ASTGEN_SUPER_Delay(fl) {
         setOp1p(lhsp);
+        setNOp2p(stmtsp);
     }
     ASTNODE_NODE_FUNCS(Delay)
     virtual bool same(const AstNode* samep) const override { return true; }
     //
     AstNode* lhsp() const { return op1p(); }  // op2 = Statements to evaluate
     void lhsp(AstNode* nodep) { setOp1p(nodep); }
+    AstNode* stmtsp() const { return op2p(); }
 };
 
 class AstGenCase final : public AstNodeCase {
@@ -4511,7 +4521,8 @@ public:
         addNOp3p(bodysp);
     }
     ASTNODE_NODE_FUNCS(Wait)
-    AstNode* bodysp() const { return op3p(); }  // op3 = body of loop
+    AstNode* condp() const { return op2p(); }
+    AstNode* bodysp() const { return op3p(); }
 };
 
 class AstWhile final : public AstNodeStmt {
@@ -4605,6 +4616,16 @@ public:
     virtual bool isBrancher() const override {
         return true;  // SPECIAL: We don't process code after breaks
     }
+};
+
+class AstEventTrigger final : public AstNodeStmt {
+public:
+    explicit AstEventTrigger(FileLine* fl, AstNode* varrefp = NULL)
+        : ASTGEN_SUPER_EventTrigger(fl) {
+        setOp1p(varrefp);
+    }
+    ASTNODE_NODE_FUNCS(EventTrigger)
+    AstVarRef* varrefp() const { return VN_CAST(op1p(), VarRef); }
 };
 
 class AstGenIf final : public AstNodeIf {
@@ -5353,6 +5374,7 @@ public:
     bool hasInitial() const { return m_sensesp->hasInitial(); }
     bool hasSettle() const { return m_sensesp->hasSettle(); }
     bool hasClocked() const { return m_sensesp->hasClocked(); }
+    bool hasPostponed() const { return m_sensesp->hasPostponed(); }
 };
 
 class AstAttrOf final : public AstNode {
@@ -8902,6 +8924,7 @@ public:
     void dpiImportWrapper(bool flag) { m_dpiImportWrapper = flag; }
     void dpiTraceInit(bool flag) { m_dpiTraceInit = flag; }
     bool dpiTraceInit() const { return m_dpiTraceInit; }
+    bool isCoroutine() const { return !isConstructor() && rtnTypeVoid() == "CoroutineTask"; }
     //
     // If adding node accessors, see below emptyBody
     AstNode* argsp() const { return op1p(); }

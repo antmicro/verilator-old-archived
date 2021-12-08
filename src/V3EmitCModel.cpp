@@ -183,6 +183,11 @@ class EmitCModel final : public EmitCFunc {
         ofp()->putsPrivate(false);  // public:
         puts("void final();\n");
 
+        puts("/// Return true if no more timed work to do. Application uses to exit.\n");
+        puts("bool timeSlotsEmpty();\n");
+        puts("/// Return earliest time slot. Application uses to advance time.\n");
+        puts("double timeSlotsEarliestTime();\n");
+
         if (v3Global.opt.trace()) {
             puts("/// Trace signals in the model; called by application code\n");
             puts("void trace(" + v3Global.opt.traceClassBase()
@@ -347,6 +352,9 @@ class EmitCModel final : public EmitCFunc {
             puts("if (VL_UNLIKELY(" + recName + ")) " + recName + "->endRecord(VL_RDTSC_Q());\n");
         }
 
+        puts("vlSymsp->__Vm_eventDispatcher.resumeTriggered();\n");
+        puts(topModNameProtected + "__" + protect("_eval_postponed") + "(&(vlSymsp->TOP));\n");
+
         if (v3Global.rootp()->changeRequest()) {
             puts("if (VL_UNLIKELY(++__VclockLoop > " + cvtToStr(v3Global.opt.convergeLimit())
                  + ")) {\n");
@@ -389,6 +397,7 @@ class EmitCModel final : public EmitCFunc {
         puts("\n");
         puts("void " + topModNameProtected + "__" + protect("_eval_initial") + selfDecl + ";\n");
         puts("void " + topModNameProtected + "__" + protect("_eval_settle") + selfDecl + ";\n");
+        puts("void " + topModNameProtected + "__" + protect("_eval_postponed") + selfDecl + ";\n");
         puts("void " + topModNameProtected + "__" + protect("_eval") + selfDecl + ";\n");
         if (v3Global.rootp()->changeRequest()) {
             puts("QData " + topModNameProtected + "__" + protect("_change_request") + selfDecl
@@ -426,6 +435,14 @@ class EmitCModel final : public EmitCFunc {
         putsDecoration("// Initialize\n");
         puts("if (VL_UNLIKELY(!vlSymsp->__Vm_didInit)) " + protect("_eval_initial_loop")
              + "(vlSymsp);\n");
+
+        for (auto* nodep = modp->stmtsp(); nodep; nodep = nodep->nextp()) {
+            if (VN_IS(nodep, Var) && nodep->dtypep()->basicp()
+                && nodep->dtypep()->basicp()->isEventValue()) {
+                puts("vlSymsp->TOP." + nodep->nameProtect() + " = 0;\n");
+            }
+        }
+        puts("vlSymsp->__Vm_delayedQueue.activate(VL_TIME_D());\n");
 
         if (v3Global.opt.threads() == 1) {
             const uint32_t mtaskId = 0;
@@ -520,6 +537,13 @@ class EmitCModel final : public EmitCFunc {
             puts("#endif  // VM_TRACE\n");
             puts("}\n");
         }
+
+        putSectionDelimiter("Dynamic scheduler");
+        puts("bool " + topClassName()
+             + "::timeSlotsEmpty() { return vlSymsp->__Vm_delayedQueue.empty(); }\n");
+        puts("double " + topClassName()
+             + "::timeSlotsEarliestTime() { return "
+               "vlSymsp->__Vm_delayedQueue.nextTimeSlot(); }\n");
 
         putSectionDelimiter("Utilities");
         // ::contextp

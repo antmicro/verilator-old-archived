@@ -421,7 +421,8 @@ class OrderBuildVisitor final : public AstNVisitor {
         // This should only find the global AstSenTrees under the AstTopScope, which we ignore
         // here. We visit AstSenTrees separately when encountering the AstActive that references
         // them.
-        UASSERT_OBJ(!m_scopep, nodep, "AstSenTrees should have been made global in V3ActiveTop");
+        // UASSERT_OBJ(!m_scopep, nodep, "AstSenTrees should have been made global in
+        // V3ActiveTop");
     }
     virtual void visit(AstScope* nodep) override {
         UASSERT_OBJ(!m_scopep, nodep, "Should not nest");
@@ -644,7 +645,9 @@ class OrderBuildVisitor final : public AstNVisitor {
     virtual void visit(AstInitial* nodep) override {  //
         iterateLogic(nodep);
     }
-    virtual void visit(AstAlways* nodep) override {  //
+    virtual void visit(AstAlways* nodep) override {
+        VL_RESTORER(m_inPostponed);
+        if (nodep->sensesp() && nodep->sensesp()->hasPostponed()) m_inPostponed = true;
         iterateLogic(nodep);
     }
     virtual void visit(AstAlwaysPost* nodep) override {
@@ -1099,13 +1102,16 @@ class OrderProcess final : AstNDeleter {
                      AstNode* forWhatp) {
         modp->user3Inc();
         const int funcnum = modp->user3();
-        string name = (domainp->hasCombo()
-                           ? "_combo"
-                           : (domainp->hasInitial()
-                                  ? "_initial"
-                                  : (domainp->hasSettle()
-                                         ? "_settle"
-                                         : (domainp->isMulti() ? "_multiclk" : "_sequent"))));
+        string name
+            = (domainp->hasCombo()
+                   ? "_combo"
+                   : (domainp->hasInitial()
+                          ? "_initial"
+                          : (domainp->hasSettle()
+                                 ? "_settle"
+                                 : (domainp->hasPostponed()
+                                        ? "_postponed"
+                                        : (domainp->isMulti() ? "_multiclk" : "_sequent")))));
         name = name + "__" + scopep->nameDotless() + "__" + cvtToStr(funcnum);
         if (v3Global.opt.profCFuncs()) {
             name += "__PROF__" + forWhatp->fileline()->profileFuncname();
@@ -1787,6 +1793,12 @@ AstActive* OrderProcess::processMoveOneLogic(const OrderLogicVertex* lvertexp,
             pushDeletep(procp);
         }
 
+        bool dynamicScheduling = false;
+        if (VN_IS(nodep, Begin)) {
+            dynamicScheduling = true;
+            newFuncpr = nullptr;  // Split separate processes
+        }
+
         while (nodep) {
             // Make or borrow a CFunc to contain the new statements
             if (v3Global.opt.profCFuncs()
@@ -1798,7 +1810,8 @@ AstActive* OrderProcess::processMoveOneLogic(const OrderLogicVertex* lvertexp,
             }
             if (!newFuncpr && domainp != m_deleteDomainp) {
                 const string name = cfuncName(modp, domainp, scopep, nodep);
-                newFuncpr = new AstCFunc(nodep->fileline(), name, scopep);
+                newFuncpr = new AstCFunc(nodep->fileline(), name, scopep,
+                                         dynamicScheduling ? "CoroutineTask" : "");
                 newFuncpr->isStatic(false);
                 newFuncpr->isLoose(true);
                 newStmtsr = 0;
@@ -1835,6 +1848,7 @@ AstActive* OrderProcess::processMoveOneLogic(const OrderLogicVertex* lvertexp,
 
             nodep = nextp;
         }
+        if (dynamicScheduling) newFuncpr = nullptr;  // Split separate processes
     }
     return activep;
 }

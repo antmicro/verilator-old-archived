@@ -189,9 +189,12 @@ public:
 
     // VISITORS
     using EmitCConstInit::visit;
+    bool m_inCoroutine = false;
     virtual void visit(AstCFunc* nodep) override {
         VL_RESTORER(m_useSelfForThis);
         VL_RESTORER(m_cfuncp);
+        VL_RESTORER(m_inCoroutine);
+        if (nodep->isCoroutine()) m_inCoroutine = true;
         m_cfuncp = nodep;
 
         m_blkChangeDetVec.clear();
@@ -252,6 +255,8 @@ public:
         }
 
         if (!m_blkChangeDetVec.empty()) puts("return __req;\n");
+
+        if (m_inCoroutine) puts("co_return;\n");
 
         puts("}\n");
         if (nodep->ifdef() != "") puts("#endif  // " + nodep->ifdef() + "\n");
@@ -361,6 +366,7 @@ public:
     virtual void visit(AstCCall* nodep) override {
         const AstCFunc* const funcp = nodep->funcp();
         const AstNodeModule* const funcModp = EmitCParentModule::get(funcp);
+        if (funcp->isCoroutine() && m_inCoroutine) puts("co_await ");
         if (funcp->dpiImportPrototype()) {
             // Calling DPI import
             puts(funcp->name());
@@ -387,6 +393,7 @@ public:
     virtual void visit(AstCMethodCall* nodep) override {
         const AstCFunc* const funcp = nodep->funcp();
         UASSERT_OBJ(!funcp->isLoose(), nodep, "Loose method called via AstCMethodCall");
+        if (funcp->isCoroutine() && m_inCoroutine) puts("co_await ");
         iterate(nodep->fromp());
         putbs("->");
         puts(funcp->nameProtect());
@@ -794,6 +801,93 @@ public:
     }
     virtual void visit(AstJumpLabel* nodep) override {
         puts("__Vlabel" + cvtToStr(nodep->blockp()->labelNum()) + ": ;\n");
+    }
+    virtual void visit(AstDelay* nodep) override {
+        puts("co_await vlSymsp->__Vm_delayedQueue[VL_TIME_D() + ");
+        iterateAndNextNull(nodep->lhsp());
+        puts("];\n");
+        iterateAndNextNull(nodep->stmtsp());
+    }
+    virtual void visit(AstTimingControl* nodep) override {
+        puts("/* [@ statement] */\n");
+        puts("co_await vlSymsp->__Vm_eventDispatcher[{");
+        iterateAndNextNull(nodep->sensesp());
+        puts("}];\n");
+        iterateAndNextNull(nodep->stmtsp());
+    }
+    virtual void visit(AstBegin* nodep) override { iterateAndNextNull(nodep->stmtsp()); }
+    virtual void visit(AstFork* nodep) override {
+        // Skip forks with no statements
+        if (nodep->stmtsp() == nullptr) return;
+
+        puts("/* [fork] */ {\n");
+
+        size_t procCount = 0;
+        for (auto* stmtp = nodep->stmtsp(); stmtp; stmtp = stmtp->nextp()) procCount++;
+
+        if (!nodep->joinType().joinNone()) {
+            puts("auto __Vfork_join = std::make_shared<Join>(");
+            if (nodep->joinType().joinAny())
+                puts("1");
+            else
+                puts(cvtToStr(procCount));
+            puts(");\n");
+        }
+
+        if (!nodep->joinType()
+                 .join()) {  // For join_any and join_none we have to store the funcs somewhere so
+                             // they don't get destroyed before they're finished
+            puts(
+                "auto __Vfork_funcs = std::make_shared<std::array<std::function<CoroutineTask()>, "
+                + cvtToStr(procCount) + ">>();\n");
+            puts("*__Vfork_funcs = {\n");
+        }
+        int i = 0;
+        for (auto* stmtp = nodep->stmtsp(); stmtp; stmtp = stmtp->nextp()) {
+            i++;
+            if (nodep->joinType().join()) puts("auto __Vfork_func" + cvtToStr(i) + " = ");
+
+            puts("[=]() mutable -> CoroutineTask {\n");
+            stmtp->accept(*this);
+
+            if (!nodep->joinType().joinNone())
+                puts("--__Vfork_join->counter;\nvlSymsp->__Vm_eventDispatcher.trigger(&__Vfork_"
+                     "join->event);\n");
+
+            if (!nodep->joinType().join())
+                // Call get() on shared_ptr in order to capture it (explicit capture mixed with '='
+                // causes warning)
+                puts("__Vfork_funcs.get();\n");
+
+            puts("co_return;\n}");
+
+            if (nodep->joinType().join())
+                puts(";\n__Vfork_func" + cvtToStr(i)
+                     + "();\n");  // If we join all procs, just call the functions
+            else
+                puts(",\n");
+        }
+
+        if (!nodep->joinType().join()) puts("};\nfor (auto& func : *__Vfork_funcs) func();\n");
+
+        if (!nodep->joinType().joinNone())
+            puts("while (__Vfork_join->counter > 0) co_await "
+                 "vlSymsp->__Vm_eventDispatcher[{&__Vfork_join->event}];\n");
+        puts("}\n");
+    }
+    virtual void visit(AstSenTree* nodep) override {
+        for (auto* itemp = nodep->sensesp(); itemp; itemp = VN_CAST(itemp->nextp(), SenItem)) {
+            puts("&");
+            visit(itemp);
+            if (itemp->nextp()) puts(", ");
+        }
+    }
+    virtual void visit(AstSenItem* nodep) override { iterateAndNextNull(nodep->sensp()); }
+    virtual void visit(AstEventTrigger* nodep) override {
+        puts("/* [ -> statement ] */\n");
+        puts("vlSymsp->__Vm_eventDispatcher.trigger({&");
+        iterateAndNextNull(nodep->varrefp());
+        puts("});\n");
     }
     virtual void visit(AstWhile* nodep) override {
         iterateAndNextNull(nodep->precondsp());

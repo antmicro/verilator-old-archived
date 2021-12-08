@@ -77,6 +77,12 @@ if (NOT CMAKE_CXX_COMPILER_ID MATCHES MSVC)
   endif()
 endif()
 
+if (CMAKE_CXX_COMPILER_ID MATCHES GNU)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcoroutines")
+elseif (CMAKE_CXX_COMPILER_ID MATCHES Clang)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcoroutines-ts")
+endif()
+
 define_property(TARGET
   PROPERTY VERILATOR_THREADED
   BRIEF_DOCS "Verilator multithreading enabled"

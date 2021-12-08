@@ -210,6 +210,7 @@ private:
     AstScope* m_scopep = nullptr;  // Current scope to add statement to
     AstActive* m_iActivep = nullptr;  // For current scope, the IActive we're building
     AstActive* m_cActivep = nullptr;  // For current scope, the SActive(combo) we're building
+    AstActive* m_pActivep = nullptr;
 
     SenTreeSet m_activeSens;  // Sen lists for each active we've made
     using ActiveMap = std::unordered_map<AstSenTree*, AstActive*>;
@@ -225,6 +226,7 @@ private:
         m_scopep = nodep;
         m_iActivep = nullptr;
         m_cActivep = nullptr;
+        m_pActivep = nullptr;
         m_activeSens.clear();
         m_activeMap.clear();
         iterateChildren(nodep);
@@ -241,6 +243,15 @@ private:
 public:
     // METHODS
     AstScope* scopep() { return m_scopep; }
+    AstActive* getPActive(FileLine* fl) {
+        if (!m_pActivep) {
+            m_pActivep = new AstActive(
+                fl, "postponed", new AstSenTree(fl, new AstSenItem(fl, AstSenItem::Postponed())));
+            m_pActivep->sensesStorep(m_pActivep->sensesp());
+            addActive(m_pActivep);
+        }
+        return m_pActivep;
+    }
     AstActive* getCActive(FileLine* fl) {
         if (!m_cActivep) {
             m_cActivep = new AstActive(
@@ -497,6 +508,11 @@ private:
             VL_DO_DANGLING(nodep->unlinkFrBack()->deleteTree(), nodep);
             return;
         }
+        if (oldsensesp && oldsensesp->sensesp() && oldsensesp->hasPostponed()) {
+            auto* activep = m_namer.getPActive(nodep->fileline());
+            activep->addStmtsp(nodep->unlinkFrBack());
+            return;
+        }
 
         // Read sensitivities
         m_itemCombo = false;
@@ -506,11 +522,7 @@ private:
         bool sequent = m_itemSequent;
 
         if (!combo && !sequent) combo = true;  // If no list, Verilog 2000: always @ (*)
-        if (combo && sequent) {
-            nodep->v3warn(E_UNSUPPORTED, "Unsupported: Mixed edge (pos/negedge) and activity "
-                                         "(no edge) sensitive activity list");
-            sequent = false;
-        }
+        if (combo && sequent) { sequent = false; }
 
         AstActive* wantactivep = nullptr;
         if (combo && !sequent) {
@@ -587,18 +599,20 @@ private:
                 }
             }
         }
-        if (nodep->edgeType() == VEdgeType::ET_ANYEDGE) {
+        if ((!nodep->varrefp() || nodep->varrefp()->dtypep()->isWide())
+            && nodep->edgeType() == VEdgeType::ET_ANYEDGE) {
             m_itemCombo = true;
             // Delete the sensitivity
             // We'll add it as a generic COMBO SenItem in a moment.
             VL_DO_DANGLING(nodep->unlinkFrBack()->deleteTree(), nodep);
         } else if (nodep->varrefp()) {
             // V3LinkResolve should have cleaned most of these up
-            if (!nodep->varrefp()->width1()) {
-                nodep->v3warn(E_UNSUPPORTED,
-                              "Unsupported: Non-single bit wide signal pos/negedge sensitivity: "
-                                  << nodep->varrefp()->prettyNameQ());
-            }
+            // if (!nodep->varrefp()->width1()) {
+            //     nodep->v3warn(E_UNSUPPORTED,
+            //                   "Unsupported: Non-single bit wide signal pos/negedge sensitivity:
+            //                   "
+            //                       << nodep->varrefp()->prettyNameQ());
+            // }
             m_itemSequent = true;
             nodep->varrefp()->varp()->usedClock(true);
         }

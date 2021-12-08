@@ -1195,7 +1195,10 @@ private:
         const string name = ((nodep->name() == "new") ? "new" : prefix + nodep->name() + suffix);
         AstCFunc* const cfuncp = new AstCFunc(
             nodep->fileline(), name, m_scopep,
-            ((nodep->taskPublic() && rtnvarp) ? rtnvarp->cPubArgType(true, true) : ""));
+            rtnvarp ? rtnvarp->cPubArgType(true, true)
+                    : ((nodep->isFunction() || nodep->taskPublic() || nodep->dpiExport())
+                           ? ""
+                           : "CoroutineTask"));
         // It's ok to combine imports because this is just a wrapper;
         // duplicate wrappers can get merged.
         cfuncp->dontCombine(!nodep->dpiImport());

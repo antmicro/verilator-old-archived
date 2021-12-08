@@ -445,6 +445,9 @@ void EmitCSyms::emitSymHdr() {
     }
     puts("bool __Vm_didInit = false;\n");
 
+    puts("DelayedQueue __Vm_delayedQueue;\n");
+    puts("EventDispatcher __Vm_eventDispatcher;\n");
+
     if (v3Global.opt.mtasks()) {
         puts("VlThreadPool* const __Vm_threadPoolp;\n");
         puts("bool __Vm_even_cycle = false;\n");

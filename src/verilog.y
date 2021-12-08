@@ -3161,13 +3161,12 @@ statement_item<nodep>:		// IEEE: statement_item
 	|	yDISABLE yFORK ';'			{ $$ = new AstDisableFork($1); }
 	//			// IEEE: event_trigger
 	|	yP_MINUSGT idDotted/*hierarchical_identifier-event*/ ';'
-			{ // AssignDly because we don't have stratified queue, and need to
-			  // read events, clear next event, THEN apply this set
-			  $$ = new AstAssignDly($1, $2, new AstConst($1, AstConst::BitTrue())); }
+			{ $$ = new AstEventTrigger($1, $2); }
 	//UNSUP	yP_MINUSGTGT delay_or_event_controlE hierarchical_identifier/*event*/ ';'	{ UNSUP }
 	//			// IEEE remove below
 	|	yP_MINUSGTGT delayE idDotted/*hierarchical_identifier-event*/ ';'
-			{ $$ = new AstAssignDly($1, $3, new AstConst($1, AstConst::BitTrue())); }
+			{ $$ = new AstAssign($1, $3, new AstConst($1, AstConst::BitTrue()));
+			  $$->addNext(new AstEventTrigger($1, $3->cloneTree(false))); }
 	//
 	//			// IEEE: loop_statement
 	|	yFOREVER stmtBlock			{ $$ = new AstWhile($1,new AstConst($1, AstConst::BitTrue()), $2); }
@@ -3191,8 +3190,16 @@ statement_item<nodep>:		// IEEE: statement_item
 	//
 	|	par_block				{ $$ = $1; }
 	//			// IEEE: procedural_timing_control_statement + procedural_timing_control
-	|	delay_control stmtBlock			{ $$ = new AstDelay($1->fileline(), $1); $$->addNextNull($2); }
-	|	event_control stmtBlock			{ $$ = new AstTimingControl(FILELINE_OR_CRE($1), $1, $2); }
+	|	delay_control stmtBlock			{ AstNode* nextp = nullptr;
+                                          if ($2 && $2->nextp()) nextp = $2->nextp()->unlinkFrBackWithNext();
+                                          $$ = new AstDelay($1->fileline(), $1, $2);
+                                          $$->addNextNull(nextp);
+                                        }
+	|	event_control stmtBlock			{ AstNode* nextp = nullptr;
+                                          if ($2 && $2->nextp()) nextp = $2->nextp()->unlinkFrBackWithNext();
+                                          $$ = new AstTimingControl(FILELINE_OR_CRE($1), $1, $2);
+                                          $$->addNextNull(nextp);
+                                        }
 	//UNSUP	cycle_delay stmtBlock			{ UNSUP }
 	//
 	|	seq_block				{ $$ = $1; }

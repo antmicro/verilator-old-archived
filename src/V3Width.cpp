@@ -585,8 +585,12 @@ private:
             VL_DO_DANGLING(pushDeletep(nodep->unlinkFrBack()), nodep);
             return;
         }
-        nodep->v3warn(STMTDLY, "Unsupported: Ignoring delay on this delayed statement.");
-        VL_DO_DANGLING(pushDeletep(nodep->unlinkFrBack()), nodep);
+        iterateChildren(nodep);
+    }
+    virtual void visit(AstTimingControl* nodep) override { iterateChildren(nodep); }
+    virtual void visit(AstEventTrigger* nodep) override {
+        nodep->varrefp()->access(VAccess::WRITE);
+        iterateChildren(nodep);
     }
     virtual void visit(AstFork* nodep) override {
         if (VN_IS(m_ftaskp, Func) && !nodep->joinType().joinNone()) {
@@ -606,8 +610,7 @@ private:
             nodep->replaceWith(newp);
             VL_DO_DANGLING(nodep->deleteTree(), nodep);
         } else {
-            nodep->v3warn(E_UNSUPPORTED, "Unsupported: fork statements");
-            // TBD might support only normal join, if so complain about other join flavors
+            iterateChildren(nodep);
         }
     }
     virtual void visit(AstDisableFork* nodep) override {
@@ -1312,13 +1315,6 @@ private:
         AstConst* const newp = new AstConst(nodep->fileline(), AstConst::RealDouble(), time);
         nodep->replaceWith(newp);
         VL_DO_DANGLING(nodep->deleteTree(), nodep);
-    }
-    virtual void visit(AstTimingControl* nodep) override {
-        nodep->v3warn(E_UNSUPPORTED, "Unsupported: timing control statement in this location\n"
-                                         << nodep->warnMore()
-                                         << "... Suggest have one timing control statement "
-                                         << "per procedure, at the top of the procedure");
-        VL_DO_DANGLING(nodep->unlinkFrBack()->deleteTree(), nodep);
     }
     virtual void visit(AstAttrOf* nodep) override {
         VL_RESTORER(m_attrp);
@@ -4633,6 +4629,9 @@ private:
         }
         userIterateChildren(nodep, nullptr);
     }
+    virtual void visit(AstWait* nodep) override {
+        userIterateChildren(nodep, WidthVP(SELF, PRELIM).p());
+    }
     virtual void visit(AstNode* nodep) override {
         // Default: Just iterate
         UASSERT_OBJ(!m_vup, nodep,
@@ -5408,6 +5407,10 @@ private:
                 = underp;  // Need FINAL on children; otherwise splice would block it
             underp = spliceCvtString(underp);
             underp = userIterateSubtreeReturnEdits(oldp, WidthVP(SELF, FINAL).p());
+        } else if (VN_IS(nodep, AssignW) && VN_IS(VN_CAST(nodep, AssignW)->lhsp(), VarRef)
+                   && VN_CAST(VN_CAST(nodep, AssignW)->lhsp(), VarRef)->varp()->varType()
+                          == AstVarType::MODULETEMP) {
+            // Don't verify width in assignments to temporary variables
         } else {
             const AstBasicDType* const expBasicp = expDTypep->basicp();
             const AstBasicDType* const underBasicp = underp->dtypep()->basicp();

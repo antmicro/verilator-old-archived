@@ -43,6 +43,7 @@
 #include "V3Depth.h"
 #include "V3DepthBlock.h"
 #include "V3Descope.h"
+#include "V3DynamicScheduler.h"
 #include "V3EmitC.h"
 #include "V3EmitCMain.h"
 #include "V3EmitCMake.h"
@@ -296,6 +297,9 @@ static void process() {
         V3Task::taskAll(v3Global.rootp());
     }
 
+    // Wrap statements in processes into blocks so they won't get split
+    V3DynamicScheduler::wrapProcesses(v3Global.rootp());
+
     if (!v3Global.opt.xmlOnly()) {
         // Add __PVT's
         // After V3Task so task internal variables will get renamed
@@ -375,6 +379,8 @@ static void process() {
 
         // Order the code; form SBLOCKs and BLOCKCALLs
         V3Order::orderAll(v3Global.rootp());
+
+        V3DynamicScheduler::prepEvents(v3Global.rootp());
 
         // Change generated clocks to look at delayed signals
         V3GenClk::genClkAll(v3Global.rootp());

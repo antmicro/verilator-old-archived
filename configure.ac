@@ -7,7 +7,7 @@
 
 #AC_INIT([Verilator],[#.### YYYY-MM-DD])
 #AC_INIT([Verilator],[#.### devel])
-AC_INIT([Verilator],[4.216 2021-12-05],
+AC_INIT([Verilator],[4.216 dynamic-scheduler],
         [https://verilator.org],
         [verilator],[https://verilator.org])
 # When releasing, also update header of Changes file

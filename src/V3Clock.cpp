@@ -83,6 +83,7 @@ private:
     AstCFunc* m_initFuncp = nullptr;  // Top initial function we are creating
     AstCFunc* m_finalFuncp = nullptr;  // Top final function we are creating
     AstCFunc* m_settleFuncp = nullptr;  // Top settlement function we are creating
+    AstCFunc* m_postponedFuncp = nullptr;
     AstSenTree* m_lastSenp = nullptr;  // Last sensitivity match, so we can detect duplicates.
     AstIf* m_lastIfp = nullptr;  // Last sensitivity if active to add more under
     AstMTaskBody* m_mtaskBodyp = nullptr;  // Current mtask body
@@ -94,13 +95,15 @@ private:
         if (vscp->user1p()) return static_cast<AstVarScope*>(vscp->user1p());
         const AstVar* const varp = vscp->varp();
         if (!varp->width1()) {
-            varp->v3warn(E_UNSUPPORTED, "Unsupported: Clock edge on non-single bit signal: "
-                                            << varp->prettyNameQ());
+            // TODO psagan
+            //  varp->v3warn(E_UNSUPPORTED, "Unsupported: Clock edge on non-single bit signal: "
+            //                                  << varp->prettyNameQ());
+            // return vscp;
         }
         const string newvarname
             = (string("__Vclklast__") + vscp->scopep()->nameDotless() + "__" + varp->name());
         AstVar* const newvarp = new AstVar(vscp->fileline(), AstVarType::MODULETEMP, newvarname,
-                                           VFlagLogicPacked(), 1);
+                                           VFlagLogicPacked(), varp->width());
         newvarp->noReset(true);  // Reset by below assign
         m_modp->addStmtp(newvarp);
         AstVarScope* const newvscp = new AstVarScope(vscp->fileline(), m_scopep, newvarp);
@@ -164,6 +167,12 @@ private:
         } else if (nodep->edgeType() == VEdgeType::ET_LOWEDGE) {
             newp = new AstNot(nodep->fileline(),
                               new AstVarRef(nodep->fileline(), clkvscp, VAccess::READ));
+        } else if (nodep->edgeType() == VEdgeType::ET_ANYEDGE) {
+            AstVarScope* lastVscp = getCreateLastClk(clkvscp);
+            newp = new AstXor(
+                nodep->fileline(),
+                new AstVarRef(nodep->fileline(), nodep->varrefp()->varScopep(), VAccess::READ),
+                new AstVarRef(nodep->fileline(), lastVscp, VAccess::READ));
         } else {
             nodep->v3fatalSrc("Bad edge type");
         }
@@ -254,6 +263,7 @@ private:
         m_evalFuncp = makeTopFunction("_eval");
         m_initFuncp = makeTopFunction("_eval_initial", /* slow: */ true);
         m_settleFuncp = makeTopFunction("_eval_settle", /* slow: */ true);
+        m_postponedFuncp = makeTopFunction("_eval_postponed");
         m_finalFuncp = makeTopFunction("_final", /* slow: */ true);
         // Process the activates
         iterateChildren(nodep);
@@ -343,6 +353,12 @@ private:
     void addToInitial(AstNode* stmtsp) {
         m_initFuncp->addStmtsp(stmtsp);  // add to top level function
     }
+    void addToPostponed(AstNode* stmtsp) {
+        m_postponedFuncp->addStmtsp(stmtsp);  // add to top level function
+    }
+    virtual void visit(AstTimingControl* nodep) override {
+        // Do not iterate to keep sentree in place
+    }
     virtual void visit(AstActive* nodep) override {
         // Careful if adding variables here, ACTIVES can be under other ACTIVES
         // Need to save and restore any member state in AstUntilStable block
@@ -402,12 +418,15 @@ private:
                 // Don't need to: clearLastSen();, as we're adding it to different cfunc
                 // Move statements to function
                 addToSettleLoop(stmtsp);
+            } else if (nodep->hasPostponed()) {
+                addToPostponed(stmtsp);
             } else {
                 // Combo
                 clearLastSen();
                 // Move statements to function
                 addToEvalLoop(stmtsp);
             }
+            if (nodep->sensesp() == nodep->sensesStorep()) clearLastSen();
             VL_DO_DANGLING(nodep->unlinkFrBack()->deleteTree(), nodep);
         }
     }
