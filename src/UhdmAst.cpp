@@ -3105,16 +3105,47 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return process_genScopeArray(obj_h, shared);
     }
     case vpiGenScope: {
-        AstNode* statements = nullptr;
+        AstNode* statementsp = nullptr;
 
         vpiHandle typedef_itr = vpi_iterate(vpiTypedef, obj_h);
-        while (vpiHandle typedef_obj = vpi_scan(typedef_itr)) {
-            AstNode* typedefp = process_typedef(typedef_obj, shared);
-            if (statements == nullptr)
-                statements = typedefp;
+        while (vpiHandle typedef_h = vpi_scan(typedef_itr)) {
+            AstNode* typedefp = process_typedef(typedef_h, shared);
+            if (statementsp == nullptr)
+                statementsp = typedefp;
             else
-                statements->addNextNull(typedefp);
+                statementsp->addNextNull(typedefp);
+
+            vpi_release_handle(typedef_h);
         }
+        vpi_release_handle(typedef_itr);
+
+        // Due to problems with sizes of constants,
+        // vpiParameter node should only be handled when there is no vpiParamAssign node
+        // corresponding to this parameter
+        // https://github.com/chipsalliance/Surelog/issues/2107#issuecomment-951025142
+
+        std::set<std::string> param_assign_names;
+        visit_one_to_many({vpiParamAssign}, obj_h, shared, [&](AstNode* nodep) {
+            param_assign_names.insert(nodep->name());
+            if (statementsp == nullptr)
+                statementsp = nodep;
+            else
+                statementsp->addNextNull(nodep);
+        });
+
+        vpiHandle parameter_itr = vpi_iterate(vpiParameter, obj_h);
+        while (vpiHandle parameter_h = vpi_scan(parameter_itr)) {
+            std::string parameter_name = vpi_get_str(vpiName, parameter_h);
+            if (param_assign_names.find(parameter_name) == param_assign_names.end()) {
+                AstNode* parameterp = process_parameter(parameter_h, shared, true);
+                if (statementsp == nullptr)
+                    statementsp = parameterp;
+                else
+                    statementsp->addNextNull(parameterp);
+            }
+            vpi_release_handle(parameter_h);
+        }
+        vpi_release_handle(parameter_itr);
 
         visit_one_to_many(
             {
@@ -3134,8 +3165,6 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 vpiPrimitive,
                 vpiPrimitiveArray,
                 vpiDefParam,
-                vpiParamAssign,
-                vpiParameter,
                 vpiGenScopeArray,
                 vpiProgram,
                 vpiProgramArray,
@@ -3145,14 +3174,14 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 vpiAliasStmt,
                 vpiClockingBlock,
             },
-            obj_h, shared, [&](AstNode* item) {
-                if (statements == nullptr) {
-                    statements = item;
+            obj_h, shared, [&](AstNode* itemp) {
+                if (statementsp == nullptr) {
+                    statementsp = itemp;
                 } else {
-                    statements->addNextNull(item);
+                    statementsp->addNextNull(itemp);
                 }
             });
-        return statements;
+        return statementsp;
     }
     case vpiDelayControl: {
         s_vpi_delay delay;
