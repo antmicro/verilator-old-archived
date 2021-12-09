@@ -1052,8 +1052,10 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared, std::vector<AstN
         auto type = vpi_get(vpiType, typespec_h);
         AstNode* sizeNodep = nullptr;
         if (type == vpiIntTypespec || type == vpiIntegerTypespec) {
-            auto* namep = vpi_get_str(vpiName, typespec_h);
-            if (namep != nullptr)
+            if (vpiHandle expr_h = vpi_handle(vpiExpr, typespec_h)) {
+                sizeNodep = visit_object(expr_h, shared);
+                vpi_release_handle(expr_h);
+            } else if (auto* namep = vpi_get_str(vpiName, typespec_h))
                 sizeNodep = new AstParseRef(make_fileline(typespec_h), VParseRefExp::en::PX_TEXT,
                                             namep, nullptr, nullptr);
             else
