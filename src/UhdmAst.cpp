@@ -2190,6 +2190,11 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             return nullptr;  // Skip this net
         }
 
+        if (objectName == get_object_name(obj_h, {vpiFullName})) {
+            size_t pos = objectName.rfind('.');
+            objectName = objectName.substr(pos + 1);
+        }
+
         auto* v = new AstVar(make_fileline(obj_h), net_type, objectName, VFlagChildDType(), dtype);
         if (v3Global.opt.trace()) { v->trace(true); }
         return v;
