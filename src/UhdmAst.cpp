@@ -1552,9 +1552,12 @@ AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared, bool forceCopy) {
             // References are handled using getDType, not in visit_object
             if (!forceCopy)
                 return nullptr;
+            else
+                objectName = ""; // Make anonymous
         }
 
-        shared.visited_types_map[object] = objectName;
+        if (!forceCopy && objectName != "")
+            shared.visited_types_map[object] = objectName;
 
         // Use bare name for typespec itself, hierarchy was stored above
         auto pos = objectName.rfind("::");
@@ -1598,9 +1601,12 @@ AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared, bool forceCopy) {
             UINFO(6, "Object " << objectName << " was already visited" << std::endl);
             if (!forceCopy)
                 return nullptr;
+            else
+                objectName = ""; // Make anonymous
         }
 
-        shared.visited_types_map[object] = objectName;
+        if (!forceCopy && objectName != "")
+            shared.visited_types_map[object] = objectName;
 
         // Use bare name for typespec itself, hierarchy was stored above
         auto pos = objectName.rfind("::");
