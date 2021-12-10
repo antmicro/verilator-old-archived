@@ -1951,7 +1951,6 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                         vpiInterface,
                         vpiInterfaceArray,
                         vpiProcess,
-                        vpiContAssign,
                         vpiModule,
                         vpiModuleArray,
                         vpiPrimitive,
@@ -1981,6 +1980,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                         vpiNamedEvent,
                         vpiNamedEventArray,
                         vpiVariables,
+                        vpiContAssign,
                         vpiVirtualInterfaceVar,
                         vpiReg,
                         vpiRegArray,
@@ -2188,6 +2188,11 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         if (net_type == AstVarType::UNKNOWN && dtype == nullptr) {
             // Not set in case above, most likely a "false" port net
             return nullptr;  // Skip this net
+        }
+
+        if (objectName == get_object_name(obj_h, {vpiFullName})) {
+            size_t pos = objectName.rfind('.');
+            objectName = objectName.substr(pos + 1);
         }
 
         auto* v = new AstVar(make_fileline(obj_h), net_type, objectName, VFlagChildDType(), dtype);
