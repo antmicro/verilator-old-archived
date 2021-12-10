@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - uhdm-verilator
+      - uhdm-verilator-rebase
   pull_request:
 
 jobs:
