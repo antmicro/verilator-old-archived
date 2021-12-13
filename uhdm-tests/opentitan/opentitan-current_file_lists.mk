@@ -15,13 +15,10 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /flash_ctrl_core_reg_top.sv \
 /hmac_reg_top.sv \
 /keccak_2share.sv \
-/keymgr.sv \
 /kmac_app.sv \
 /kmac_core.sv \
 /kmac_reg_top.sv \
-/kmac_staterd.sv \
 /otbn_reg_top.sv \
-/otbn_rnd.sv \
 /otbn.sv \
 /otp_ctrl_core_reg_top.sv \
 /otp_ctrl_part_buf.sv \
@@ -61,6 +58,9 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /xbar_peri.sv \
 
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/otbn_rnd.sv \
+/kmac_staterd.sv \
+/keymgr.sv \
 /prim_slicer.sv \
 /sha3pad.sv \
 /keccak_round.sv \
