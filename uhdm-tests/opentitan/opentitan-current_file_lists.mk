@@ -6,8 +6,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /tl_main_pkg.sv \
 /tl_peri_pkg.sv \
 /adc_ctrl_core.sv \
-/clkmgr_byp.sv \
-/clkmgr.sv \
 /csrng_reg_top.sv \
 /dmi_cdc.sv \
 /edn_reg_top.sv \
@@ -229,3 +227,5 @@ VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
 /sw_test_status_if.sv \
 /chip_sim_tb.sv \
 /uartdpi.sv \
+/clkmgr_byp.sv \
+/clkmgr.sv \
