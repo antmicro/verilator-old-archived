@@ -814,19 +814,23 @@ AstAlways* process_always(vpiHandle obj_h, UhdmShared& shared) {
 }
 
 AstTimingControl* process_event_control(vpiHandle obj_h, UhdmShared& shared) {
-    AstSenItem* senItemRootp = nullptr;
+    auto* sensesp = new AstSenTree(make_fileline(obj_h), nullptr);
     visit_one_to_one({vpiCondition}, obj_h, shared, [&](AstNode* nodep) {
-        if (nodep->type() == AstType::en::atSenItem) {
-            senItemRootp = reinterpret_cast<AstSenItem*>(nodep);
-        } else {  // wrap this in a AstSenItem
-            senItemRootp = new AstSenItem(nodep->fileline(), VEdgeType::ET_ANYEDGE, nodep);
+        while (nodep) {  // nodep may be a list, so go over it and wrap in SenItems
+            auto* nextp = nodep->nextp();
+            if (nextp) nextp->unlinkFrBackWithNext();
+            if (auto* senitemp = VN_CAST(nodep, SenItem)) {  // already is a SenItem
+                sensesp->addSensesp(senitemp);
+            } else {  // wrap this in a SenItem
+                sensesp->addSensesp(new AstSenItem(nodep->fileline(), VEdgeType::ET_ANYEDGE, nodep));
+            }
+            nodep = nextp;
         }
     });
-    AstSenTree* senTreep = new AstSenTree(make_fileline(obj_h), senItemRootp);
     // Body of statements
     AstNode* bodyp = nullptr;
     visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* nodep) { bodyp = nodep; });
-    return new AstTimingControl(make_fileline(obj_h), senTreep, bodyp);
+    return new AstTimingControl(make_fileline(obj_h), sensesp, bodyp);
 }
 
 AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared, std::vector<AstNode*>&& operands) {
