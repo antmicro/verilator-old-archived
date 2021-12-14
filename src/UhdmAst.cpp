@@ -550,6 +550,9 @@ AstBasicDTypeKwd get_kwd_for_type(int vpi_var_type) {
     case vpiChandleVar: {
         return AstBasicDTypeKwd::CHANDLE;
     }
+    case vpiNamedEvent: {
+        return AstBasicDTypeKwd::EVENTVALUE;
+    }
     case vpiEnumTypespec:
     case vpiEnumVar:
     case vpiEnumNet:
@@ -693,6 +696,7 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
     case vpiRealVar:
     case vpiStringVar:
     case vpiTimeVar:
+    case vpiNamedEvent:
     case vpiChandleVar: {
         AstBasicDTypeKwd keyword = get_kwd_for_type(type);
         dtypep = new AstBasicDType(fl, keyword);
@@ -3115,6 +3119,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     case vpiLogicVar:
     case vpiStringVar:
     case vpiTimeVar:
+    case vpiNamedEvent:
     case vpiRealVar:
     case vpiIntVar:
     case vpiLongIntVar:
