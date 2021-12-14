@@ -16,7 +16,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /hmac_reg_top.sv \
 /keccak_2share.sv \
 /kmac_app.sv \
-/kmac_core.sv \
 /kmac_reg_top.sv \
 /otbn_reg_top.sv \
 /otbn.sv \
@@ -58,6 +57,7 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /xbar_peri.sv \
 
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/kmac_core.sv \
 /otbn_rnd.sv \
 /kmac_staterd.sv \
 /keymgr.sv \
