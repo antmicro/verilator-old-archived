@@ -2178,6 +2178,11 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     }
     case vpiRefVar:
     case vpiRefObj: {
+        if (objectName == "") {
+            vpiHandle actual_h = vpi_handle(vpiActual, obj_h);
+            objectName = get_object_name(actual_h);
+            vpi_release_handle(actual_h);
+        }
         return get_referenceNode(make_fileline(obj_h), objectName, shared);
     }
     case vpiNetArray: {  // also defined as vpiArrayNet
