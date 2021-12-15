@@ -5,7 +5,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /sram_ctrl_regs_reg_top.sv \
 /tl_main_pkg.sv \
 /tl_peri_pkg.sv \
-/adc_ctrl_core.sv \
 /csrng_reg_top.sv \
 /dmi_cdc.sv \
 /edn_reg_top.sv \
@@ -57,6 +56,7 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /xbar_peri.sv \
 
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/adc_ctrl_core.sv \
 /kmac_core.sv \
 /otbn_rnd.sv \
 /kmac_staterd.sv \
