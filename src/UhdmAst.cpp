@@ -265,6 +265,15 @@ AstNodeDType* applyUnpackedRanges(FileLine* fl, vpiHandle obj_h, AstNodeDType* d
     return dtypep;
 }
 
+AstSelBit* applyBitSelect(vpiHandle obj_h, AstNode* fromp, UhdmShared& shared) {
+    AstNode* bitp = nullptr;
+    visit_one_to_one({vpiIndex}, obj_h, shared, [&](AstNode* itemp) {
+       if (itemp) { bitp = itemp; }
+    });
+
+    return new AstSelBit(make_fileline(obj_h), fromp, bitp);
+}
+
 AstNode* get_class_package_ref_node(FileLine* fl, std::string objectName, UhdmShared& shared) {
     AstNode* refp = nullptr;
     size_t colon_pos = objectName.find("::");
@@ -2551,17 +2560,8 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     }
     case vpiBitSelect: {
         objectName = remove_last_sanitized_index(objectName);
-
         auto* fromp = get_referenceNode(make_fileline(obj_h), objectName, shared);
-
-        AstNode* bitp = nullptr;
-        visit_one_to_one({vpiIndex}, obj_h, shared, [&](AstNode* item) {
-            if (item) { bitp = item; }
-        });
-
-        AstNode* selbitp = new AstSelBit(make_fileline(obj_h), fromp, bitp);
-
-        return selbitp;
+        return applyBitSelect(obj_h, fromp, shared);
     }
     case vpiVarBit:
     case vpiVarSelect: {
