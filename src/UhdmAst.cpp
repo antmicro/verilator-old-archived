@@ -1287,8 +1287,6 @@ AstMethodCall* process_method_call(vpiHandle obj_h, AstNode* fromp, UhdmShared& 
 }
 
 AstNode* process_hierPath(vpiHandle obj_h, UhdmShared& shared) {
-    AstNode* hierPathp = nullptr;
-    AstNode* hierItemp = nullptr;
     FileLine* fl = make_fileline(obj_h);
     bool expr_const_present = false;
     std::string objectName;
@@ -1313,17 +1311,23 @@ AstNode* process_hierPath(vpiHandle obj_h, UhdmShared& shared) {
         vpi_release_handle(expr_h);
     }
 
+    AstNode* hierPathp = nullptr;
+
+    if (expr_const_present)
+        hierPathp = get_referenceNode(fl, objectName, shared);
+
     vpiHandle actual_itr = vpi_iterate(vpiActual, obj_h);
     while (vpiHandle actual_h = vpi_scan(actual_itr)) {
-        if(vpi_get(vpiType, actual_h) == vpiMethodFuncCall) {
+        auto actual_type = vpi_get(vpiType, actual_h);
+        std::string actualObjectName = get_object_name(actual_h);
+        if (actual_type == vpiMethodFuncCall) {
             hierPathp = process_method_call(actual_h, hierPathp, shared);
+        } else if (actual_type == vpiBitSelect && actualObjectName == "") {
+            // https://github.com/chipsalliance/Surelog/issues/2287
+            hierPathp = applyBitSelect(actual_h, hierPathp, shared);
         } else {
-            if (expr_const_present) {
-                hierItemp = get_referenceNode(make_fileline(obj_h), objectName, shared);
-                expr_const_present = false;
-            } else {
-                hierItemp = visit_object(actual_h, shared);
-            }
+            AstNode* hierItemp = visit_object(actual_h, shared);
+
             if (hierPathp == nullptr)
                 hierPathp = hierItemp;
             else
