@@ -20,14 +20,12 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /otbn.sv \
 /otp_ctrl_core_reg_top.sv \
 /otp_ctrl_part_buf.sv \
-/otp_ctrl_scrmbl.sv \
 /otp_ctrl.sv \
 /pinmux_reg_top.sv \
 /pinmux.sv \
 /prim_dom_and_2share.sv \
 /prim_fifo_async.sv \
 /prim_generic_rom.sv \
-/prim_present.sv \
 /prim_ram_1p_scr.sv \
 /prim_rom_adv.sv \
 /prim_rom.sv \
@@ -45,8 +43,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /spi_host_reg_top.sv \
 /spi_tpm.sv \
 /tlul_fifo_async.sv \
-/tlul_fifo_sync.sv \
-/tlul_socket_1n.sv \
 /tlul_socket_m1.sv \
 /top_earlgrey.sv \
 /uart_reg_top.sv \
@@ -64,6 +60,10 @@ VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
 /prim_slicer.sv \
 /sha3pad.sv \
 /keccak_round.sv \
+/tlul_fifo_sync.sv \
+/tlul_socket_1n.sv \
+/prim_present.sv \
+/otp_ctrl_scrmbl.sv \
 /keymgr_sideload_key_ctrl.sv \
 /lc_ctrl.sv \
 /keymgr_reg_top.sv \
