@@ -1990,9 +1990,14 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             if (!module->user2SetOnce()) {  // Only do this once
                 shared.m_symp->pushNew(module);
 
+                // For each port variable there is also vpiVariable node in uhdm
+                // this will prevent from such duplicates
+                std::set<string> portNames;
+
                 AstNode* firstNonPortStatementp = module->stmtsp();
                 // Ports need to be added before the statements that use them
                 visit_one_to_many({vpiPort}, obj_h, shared, [&](AstNode* portp) {
+                    portNames.insert(portp->name());
                     if (portp != nullptr) {
                         if (firstNonPortStatementp != nullptr)
                             firstNonPortStatementp->addPrev(portp);
@@ -2000,6 +2005,13 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                             module->addStmtp(portp);
                     }
                 });
+
+                visit_one_to_many({vpiVariables}, obj_h, shared, [&](AstNode* varp) {
+                         if (portNames.find(varp->name()) == portNames.end()) {
+                             module->addStmtp(varp);
+                    }
+                });
+
 
                 visit_one_to_many(
                     {
@@ -2034,7 +2046,6 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                         vpiConcurrentAssertions,
                         vpiNamedEvent,
                         vpiNamedEventArray,
-                        vpiVariables,
                         vpiContAssign,
                         vpiVirtualInterfaceVar,
                         vpiReg,
