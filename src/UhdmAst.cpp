@@ -2003,6 +2003,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
 
                 visit_one_to_many(
                     {
+                        vpiVariables,
                         vpiInterface,
                         vpiInterfaceArray,
                         vpiProcess,
@@ -2034,7 +2035,6 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                         vpiConcurrentAssertions,
                         vpiNamedEvent,
                         vpiNamedEventArray,
-                        vpiVariables,
                         vpiContAssign,
                         vpiVirtualInterfaceVar,
                         vpiReg,
