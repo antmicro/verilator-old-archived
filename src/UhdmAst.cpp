@@ -1863,6 +1863,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         visit_one_to_many(
             {
                 vpiParamAssign,
+                vpiParameter,
                 vpiProgram,
                 vpiProgramArray,
                 vpiTaskFunc,
