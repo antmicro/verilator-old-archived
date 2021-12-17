@@ -1381,18 +1381,6 @@ AstNode* process_parameter(vpiHandle obj_h, UhdmShared& shared, bool get_value) 
 
     std::string objectName = get_object_name(obj_h);
 
-    if (get_value) {
-        std::string fullName = get_object_name(obj_h, {vpiFullName});
-        size_t colon_pos = fullName.rfind("::");
-        if (colon_pos != std::string::npos) {
-            AstNode* class_pkg_refp
-                = get_class_package_ref_node(make_fileline(obj_h), fullName, shared);
-
-            AstNode* var_refp = new AstParseRef(make_fileline(obj_h), VParseRefExp::en::PX_TEXT,
-                                                objectName, nullptr, nullptr);
-            return AstDot::newIfPkg(make_fileline(obj_h), class_pkg_refp, var_refp);
-        }
-    }
     if (shared.package_prefix.empty() && is_imported(obj_h)) {
         // Skip imported parameters, they will still be visible in their packages
         // Can't skip in package, as then names from nested imports cannot be resolved
