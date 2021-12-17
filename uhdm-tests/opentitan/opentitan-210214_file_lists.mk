@@ -5,10 +5,10 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /prim_generic_rom.sv \
 /prim_rom.sv \
 /prim_rom_adv.sv \
-/lc_ctrl.sv \
 
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
 /tlul_adapter_sram.sv \
+/lc_ctrl.sv \
 /prim_lc_sync.sv \
 /prim_flop_2sync.sv \
 /prim_generic_flop_2sync.sv \
