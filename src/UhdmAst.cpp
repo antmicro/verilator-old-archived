@@ -1695,6 +1695,51 @@ AstNode* process_typedef(vpiHandle obj_h, UhdmShared& shared) {
     return typedefp;
 }
 
+AstNode* process_typedefs_and_params(vpiHandle obj_h, UhdmShared& shared) {
+    AstNode* statementsp = nullptr;
+
+    vpiHandle typedef_itr = vpi_iterate(vpiTypedef, obj_h);
+    while (vpiHandle typedef_h = vpi_scan(typedef_itr)) {
+        AstNode* typedefp = process_typedef(typedef_h, shared);
+        if (statementsp == nullptr)
+            statementsp = typedefp;
+        else
+            statementsp->addNextNull(typedefp);
+
+        vpi_release_handle(typedef_h);
+    }
+    vpi_release_handle(typedef_itr);
+
+    // Due to problems with sizes of constants,
+    // vpiParameter node should only be handled when there is no vpiParamAssign node
+    // corresponding to this parameter
+    // https://github.com/chipsalliance/Surelog/issues/2107#issuecomment-951025142
+
+    std::set<std::string> param_assign_names;
+    visit_one_to_many({vpiParamAssign}, obj_h, shared, [&](AstNode* nodep) {
+        param_assign_names.insert(nodep->name());
+        if (statementsp == nullptr)
+            statementsp = nodep;
+        else
+            statementsp->addNextNull(nodep);
+    });
+
+    vpiHandle parameter_itr = vpi_iterate(vpiParameter, obj_h);
+    while (vpiHandle parameter_h = vpi_scan(parameter_itr)) {
+        std::string parameter_name = vpi_get_str(vpiName, parameter_h);
+        if (param_assign_names.find(parameter_name) == param_assign_names.end()) {
+            AstNode* parameterp = process_parameter(parameter_h, shared, true);
+            if (statementsp == nullptr)
+                statementsp = parameterp;
+            else
+                statementsp->addNextNull(parameterp);
+        }
+        vpi_release_handle(parameter_h);
+    }
+    vpi_release_handle(parameter_itr);
+    return statementsp;
+}
+
 AstNode* process_scope(vpiHandle obj_h, UhdmShared& shared, AstNode* bodyp = nullptr) {
     vpiHandle typedef_itr = vpi_iterate(vpiTypedef, obj_h);
     while (vpiHandle typedef_obj = vpi_scan(typedef_itr)) {
@@ -1847,23 +1892,21 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     }
     case vpiPackage: {
         AstPackage* package = nullptr;
-        auto it = shared.package_map.find(objectName); // In case it has been created because of an import
-        if (it != shared.package_map.end()) package = it->second;
-        else package = new AstPackage(new FileLine(objectName), objectName);
+        auto it = shared.package_map.find(
+            objectName);  // In case it has been created because of an import
+        if (it != shared.package_map.end())
+            package = it->second;
+        else
+            package = new AstPackage(new FileLine(objectName), objectName);
         package->inLibrary(true);
         shared.package_prefix = objectName + "::";
         shared.m_symp->pushNew(package);
 
-        vpiHandle typedef_itr = vpi_iterate(vpiTypedef, obj_h);
-        while (vpiHandle typedef_obj = vpi_scan(typedef_itr)) {
-            AstNode* typedefp = process_typedef(typedef_obj, shared);
-            if (typedefp != nullptr) package->addStmtp(typedefp);
-        }
+        AstNode* statementsp = process_typedefs_and_params(obj_h, shared);
+        if (statementsp != nullptr) package->addStmtp(statementsp);
 
         visit_one_to_many(
             {
-                vpiParamAssign,
-                vpiParameter,
                 vpiProgram,
                 vpiProgramArray,
                 vpiTaskFunc,
@@ -3163,47 +3206,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return process_genScopeArray(obj_h, shared);
     }
     case vpiGenScope: {
-        AstNode* statementsp = nullptr;
-
-        vpiHandle typedef_itr = vpi_iterate(vpiTypedef, obj_h);
-        while (vpiHandle typedef_h = vpi_scan(typedef_itr)) {
-            AstNode* typedefp = process_typedef(typedef_h, shared);
-            if (statementsp == nullptr)
-                statementsp = typedefp;
-            else
-                statementsp->addNextNull(typedefp);
-
-            vpi_release_handle(typedef_h);
-        }
-        vpi_release_handle(typedef_itr);
-
-        // Due to problems with sizes of constants,
-        // vpiParameter node should only be handled when there is no vpiParamAssign node
-        // corresponding to this parameter
-        // https://github.com/chipsalliance/Surelog/issues/2107#issuecomment-951025142
-
-        std::set<std::string> param_assign_names;
-        visit_one_to_many({vpiParamAssign}, obj_h, shared, [&](AstNode* nodep) {
-            param_assign_names.insert(nodep->name());
-            if (statementsp == nullptr)
-                statementsp = nodep;
-            else
-                statementsp->addNextNull(nodep);
-        });
-
-        vpiHandle parameter_itr = vpi_iterate(vpiParameter, obj_h);
-        while (vpiHandle parameter_h = vpi_scan(parameter_itr)) {
-            std::string parameter_name = vpi_get_str(vpiName, parameter_h);
-            if (param_assign_names.find(parameter_name) == param_assign_names.end()) {
-                AstNode* parameterp = process_parameter(parameter_h, shared, true);
-                if (statementsp == nullptr)
-                    statementsp = parameterp;
-                else
-                    statementsp->addNextNull(parameterp);
-            }
-            vpi_release_handle(parameter_h);
-        }
-        vpi_release_handle(parameter_itr);
+        AstNode* statementsp = process_typedefs_and_params(obj_h, shared);
 
         visit_one_to_many(
             {
