@@ -11,14 +11,9 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /entropy_src_core.sv \
 /entropy_src_reg_top.sv \
 /entropy_src_watermark_reg.sv \
-/flash_ctrl_core_reg_top.sv \
-/hmac_reg_top.sv \
 /keccak_2share.sv \
 /kmac_app.sv \
-/kmac_reg_top.sv \
-/otbn_reg_top.sv \
 /otbn.sv \
-/otp_ctrl_core_reg_top.sv \
 /otp_ctrl_part_buf.sv \
 /otp_ctrl.sv \
 /pinmux_reg_top.sv \
@@ -36,22 +31,27 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /rom_ctrl_scrambled_rom.sv \
 /rom_ctrl.sv \
 /rv_core_ibex_cfg_reg_top.sv \
-/rv_core_ibex.sv \
-/spi_device_reg_top.sv \
 /spi_fwmode.sv \
 /spi_host_data_cdc.sv \
-/spi_host_reg_top.sv \
 /spi_tpm.sv \
 /tlul_fifo_async.sv \
 /tlul_socket_m1.sv \
 /top_earlgrey.sv \
 /uart_reg_top.sv \
-/usbdev_reg_top.sv \
 /usbdev.sv \
 /xbar_main.sv \
 /xbar_peri.sv \
 
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/usbdev_reg_top.sv \
+/spi_host_reg_top.sv \
+/spi_device_reg_top.sv \
+/rv_core_ibex.sv \
+/otp_ctrl_core_reg_top.sv \
+/otbn_reg_top.sv \
+/kmac_reg_top.sv \
+/hmac_reg_top.sv \
+/flash_ctrl_core_reg_top.sv \
 /adc_ctrl_core.sv \
 /kmac_core.sv \
 /otbn_rnd.sv \
