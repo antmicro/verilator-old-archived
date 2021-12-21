@@ -1695,20 +1695,8 @@ AstNode* process_typedef(vpiHandle obj_h, UhdmShared& shared) {
     return typedefp;
 }
 
-AstNode* process_typedefs_and_params(vpiHandle obj_h, UhdmShared& shared) {
-    AstNode* statementsp = nullptr;
-
-    vpiHandle typedef_itr = vpi_iterate(vpiTypedef, obj_h);
-    while (vpiHandle typedef_h = vpi_scan(typedef_itr)) {
-        AstNode* typedefp = process_typedef(typedef_h, shared);
-        if (statementsp == nullptr)
-            statementsp = typedefp;
-        else
-            statementsp->addNextNull(typedefp);
-
-        vpi_release_handle(typedef_h);
-    }
-    vpi_release_handle(typedef_itr);
+AstNode* handle_parameters(vpiHandle obj_h, UhdmShared& shared) {
+    AstNode* parametersp = nullptr;
 
     // Due to problems with sizes of constants,
     // vpiParameter node should only be handled when there is no vpiParamAssign node
@@ -1718,10 +1706,10 @@ AstNode* process_typedefs_and_params(vpiHandle obj_h, UhdmShared& shared) {
     std::set<std::string> param_assign_names;
     visit_one_to_many({vpiParamAssign}, obj_h, shared, [&](AstNode* nodep) {
         param_assign_names.insert(nodep->name());
-        if (statementsp == nullptr)
-            statementsp = nodep;
+        if (parametersp == nullptr)
+            parametersp = nodep;
         else
-            statementsp->addNextNull(nodep);
+            parametersp->addNextNull(nodep);
     });
 
     vpiHandle parameter_itr = vpi_iterate(vpiParameter, obj_h);
@@ -1729,15 +1717,15 @@ AstNode* process_typedefs_and_params(vpiHandle obj_h, UhdmShared& shared) {
         std::string parameter_name = vpi_get_str(vpiName, parameter_h);
         if (param_assign_names.find(parameter_name) == param_assign_names.end()) {
             AstNode* parameterp = process_parameter(parameter_h, shared, true);
-            if (statementsp == nullptr)
-                statementsp = parameterp;
+            if (parametersp == nullptr)
+                parametersp = parameterp;
             else
-                statementsp->addNextNull(parameterp);
+                parametersp->addNextNull(parameterp);
         }
         vpi_release_handle(parameter_h);
     }
     vpi_release_handle(parameter_itr);
-    return statementsp;
+    return parametersp;
 }
 
 AstNode* process_scope(vpiHandle obj_h, UhdmShared& shared, AstNode* bodyp = nullptr) {
@@ -1891,19 +1879,33 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return node;
     }
     case vpiPackage: {
-        AstPackage* package = nullptr;
+        AstPackage* packagep = nullptr;
         auto it = shared.package_map.find(
             objectName);  // In case it has been created because of an import
         if (it != shared.package_map.end())
-            package = it->second;
+            packagep = it->second;
         else
-            package = new AstPackage(new FileLine(objectName), objectName);
-        package->inLibrary(true);
+            packagep = new AstPackage(make_fileline(obj_h), objectName);
+        packagep->inLibrary(true);
         shared.package_prefix = objectName + "::";
-        shared.m_symp->pushNew(package);
+        shared.m_symp->pushNew(packagep);
 
-        AstNode* statementsp = process_typedefs_and_params(obj_h, shared);
-        if (statementsp != nullptr) package->addStmtp(statementsp);
+        AstNode* typedefsp = nullptr;
+        vpiHandle typedef_itr = vpi_iterate(vpiTypedef, obj_h);
+        while (vpiHandle typedef_h = vpi_scan(typedef_itr)) {
+            AstNode* typedefp = process_typedef(typedef_h, shared);
+            if (typedefsp == nullptr)
+               typedefsp = typedefp;
+            else
+               typedefsp->addNextNull(typedefp);
+
+            vpi_release_handle(typedef_h);
+        }
+        vpi_release_handle(typedef_itr);
+        if (typedefsp != nullptr) packagep->addStmtp(typedefsp);
+
+        AstNode* parametersp = handle_parameters(obj_h, shared);
+        if (parametersp != nullptr) packagep->addStmtp(parametersp);
 
         visit_one_to_many(
             {
@@ -1913,15 +1915,15 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 vpiSpecParam,
                 vpiAssertion,
             },
-            obj_h, shared, [&](AstNode* item) {
-                if (item != nullptr) { package->addStmtp(item); }
+            obj_h, shared, [&](AstNode* itemp) {
+                if (itemp != nullptr) { packagep->addStmtp(itemp); }
             });
-        shared.m_symp->popScope(package);
+        shared.m_symp->popScope(packagep);
         shared.package_prefix = shared.package_prefix.substr(0, shared.package_prefix.length()
                                                                     - (objectName.length() + 2));
 
-        shared.package_map[objectName] = package;
-        return package;
+        shared.package_map[objectName] = packagep;
+        return packagep;
     }
     case vpiPort: {
         static unsigned numPorts;
@@ -3206,7 +3208,25 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return process_genScopeArray(obj_h, shared);
     }
     case vpiGenScope: {
-        AstNode* statementsp = process_typedefs_and_params(obj_h, shared);
+        AstNode* statementsp = nullptr;
+
+        vpiHandle typedef_itr = vpi_iterate(vpiTypedef, obj_h);
+        while (vpiHandle typedef_h = vpi_scan(typedef_itr)) {
+            AstNode* typedefp = process_typedef(typedef_h, shared);
+            if (statementsp == nullptr)
+               statementsp = typedefp;
+            else
+               statementsp->addNextNull(typedefp);
+
+            vpi_release_handle(typedef_h);
+        }
+        vpi_release_handle(typedef_itr);
+
+        AstNode* parametersp = handle_parameters(obj_h, shared);
+        if (statementsp == nullptr)
+            statementsp = parametersp;
+        else
+            statementsp->addNextNull(parametersp);
 
         visit_one_to_many(
             {
