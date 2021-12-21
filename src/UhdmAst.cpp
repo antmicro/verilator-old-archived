@@ -1695,7 +1695,7 @@ AstNode* process_typedef(vpiHandle obj_h, UhdmShared& shared) {
     return typedefp;
 }
 
-AstNode* handle_parameters(vpiHandle obj_h, UhdmShared& shared) {
+AstNode* get_parameters(vpiHandle obj_h, UhdmShared& shared) {
     AstNode* parametersp = nullptr;
 
     // Due to problems with sizes of constants,
@@ -1904,7 +1904,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         vpi_release_handle(typedef_itr);
         if (typedefsp != nullptr) packagep->addStmtp(typedefsp);
 
-        AstNode* parametersp = handle_parameters(obj_h, shared);
+        AstNode* parametersp = get_parameters(obj_h, shared);
         if (parametersp != nullptr) packagep->addStmtp(parametersp);
 
         visit_one_to_many(
@@ -3222,7 +3222,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         }
         vpi_release_handle(typedef_itr);
 
-        AstNode* parametersp = handle_parameters(obj_h, shared);
+        AstNode* parametersp = get_parameters(obj_h, shared);
         if (statementsp == nullptr)
             statementsp = parametersp;
         else
