@@ -2623,30 +2623,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         AstNode* bitp = nullptr;
         AstNode* selectp = nullptr;
         visit_one_to_many({vpiIndex}, obj_h, shared, [&](AstNode* itemp) {
-            bitp = itemp;
-            if (itemp->type() == AstType::en::atSelExtract) {
-                selectp = new AstSelExtract(make_fileline(obj_h), fromp,
-                                            ((AstSelExtract*)itemp)->leftp()->cloneTree(true),
-                                            ((AstSelExtract*)itemp)->rightp()->cloneTree(true));
-            } else if (itemp->type() == AstType::en::atSelBit) {
-                selectp = new AstSelBit(make_fileline(obj_h), fromp,
-                                        ((AstSelBit*)itemp)->bitp()->cloneTree(true));
-            } else if (itemp->type() == AstType::en::atConst) {
-                selectp = new AstSelBit(make_fileline(obj_h), fromp, bitp);
-            } else if (itemp->type() == AstType::atSelPlus) {
-                AstSelPlus* selplusp = VN_CAST(itemp, SelPlus);
-                selectp = new AstSelPlus(make_fileline(obj_h), fromp,
-                                         selplusp->bitp()->cloneTree(true),
-                                         selplusp->widthp()->cloneTree(true));
-            } else if (itemp->type() == AstType::atSelMinus) {
-                AstSelMinus* selminusp = VN_CAST(itemp, SelMinus);
-                selectp = new AstSelMinus(make_fileline(obj_h), fromp,
-                                          selminusp->bitp()->cloneTree(true),
-                                          selminusp->widthp()->cloneTree(true));
-
-            } else {
-                selectp = new AstSelBit(make_fileline(obj_h), fromp, bitp);
-            }
+            selectp = new AstSelBit(make_fileline(obj_h), fromp, itemp);
             fromp = selectp;
         });
         return selectp;
