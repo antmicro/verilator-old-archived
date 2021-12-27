@@ -48,6 +48,7 @@ void sanitize_str(std::string& s) {
     if (!s.empty()) {
         auto pos = s.rfind("@");
         s = s.substr(pos + 1);
+        s = AstNode::encodeName(s);
         // Replace [ and ], seen in GenScope names
         s = std::regex_replace(s, std::regex("\\["), "__BRA__");
         s = std::regex_replace(s, std::regex("\\]"), "__KET__");
