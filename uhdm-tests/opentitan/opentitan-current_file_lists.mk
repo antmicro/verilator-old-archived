@@ -3,8 +3,6 @@
 VERILATOR_ONLY_SOURCE_FILENAMES=\
 /sram_ctrl.sv \
 /sram_ctrl_regs_reg_top.sv \
-/tl_main_pkg.sv \
-/tl_peri_pkg.sv \
 /csrng_reg_top.sv \
 /dmi_cdc.sv \
 /edn_reg_top.sv \
@@ -19,7 +17,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /pinmux_reg_top.sv \
 /pinmux.sv \
 /prim_dom_and_2share.sv \
-/prim_fifo_async.sv \
 /prim_generic_rom.sv \
 /prim_ram_1p_scr.sv \
 /prim_rom_adv.sv \
@@ -31,18 +28,19 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /rom_ctrl_scrambled_rom.sv \
 /rom_ctrl.sv \
 /rv_core_ibex_cfg_reg_top.sv \
+/top_earlgrey.sv \
+/uart_reg_top.sv \
+
+VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/usbdev.sv \
 /spi_fwmode.sv \
 /spi_host_data_cdc.sv \
 /spi_tpm.sv \
-/tlul_fifo_async.sv \
-/tlul_socket_m1.sv \
-/top_earlgrey.sv \
-/uart_reg_top.sv \
-/usbdev.sv \
 /xbar_main.sv \
 /xbar_peri.sv \
-
-VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/tlul_fifo_async.sv \
+/tlul_socket_m1.sv \
+/prim_fifo_async.sv \
 /usbdev_reg_top.sv \
 /spi_host_reg_top.sv \
 /spi_device_reg_top.sv \

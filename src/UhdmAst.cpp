@@ -44,10 +44,29 @@ void visit_one_to_one(const std::vector<int> childrenNodeTypes, vpiHandle parent
     }
 }
 
+std::string encodeObjectName(std::string name) {
+    // Verilator uses encodeName function on identifiers
+    // System functions names are not handled as identifiers
+    if (name[0] == '$') return name;
+
+    std::string encodedName = "";
+    std::regex r = std::regex("\\.|::");
+    std::smatch matchResult;
+    while (std::regex_search(name, matchResult, r)) {
+        std::string nameComponent = matchResult.prefix().str();
+        encodedName += AstNode::encodeName(nameComponent);
+        encodedName += matchResult.str();
+        name = matchResult.suffix().str();
+    }
+    encodedName += AstNode::encodeName(name);
+    return encodedName;
+}
+
 void sanitize_str(std::string& s) {
     if (!s.empty()) {
         auto pos = s.rfind("@");
         s = s.substr(pos + 1);
+        s = encodeObjectName(s);
         // Replace [ and ], seen in GenScope names
         s = std::regex_replace(s, std::regex("\\["), "__BRA__");
         s = std::regex_replace(s, std::regex("\\]"), "__KET__");
