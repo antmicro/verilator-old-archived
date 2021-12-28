@@ -45,8 +45,8 @@ void visit_one_to_one(const std::vector<int> childrenNodeTypes, vpiHandle parent
 }
 
 std::string encodeObjectName(std::string name) {
-    // Verilator uses encodeName function on identificators
-    // System functions names are not handled as identificators
+    // Verilator uses encodeName function on identifiers
+    // System functions names are not handled as identifiers
     if (name[0] == '$') return name;
 
     std::string encodedName = "";
