@@ -28,14 +28,14 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /rom_ctrl_scrambled_rom.sv \
 /rom_ctrl.sv \
 /rv_core_ibex_cfg_reg_top.sv \
+/top_earlgrey.sv \
+/uart_reg_top.sv \
+
+VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/usbdev.sv \
 /spi_fwmode.sv \
 /spi_host_data_cdc.sv \
 /spi_tpm.sv \
-/top_earlgrey.sv \
-/uart_reg_top.sv \
-/usbdev.sv \
-
-VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
 /xbar_main.sv \
 /xbar_peri.sv \
 /tlul_fifo_async.sv \
