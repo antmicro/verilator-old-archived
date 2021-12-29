@@ -192,17 +192,8 @@ jobs:
         submodules: recursive
         fetch-depth: 1
 
-    - name: Download binaries
-      uses: actions/download-artifact@v2
-      with:
-        name: binaries
-
-    # See https://github.com/actions/upload-artifact/issues/38
-    - name: Extract
-      run: tar -xf binaries.tar
-
-    - name: Build & Test
-      run: ./uhdm-integration/.github/ci.sh
+    - name: Test action
+      uses: ./.github/workflows/test_action.yml
       env:
         TEST_CASE: ${{ matrix.TEST_CASE }}
 
