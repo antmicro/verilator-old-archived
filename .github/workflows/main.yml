@@ -193,7 +193,7 @@ jobs:
         fetch-depth: 1
 
     - name: Test action
-      uses: ./.github/workflows/test_action.yml
+      uses: ./.github/workflows/test_action
       env:
         TEST_CASE: ${{ matrix.TEST_CASE }}
 
