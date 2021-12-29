@@ -109,6 +109,8 @@ jobs:
     outputs:
       matrix1: ${{ steps.generate-matrix-part-1.outputs.matrix }}
       matrix2: ${{ steps.generate-matrix-part-2.outputs.matrix }}
+    env:
+      DISABLED_TESTS: "cmake ibex synthesis serv swerv OneClass hello-uvm OneThis opentitan CastStructArray StringAssignment"
     steps:
       - name: Install dependencies
         run: |
@@ -125,14 +127,14 @@ jobs:
       - name: Generate matrix - part 1
         id: generate-matrix-part-1
         run: |
-          matrix="$(cd uhdm-integration && python list.py --part 1 -d tests -s cmake ibex synthesis serv swerv OneClass hello-uvm OneThis opentitan CastStructArray StringAssignment)"
+          matrix="$(cd uhdm-integration && python list.py --part 1 -d tests -s $DISABLED_TESTS)"
           echo "::set-output name=matrix::$matrix"
           echo "Matrix: $matrix"
 
       - name: Generate matrix - part 2
         id: generate-matrix-part-2
         run: |
-          matrix="$(cd uhdm-integration && python list.py --part 2 -d tests -s cmake ibex synthesis serv swerv OneClass hello-uvm OneThis opentitan CastStructArray StringAssignment)"
+          matrix="$(cd uhdm-integration && python list.py --part 2 -d tests -s $DISABLED_TESTS)"
           echo "::set-output name=matrix::$matrix"
           echo "Matrix: $matrix"
 
