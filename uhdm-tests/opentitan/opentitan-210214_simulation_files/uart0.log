@@ -1,0 +1,6 @@
+I00000 boot_rom.c:53] Version:    opentitan-snapshot-20191101-1-4317-g72799e991
+Build Date: 2021-02-12, 16:48:50
+
+I00001 boot_rom.c:62] Boot ROM initialisation has completed, jump into flash!
+I00000 hello_world.c:78] Hello World!
+I00001 hello_world.c:79] Built at: Feb 15 2021, 16:05:44
