@@ -4,7 +4,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /sram_ctrl.sv \
 /sram_ctrl_regs_reg_top.sv \
 /csrng_reg_top.sv \
-/dmi_cdc.sv \
 /edn_reg_top.sv \
 /entropy_src_core.sv \
 /entropy_src_reg_top.sv \
@@ -32,6 +31,7 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /uart_reg_top.sv \
 
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/dmi_cdc.sv \
 /usbdev.sv \
 /spi_fwmode.sv \
 /spi_host_data_cdc.sv \
@@ -227,3 +227,4 @@ VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
 /uartdpi.sv \
 /clkmgr_byp.sv \
 /clkmgr.sv \
+/dmi_jtag.sv \
