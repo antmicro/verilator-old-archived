@@ -620,14 +620,9 @@ jobs:
         TARGET: uhdm/verilator/simple-system
         TEST_CASE: tests/ibex
 
-    - name: Build & Test (vanilla verilator)
+    - name: Compare results
       run: |
-        ./uhdm-integration/.github/ci.sh
-        timeout 5m ./uhdm-integration/build/lowrisc_ibex_ibex_simple_system_0/sim-verilator/Vibex_simple_system --meminit=ram,uhdm-tests/ibex/hello_test.elf
-        diff -y ibex_simple_system.log output_uhdm/ibex_simple_system.log
-      env:
-        TARGET: verilator/simple-system
-        TEST_CASE: tests/ibex
+        diff -y output_uhdm/ibex_simple_system.log uhdm-tests/ibex/ibex_simple_system.log
 
     - uses: actions/upload-artifact@v2
       with:
