@@ -496,41 +496,29 @@ jobs:
       run: tar -xf binaries.tar
 
     - name: Prepare output directory
-      run: mkdir output_uhdm_vanilla_verilator
+      run: mkdir output_uhdm
 
     - name: Build & Test (uhdm verilator)
       run: |
         pip install virtualenv
         ./uhdm-integration/.github/ci.sh
         set -o pipefail
-        timeout 5m ./uhdm-integration/build/lowrisc_dv_chip_verilator_sim_0.1/sim-verilator/Vchip_sim_tb --meminit=rom,uhdm-tests/opentitan/opentitan_current_sw/boot_rom_sim_verilator.scr.39.vmem --meminit=otp,uhdm-tests/opentitan/opentitan_current_sw/otp_img_sim_verilator.vmem --meminit=flash,uhdm-tests/opentitan/opentitan_current_sw/otbn_smoketest_sim_verilator.elf | tee output_uhdm_vanilla_verilator/uhdm_verilator_simulation.log
-        cp uart0.log output_uhdm_vanilla_verilator/uhdm_verilator_uart.log
-        cp trace_core_00000000.log output_uhdm_vanilla_verilator/uhdm_verilator_trace.log
+        timeout 5m ./uhdm-integration/build/lowrisc_dv_chip_verilator_sim_0.1/sim-verilator/Vchip_sim_tb --meminit=rom,uhdm-tests/opentitan/opentitan-current_simulation_files/boot_rom_sim_verilator.scr.39.vmem --meminit=otp,uhdm-tests/opentitan/opentitan-current_simulation_files/otp_img_sim_verilator.vmem --meminit=flash,uhdm-tests/opentitan/opentitan-current_simulation_files/otbn_smoketest_sim_verilator.elf | tee output_uhdm/uhdm_verilator_simulation.log
+        cp uart0.log output_uhdm/uart0.log
+        cp trace_core_00000000.log output_uhdm/uhdm_verilator_trace.log
       env:
         TARGET: uhdm/verilator/opentitan
         TEST_CASE: tests/opentitan/opentitan-current
 
-    - name: Build & Test (vanilla verilator)
+    - name: Check output
       run: |
-        pip install virtualenv
-        ./uhdm-integration/.github/ci.sh
-        set -o pipefail
-        timeout 5m ./uhdm-integration/build/lowrisc_dv_chip_verilator_sim_0.1/sim-verilator/Vchip_sim_tb --meminit=rom,uhdm-tests/opentitan/opentitan_current_sw/boot_rom_sim_verilator.scr.39.vmem --meminit=otp,uhdm-tests/opentitan/opentitan_current_sw/otp_img_sim_verilator.vmem --meminit=flash,uhdm-tests/opentitan/opentitan_current_sw/otbn_smoketest_sim_verilator.elf | tee output_uhdm_vanilla_verilator/vanilla_verilator_simulation.log
-        cp uart0.log output_uhdm_vanilla_verilator/vanilla_verilator_uart.log
-        cp trace_core_00000000.log output_uhdm_vanilla_verilator/vanilla_verilator_trace.log
-      env:
-        TARGET: verilator/opentitan
-        TEST_CASE: tests/opentitan/opentitan-current
-
-    - name: Compare results
-      run: |
-        diff output_uhdm_vanilla_verilator/vanilla_verilator_uart.log output_uhdm_vanilla_verilator/uhdm_verilator_uart.log
+        diff output_uhdm/uart0.log uhdm-tests/opentitan/opentitan-current_simulation_files/uart0.log
 
     - uses: actions/upload-artifact@v2
       with:
         name: opentitan-earl-grey-simulation-output
         path: |
-          output_uhdm_vanilla_verilator
+          output_uhdm
           **/plot_*.svg
 
   opentitan-earlgrey-210214:
