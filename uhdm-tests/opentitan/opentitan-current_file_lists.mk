@@ -9,7 +9,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /entropy_src_reg_top.sv \
 /entropy_src_watermark_reg.sv \
 /keccak_2share.sv \
-/kmac_app.sv \
 /otbn.sv \
 /otp_ctrl_part_buf.sv \
 /otp_ctrl.sv \
@@ -31,6 +30,7 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /uart_reg_top.sv \
 
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/kmac_app.sv \
 /dmi_cdc.sv \
 /usbdev.sv \
 /spi_fwmode.sv \
