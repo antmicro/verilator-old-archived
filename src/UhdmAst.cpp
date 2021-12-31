@@ -1030,32 +1030,17 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared, std::vector<AstN
         return new AstCond(make_fileline(obj_h), operands[0], operands[1], operands[2]);
     }
     case vpiConcatOp: {
-        AstNode* op1p = nullptr;
-        AstNode* op2p = nullptr;
+        AstNode* concatOp = nullptr;
         for (auto op : operands) {
             if (op != nullptr) {
-                if (op1p == nullptr) {
-                    op1p = op;
-                } else if (op2p == nullptr) {
-                    op2p = op;
+                if (concatOp == nullptr) {
+                    concatOp = op;
                 } else {
-                    // Add one more level
-                    op1p = new AstConcat(make_fileline(obj_h), op1p, op2p);
-                    op2p = op;
+                    concatOp = new AstConcat(make_fileline(obj_h), concatOp, op);
                 }
             }
         }
-        // The following case doesn't require wrapping in AstReplicate
-        if (op2p == nullptr && VN_IS(op1p, Const))
-            return op1p;
-        // Wrap in a Replicate node
-        if (op2p != nullptr) {
-            op1p = new AstConcat(make_fileline(obj_h), op1p, op2p);
-            op2p = new AstConst(make_fileline(obj_h), 1);
-        } else {
-            op2p = new AstConst(make_fileline(obj_h), 1);
-        }
-        return new AstReplicate(make_fileline(obj_h), op1p, op2p);
+        return concatOp;
     }
     case vpiMultiConcatOp: {
         // Sides in AST are switched: first value, then count
