@@ -2659,36 +2659,40 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         // Surelog returns vpiVarSelect in both cases
         // but the fields that we use are the same
         auto* fromp = get_referenceNode(make_fileline(obj_h), objectName, shared);
-        AstNode* bitp = nullptr;
-        AstNode* selectp = nullptr;
-        visit_one_to_many({vpiIndex}, obj_h, shared, [&](AstNode* itemp) {
-            bitp = itemp;
-            if (itemp->type() == AstType::en::atSelExtract) {
-                selectp = new AstSelExtract(make_fileline(obj_h), fromp,
-                                            ((AstSelExtract*)itemp)->leftp()->cloneTree(true),
-                                            ((AstSelExtract*)itemp)->rightp()->cloneTree(true));
-            } else if (itemp->type() == AstType::en::atSelBit) {
-                selectp = new AstSelBit(make_fileline(obj_h), fromp,
-                                        ((AstSelBit*)itemp)->bitp()->cloneTree(true));
-            } else if (itemp->type() == AstType::en::atConst) {
-                selectp = new AstSelBit(make_fileline(obj_h), fromp, bitp);
-            } else if (itemp->type() == AstType::atSelPlus) {
-                AstSelPlus* selplusp = VN_CAST(itemp, SelPlus);
-                selectp = new AstSelPlus(make_fileline(obj_h), fromp,
-                                         selplusp->bitp()->cloneTree(true),
-                                         selplusp->widthp()->cloneTree(true));
-            } else if (itemp->type() == AstType::atSelMinus) {
-                AstSelMinus* selminusp = VN_CAST(itemp, SelMinus);
-                selectp = new AstSelMinus(make_fileline(obj_h), fromp,
-                                          selminusp->bitp()->cloneTree(true),
-                                          selminusp->widthp()->cloneTree(true));
-
-            } else {
-                selectp = new AstSelBit(make_fileline(obj_h), fromp, bitp);
+        vpiHandle index_itr = vpi_iterate(vpiIndex, obj_h);
+        while (vpiHandle index_h = vpi_scan(index_itr)) {
+            // With current Surelog, index operation inside vpiIndex
+            // can mean either the index operation on the root object
+            // or the operation nested in index, like a[b[c]].
+            // We distinguish it by checking the name of parent field
+            bool validParentName = false;
+            vpiHandle parent_h = vpi_handle(vpiParent, index_h);
+            if (parent_h) {
+                std::string indexParentName = get_object_name(parent_h, {vpiName, vpiFullName});
+                if (indexParentName != objectName) {
+                    validParentName = true;
+                    AstNode* bitp = visit_object(index_h, shared);
+                    fromp = new AstSelBit(make_fileline(obj_h), fromp, bitp);
+                }
+                vpi_release_handle(parent_h);
             }
-            fromp = selectp;
-        });
-        return selectp;
+            if (not validParentName) {
+                auto index_type = vpi_get(vpiType, index_h);
+                if (index_type == vpiBitSelect) {
+                    fromp = applyBitSelect(index_h, fromp, shared);
+                } else if (index_type == vpiPartSelect) {
+                    fromp = applyPartSelect(index_h, fromp, shared);
+                } else if (index_type == vpiIndexedPartSelect) {
+                    fromp = applyIndexedPartSelect(index_h, fromp, shared);
+                } else {
+                    AstNode* itemp = visit_object(index_h, shared);
+                    fromp = new AstSelBit(make_fileline(obj_h), fromp, itemp);
+                }
+            }
+            vpi_release_handle(index_h);
+        }
+        vpi_release_handle(index_itr);
+        return fromp;
     }
     case vpiTask:
     case vpiFunction: {
