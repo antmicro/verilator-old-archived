@@ -1367,20 +1367,41 @@ AstNode* process_hierPath(vpiHandle obj_h, UhdmShared& shared) {
 
     vpiHandle actual_itr = vpi_iterate(vpiActual, obj_h);
     while (vpiHandle actual_h = vpi_scan(actual_itr)) {
-        auto actual_type = vpi_get(vpiType, actual_h);
-        std::string actualObjectName = get_object_name(actual_h);
-        if (actual_type == vpiMethodFuncCall) {
-            hierPathp = process_method_call(actual_h, hierPathp, shared);
-        } else if (actual_type == vpiBitSelect && actualObjectName == "") {
-            // https://github.com/chipsalliance/Surelog/issues/2287
-            hierPathp = applyBitSelect(actual_h, hierPathp, shared);
-        } else {
-            AstNode* hierItemp = visit_object(actual_h, shared);
-
-            if (hierPathp == nullptr)
-                hierPathp = hierItemp;
-            else
-                hierPathp = new AstDot(fl, false, hierPathp, hierItemp);
+        // Similar situation like in vpiVarSelect
+        bool differentParentName = false;
+        vpiHandle parent_h = vpi_handle(vpiParent, actual_h);
+        if (parent_h) {
+            // TODO: use vpi_compare_objects() function
+            // when https://github.com/chipsalliance/UHDM/issues/603 will be fixed
+            std::string actualParentName = get_object_name(parent_h, {vpiName, vpiFullName});
+            if (actualParentName != objectName) {
+                differentParentName = true;
+                AstNode* hierItemp = visit_object(actual_h, shared);
+                if (hierPathp == nullptr)
+                    hierPathp = hierItemp;
+                else
+                    hierPathp = new AstDot(fl, false, hierPathp, hierItemp);
+            }
+            vpi_release_handle(parent_h);
+        }
+        if (not differentParentName) {
+            auto actual_type = vpi_get(vpiType, actual_h);
+            if (actual_type == vpiMethodFuncCall) {
+                hierPathp = process_method_call(actual_h, hierPathp, shared);
+            } else if (actual_type == vpiBitSelect) {
+                // https://github.com/chipsalliance/Surelog/issues/2287
+                hierPathp = applyBitSelect(actual_h, hierPathp, shared);
+            } else if (actual_type == vpiPartSelect) {
+                hierPathp = applyPartSelect(actual_h, hierPathp, shared);
+            } else if (actual_type == vpiIndexedPartSelect) {
+                hierPathp = applyIndexedPartSelect(actual_h, hierPathp, shared);
+            } else {
+                AstNode* hierItemp = visit_object(actual_h, shared);
+                if (hierPathp == nullptr)
+                    hierPathp = hierItemp;
+                else
+                    hierPathp = new AstDot(fl, false, hierPathp, hierItemp);
+            }
         }
         vpi_release_handle(actual_h);
     }
@@ -2665,18 +2686,20 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             // can mean either the index operation on the root object
             // or the operation nested in index, like a[b[c]].
             // We distinguish it by checking the name of parent field
-            bool validParentName = false;
+            bool differentParentName = false;
             vpiHandle parent_h = vpi_handle(vpiParent, index_h);
             if (parent_h) {
+                // TODO: use vpi_compare_objects() function
+                // when https://github.com/chipsalliance/UHDM/issues/603 will be fixed
                 std::string indexParentName = get_object_name(parent_h, {vpiName, vpiFullName});
                 if (indexParentName != objectName) {
-                    validParentName = true;
+                    differentParentName = true;
                     AstNode* bitp = visit_object(index_h, shared);
                     fromp = new AstSelBit(make_fileline(obj_h), fromp, bitp);
                 }
                 vpi_release_handle(parent_h);
             }
-            if (not validParentName) {
+            if (not differentParentName) {
                 auto index_type = vpi_get(vpiType, index_h);
                 if (index_type == vpiBitSelect) {
                     fromp = applyBitSelect(index_h, fromp, shared);
