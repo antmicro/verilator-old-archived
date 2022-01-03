@@ -293,6 +293,23 @@ AstSelBit* applyBitSelect(vpiHandle obj_h, AstNode* fromp, UhdmShared& shared) {
     return new AstSelBit(make_fileline(obj_h), fromp, bitp);
 }
 
+AstNode* applyIndexedPartSelect(vpiHandle obj_h, AstNode* fromp, UhdmShared& shared) {
+    AstNode* basep = nullptr;
+    visit_one_to_one({vpiBaseExpr}, obj_h, shared, [&](AstNode* itemp) { basep = itemp; });
+
+    AstNode* widthp = nullptr;
+    visit_one_to_one({vpiWidthExpr}, obj_h, shared, [&](AstNode* itemp) { widthp = itemp; });
+
+    auto type = vpi_get(vpiIndexedPartSelectType, obj_h);
+    if (type == vpiPosIndexed) {
+        return new AstSelPlus(make_fileline(obj_h), fromp, basep, widthp);
+    } else if (type == vpiNegIndexed) {
+        return new AstSelMinus(make_fileline(obj_h), fromp, basep, widthp);
+    } else {
+        return nullptr;
+    }
+}
+
 AstNode* get_class_package_ref_node(FileLine* fl, std::string objectName, UhdmShared& shared) {
     AstNode* refp = nullptr;
     size_t colon_pos = objectName.find("::");
@@ -3003,37 +3020,12 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return new AstSelExtract(make_fileline(obj_h), fromNode, msbNode, lsbNode);
     }
     case vpiIndexedPartSelect: {
-        AstNode* bit = nullptr;
-        AstNode* width = nullptr;
-        AstNode* fromNode = nullptr;
-
-        visit_one_to_one(
-            {
-                vpiBaseExpr,
-                vpiWidthExpr,
-            },
-            obj_h, shared, [&](AstNode* item) {
-                if (item) {
-                    if (bit == nullptr) {
-                        bit = item;
-                    } else if (width == nullptr) {
-                        width = item;
-                    }
-                }
-            });
         auto parent_h = vpi_handle(vpiParent, obj_h);
         std::string parent_name = get_object_name(parent_h, {vpiName, vpiFullName});
+        vpi_release_handle(parent_h);
+        AstNode* fromp = get_referenceNode(make_fileline(obj_h), parent_name, shared);
 
-        fromNode = get_referenceNode(make_fileline(obj_h), parent_name, shared);
-
-        auto type = vpi_get(vpiIndexedPartSelectType, obj_h);
-        if (type == vpiPosIndexed) {
-            return new AstSelPlus(make_fileline(obj_h), fromNode, bit, width);
-        } else if (type == vpiNegIndexed) {
-            return new AstSelMinus(make_fileline(obj_h), fromNode, bit, width);
-        } else {
-            return nullptr;
-        }
+        return applyIndexedPartSelect(obj_h, fromp, shared);
     }
     case vpiFor: {
         AstNode* initsp = nullptr;
