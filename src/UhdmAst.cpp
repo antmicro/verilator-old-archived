@@ -1374,6 +1374,8 @@ AstNode* process_hierPath(vpiHandle obj_h, UhdmShared& shared) {
         } else if (actual_type == vpiBitSelect && actualObjectName == "") {
             // https://github.com/chipsalliance/Surelog/issues/2287
             hierPathp = applyBitSelect(actual_h, hierPathp, shared);
+        } else if (actual_type == vpiIndexedPartSelect && actualObjectName == "") {
+            hierPathp = applyIndexedPartSelect(actual_h, hierPathp, shared);
         } else {
             AstNode* hierItemp = visit_object(actual_h, shared);
 
