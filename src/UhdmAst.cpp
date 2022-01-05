@@ -293,6 +293,16 @@ AstSelBit* applyBitSelect(vpiHandle obj_h, AstNode* fromp, UhdmShared& shared) {
     return new AstSelBit(make_fileline(obj_h), fromp, bitp);
 }
 
+AstSelExtract* applyPartSelect(vpiHandle obj_h, AstNode* fromp, UhdmShared& shared) {
+    AstNode* leftp = nullptr;
+    visit_one_to_one({vpiLeftRange}, obj_h, shared, [&](AstNode* itemp) { leftp = itemp; });
+
+    AstNode* rightp = nullptr;
+    visit_one_to_one({vpiRightRange}, obj_h, shared, [&](AstNode* itemp) { rightp = itemp; });
+
+    return new AstSelExtract(make_fileline(obj_h), fromp, leftp, rightp);
+}
+
 AstNode* applyIndexedPartSelect(vpiHandle obj_h, AstNode* fromp, UhdmShared& shared) {
     AstNode* basep = nullptr;
     visit_one_to_one({vpiBaseExpr}, obj_h, shared, [&](AstNode* itemp) { basep = itemp; });
@@ -2996,31 +3006,12 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
         return rangeNode;
     }
     case vpiPartSelect: {
-        AstNode* msbNode = nullptr;
-        AstNode* lsbNode = nullptr;
-        AstNode* fromNode = nullptr;
-
-        visit_one_to_one(
-            {
-                vpiLeftRange,
-                vpiRightRange,
-            },
-            obj_h, shared, [&](AstNode* item) {
-                if (item) {
-                    if (msbNode == nullptr) {
-                        msbNode = item;
-                    } else if (lsbNode == nullptr) {
-                        lsbNode = item;
-                    }
-                }
-            });
         auto parent_h = vpi_handle(vpiParent, obj_h);
-        if (parent_h != 0) {
-            std::string parent_name = get_object_name(parent_h, {vpiName, vpiFullName});
+        std::string parent_name = get_object_name(parent_h, {vpiName, vpiFullName});
+        vpi_release_handle(parent_h);
+        AstNode* fromp = get_referenceNode(make_fileline(obj_h), parent_name, shared);
 
-            fromNode = get_referenceNode(make_fileline(obj_h), parent_name, shared);
-        }
-        return new AstSelExtract(make_fileline(obj_h), fromNode, msbNode, lsbNode);
+        return applyPartSelect(obj_h, fromp, shared);
     }
     case vpiIndexedPartSelect: {
         auto parent_h = vpi_handle(vpiParent, obj_h);
