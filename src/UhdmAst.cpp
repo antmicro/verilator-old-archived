@@ -300,12 +300,15 @@ AstNode* applyIndexedPartSelect(vpiHandle obj_h, AstNode* fromp, UhdmShared& sha
     AstNode* widthp = nullptr;
     visit_one_to_one({vpiWidthExpr}, obj_h, shared, [&](AstNode* itemp) { widthp = itemp; });
 
+    FileLine* fl = make_fileline(obj_h);
+
     auto type = vpi_get(vpiIndexedPartSelectType, obj_h);
     if (type == vpiPosIndexed) {
-        return new AstSelPlus(make_fileline(obj_h), fromp, basep, widthp);
+        return new AstSelPlus(fl, fromp, basep, widthp);
     } else if (type == vpiNegIndexed) {
-        return new AstSelMinus(make_fileline(obj_h), fromp, basep, widthp);
+        return new AstSelMinus(fl, fromp, basep, widthp);
     } else {
+        fl->v3error("Unknown value of vpiIndexedPartSelectType: " << type << std::endl);
         return nullptr;
     }
 }
