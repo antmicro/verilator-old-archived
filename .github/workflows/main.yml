@@ -15,6 +15,7 @@ jobs:
       CC: gcc-9
       CXX: g++-9
       CCACHE_DIR: "/root/verilator/verilator/.cache/"
+      DEBIAN_FRONTEND: noninteractive
 
     steps:
 
@@ -111,6 +112,7 @@ jobs:
       matrix2: ${{ steps.generate-matrix-part-2.outputs.matrix }}
     env:
       DISABLED_TESTS: "cmake ibex synthesis serv swerv OneClass hello-uvm OneThis opentitan CastStructArray StringAssignment"
+      DEBIAN_FRONTEND: noninteractive
     steps:
       - name: Install dependencies
         run: |
@@ -143,6 +145,8 @@ jobs:
     container: ubuntu:latest
     outputs:
       matrix: ${{ steps.generate-ibex-modules.outputs.matrix }}
+    env:
+      DEBIAN_FRONTEND: noninteractive
     steps:
       - name: Install dependencies
         run: |
@@ -175,6 +179,7 @@ jobs:
     env:
       CC: gcc-9
       CXX: g++-9
+      DEBIAN_FRONTEND: noninteractive
       GIT_HTTP_LOW_SPEED_LIMIT: 1
       GIT_HTTP_LOW_SPEED_TIME: 600
       TARGET: uhdm/verilator/test-ast
@@ -218,6 +223,7 @@ jobs:
     env:
       CC: gcc-9
       CXX: g++-9
+      DEBIAN_FRONTEND: noninteractive
       GIT_HTTP_LOW_SPEED_LIMIT: 1
       GIT_HTTP_LOW_SPEED_TIME: 600
       TARGET: uhdm/verilator/test-ast
@@ -263,6 +269,7 @@ jobs:
     env:
       CC: gcc-9
       CXX: g++-9
+      DEBIAN_FRONTEND: noninteractive
       GIT_HTTP_LOW_SPEED_LIMIT: 1
       GIT_HTTP_LOW_SPEED_TIME: 600
 
@@ -309,6 +316,8 @@ jobs:
     container: ubuntu:latest
     outputs:
       matrix: ${{ steps.generate-opentitan-current-modules.outputs.matrix }}
+    env:
+      DEBIAN_FRONTEND: noninteractive
     steps:
       - name: Install dependencies
         run: |
@@ -343,6 +352,7 @@ jobs:
     env:
       CC: gcc-9
       CXX: g++-9
+      DEBIAN_FRONTEND: noninteractive
       GIT_HTTP_LOW_SPEED_LIMIT: 1
       GIT_HTTP_LOW_SPEED_TIME: 600
 
@@ -388,6 +398,8 @@ jobs:
     container: ubuntu:latest
     outputs:
       matrix: ${{ steps.generate-opentitan-210214-modules.outputs.matrix }}
+    env:
+      DEBIAN_FRONTEND: noninteractive
     steps:
       - name: Install dependencies
         run: |
@@ -422,6 +434,7 @@ jobs:
     env:
       CC: gcc-9
       CXX: g++-9
+      DEBIAN_FRONTEND: noninteractive
       GIT_HTTP_LOW_SPEED_LIMIT: 1
       GIT_HTTP_LOW_SPEED_TIME: 600
 
@@ -471,6 +484,7 @@ jobs:
     env:
       CC: gcc-9
       CXX: g++-9
+      DEBIAN_FRONTEND: noninteractive
 
     steps:
 
@@ -528,6 +542,7 @@ jobs:
     env:
       CC: gcc-9
       CXX: g++-9
+      DEBIAN_FRONTEND: noninteractive
 
     steps:
 
@@ -585,6 +600,7 @@ jobs:
     env:
       CC: gcc-9
       CXX: g++-9
+      DEBIAN_FRONTEND: noninteractive
 
     steps:
 
@@ -638,6 +654,7 @@ jobs:
     env:
       CC: gcc-9
       CXX: g++-9
+      DEBIAN_FRONTEND: noninteractive
 
     steps:
 
@@ -675,6 +692,8 @@ jobs:
     container: ubuntu:latest
     outputs:
       matrix: ${{ steps.generate-matrix-vcddiff.outputs.matrix }}
+    env:
+      DEBIAN_FRONTEND: noninteractive
     steps:
       - name: Install dependencies
         run: |
@@ -691,7 +710,7 @@ jobs:
       - name: Generate matrix (vcddiff)
         id: generate-matrix-vcddiff
         run: |
-          matrix="$(cd uhdm-integration && python list.py -d tests -s ibex swerv synthesis opentitan hello-uvm assignment-pattern Forever BitsCallOnType OneClass Continue AnonymousUnion FunctionOnDesignLevel ParameterUnpackedArray VoidFunction2Returns PatternStruct ImportedFunctionCallInModuleAndSubmodule VoidFunctionWithoutReturn cmake PutC OneThis CastInFunctionInGenBlock PatternType FunctionOutputArgument GetC ForkJoinTypes EnumFirstInInitial ImportFunction DpiChandle Disable EnumFirst TypedefOnFileLevel UnsizedConstantsParameterParsing Fork PatternInFunction TypedefVariableDimensions ParameterUnpackedLogicArray SelectFromUnpackedInFunction PatternReplication VoidFunction MultiplePrints BitSelectPartSelectInFunction ImportPackageWithFunction ParameterPackedArray StringAssignment SystemFunctions 2DFunctionArg ArrayInit array-copy FunctionColonReference ParameterColonReference ParameterSizeOfInstance PkgParamAsFunctionArg xor_assignment fsm_using_always OneNetInterf cs_registers UnpackedArray InterfaceAssign fsm_using_function OneNetRange ParameterWithUnderscoreValueDividedPassedFromCommandLine FunctionExportDPI OnePackage InterfaceInitial InterfaceAlways OneCast fsm_single_always TaskExportDPI OneImport hier_path CastStructArray InterfaceAsPort ParameterInitializedByPartSelectOfParameters ParameterInitializedByPartSelectOfParametersAssignedToVar StringAssignment EnumParameterInNestedModules 2DeclarationsInFor 1DUnpackedArray 2DUnpackedArray ArraySize AssignBitsCallToSubmoduleParameter DeclarationInFor EnumArrayListedElements EnumArray DivisionOfSize ImportedPackageEnumItemInInterface InterfaceVariable ConstSizes InterfaceParameterSetValue InterfaceWithPort InterfaceAsPortAssignValueInSubmodule InterfaceParameter LogicPackedArray NestedParamSubstitution MultiAssignmentPatternOfConcat MixedPatterns NegationOfPatternParameterInInstance OneArithShift ParameterPackedArraySurelogSubstitution PatternDefault PatternAsParameterOfInstance Repeat Shortreal TypedefedRangedFunctionArgument RealValue TaskImportDPI TaskOutputArgument TypedefAliasInPackage PartSelectOfPartSelectedBitSelect TaskReturn PatternAsFunctionArgument PatternIndexes ReturnEnumArray unary_op_minus TypedefPackedDimensions unary_op_plus UnsizedConstantParameter unary_op_not_log UnsizedConstantParameterInInstance UnsizedConstantsParsing UnsizedConstant FunctionWithOverriddenParameter ImportedDoubleCastedParameter ImportedEnumCast ParameterInitializationWithNegation StringAssignConcatenation StringLocalParamInitByConcatenation StructParameterInitializedWithPatternAndReferenced StringWithBackslash serv-minimal serv conditional_if AssignSumOfConstants AssignSumOfConstantsInSubmodule AssignSumWithParameter AssignSumWithParameterInSubmodule CastClog2 CastClog2ToMinimalSizeOfParamValue CastClog2ToMinimalSizeOfParamValueFromCommandLine CastToSumOfConstants CastToSumWithParameterInSubmodule Clog2OfSumWithParameterIn2InstancesOfSubmodule OutputSizeWithParameterOfInstanceInitializedByStructMember ParameterInGenScopeInitializedWithLongConstant ImportedParameter ImportTypeOfPort ImportParametrizedTypeAndDeclareParamWithTheSameName ParameterPassedToSubmoduleOfSubmodule ParameterPassedTo3TimesNestedSubmodule ParameterPassedToSubmoduleInGenscopeOfSubmodule ParameterInitializedInTopOf5LevelHierarchy ParameterInitializedInSubModuleOfTopOf5LevelHierarchy ParameterInitializedInTopOf5LevelHierarchyWithUnusedParamInTheMiddle ParameterInitializedInTopOf5LevelHierarchyWithUnusedParamOfDifferentTypeInTheMiddle IndexedPartSelectOfArrayElement CastInFunctionToParameterWidth CastToSumWithParameterIn2InstancesOfSubmodule ClogOfParamOfInstanceInitializedByStructMember MemberSelectOf2DStructPackedArray SelectOnMemberSelectedFrom2DArray SubmoduleInGenScopeWithGenScopeParametrizedByParameterFromTopModule TypedefStructArray VarPassedTo2Submodules FunctionParam MultipleAssignments NegationOfPatternParameter AssignSizeOfVar CppMacroNameAsVariableName ParameterDoubleUnderscoreInSvFrontend ParameterInitializedByOperationOnPackageParametersAndUsedInGenscope ParameterOfParametrizedType ParameterOfParametrizedTypeInSubmodule ParameterOfSizeOfParametrizedPort ParameterOfSizeOfParametrizedPortInSubmodule ParameterOfSizeOfPort BitsCallOnSubArray SumOfParameters)"
+          matrix="$(cd uhdm-integration && python list.py -d tests -s ibex swerv synthesis opentitan hello-uvm assignment-pattern Forever BitsCallOnType OneClass Continue AnonymousUnion FunctionOnDesignLevel ParameterUnpackedArray VoidFunction2Returns PatternStruct ImportedFunctionCallInModuleAndSubmodule VoidFunctionWithoutReturn cmake PutC OneThis CastInFunctionInGenBlock PatternType FunctionOutputArgument GetC ForkJoinTypes EnumFirstInInitial ImportFunction DpiChandle Disable EnumFirst TypedefOnFileLevel UnsizedConstantsParameterParsing Fork PatternInFunction TypedefVariableDimensions ParameterUnpackedLogicArray SelectFromUnpackedInFunction PatternReplication VoidFunction MultiplePrints BitSelectPartSelectInFunction ImportPackageWithFunction ParameterPackedArray StringAssignment SystemFunctions 2DFunctionArg ArrayInit array-copy FunctionColonReference ParameterColonReference ParameterSizeOfInstance PkgParamAsFunctionArg xor_assignment fsm_using_always OneNetInterf cs_registers UnpackedArray InterfaceAssign fsm_using_function OneNetRange ParameterWithUnderscoreValueDividedPassedFromCommandLine FunctionExportDPI OnePackage InterfaceInitial InterfaceAlways OneCast fsm_single_always TaskExportDPI OneImport hier_path CastStructArray InterfaceAsPort ParameterInitializedByPartSelectOfParameters ParameterInitializedByPartSelectOfParametersAssignedToVar StringAssignment EnumParameterInNestedModules 2DeclarationsInFor 1DUnpackedArray 2DUnpackedArray ArraySize AssignBitsCallToSubmoduleParameter DeclarationInFor EnumArrayListedElements EnumArray DivisionOfSize ImportedPackageEnumItemInInterface InterfaceVariable ConstSizes InterfaceParameterSetValue InterfaceWithPort InterfaceAsPortAssignValueInSubmodule InterfaceParameter LogicPackedArray NestedParamSubstitution MultiAssignmentPatternOfConcat MixedPatterns NegationOfPatternParameterInInstance OneArithShift ParameterPackedArraySurelogSubstitution PatternDefault PatternAsParameterOfInstance Repeat Shortreal TypedefedRangedFunctionArgument RealValue TaskImportDPI TaskOutputArgument TypedefAliasInPackage PartSelectOfPartSelectedBitSelect TaskReturn PatternAsFunctionArgument PatternIndexes ReturnEnumArray unary_op_minus TypedefPackedDimensions unary_op_plus UnsizedConstantParameter unary_op_not_log UnsizedConstantParameterInInstance UnsizedConstantsParsing UnsizedConstant FunctionWithOverriddenParameter ImportedDoubleCastedParameter ImportedEnumCast ParameterInitializationWithNegation StringAssignConcatenation StringLocalParamInitByConcatenation StructParameterInitializedWithPatternAndReferenced StringWithBackslash serv-minimal serv conditional_if AssignSumOfConstants AssignSumOfConstantsInSubmodule AssignSumWithParameter AssignSumWithParameterInSubmodule CastClog2 CastClog2ToMinimalSizeOfParamValue CastClog2ToMinimalSizeOfParamValueFromCommandLine CastToSumOfConstants CastToSumWithParameterInSubmodule Clog2OfSumWithParameterIn2InstancesOfSubmodule OutputSizeWithParameterOfInstanceInitializedByStructMember ParameterInGenScopeInitializedWithLongConstant ImportedParameter ImportTypeOfPort ImportParametrizedTypeAndDeclareParamWithTheSameName ParameterPassedToSubmoduleOfSubmodule ParameterPassedTo3TimesNestedSubmodule ParameterPassedToSubmoduleInGenscopeOfSubmodule ParameterInitializedInTopOf5LevelHierarchy ParameterInitializedInSubModuleOfTopOf5LevelHierarchy ParameterInitializedInTopOf5LevelHierarchyWithUnusedParamInTheMiddle ParameterInitializedInTopOf5LevelHierarchyWithUnusedParamOfDifferentTypeInTheMiddle IndexedPartSelectOfArrayElement CastInFunctionToParameterWidth CastToSumWithParameterIn2InstancesOfSubmodule ClogOfParamOfInstanceInitializedByStructMember MemberSelectOf2DStructPackedArray SelectOnMemberSelectedFrom2DArray SubmoduleInGenScopeWithGenScopeParametrizedByParameterFromTopModule TypedefStructArray VarPassedTo2Submodules FunctionParam MultipleAssignments NegationOfPatternParameter AssignSizeOfVar CppMacroNameAsVariableName ParameterDoubleUnderscoreInSvFrontend ParameterInitializedByOperationOnPackageParametersAndUsedInGenscope ParameterOfParametrizedType ParameterOfParametrizedTypeInSubmodule ParameterOfSizeOfParametrizedPort ParameterOfSizeOfParametrizedPortInSubmodule ParameterOfSizeOfPort BitsCallOnSubArray SumOfParameters ExpressionInIndex UnitForLoop VarInFor VarSelect)"
           echo "::set-output name=matrix::$matrix"
           echo "matrix vcddiff: $matrix"
 
@@ -707,6 +726,7 @@ jobs:
     env:
       CC: gcc-9
       CXX: g++-9
+      DEBIAN_FRONTEND: noninteractive
       GIT_HTTP_LOW_SPEED_LIMIT: 1
       GIT_HTTP_LOW_SPEED_TIME: 600
 
