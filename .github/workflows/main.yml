@@ -15,6 +15,7 @@ jobs:
       CC: gcc-9
       CXX: g++-9
       CCACHE_DIR: "/root/verilator/verilator/.cache/"
+      DEBIAN_FRONTEND: noninteractive
 
     steps:
 
@@ -111,6 +112,7 @@ jobs:
       matrix2: ${{ steps.generate-matrix-part-2.outputs.matrix }}
     env:
       DISABLED_TESTS: "cmake ibex synthesis serv swerv OneClass hello-uvm OneThis opentitan CastStructArray StringAssignment"
+      DEBIAN_FRONTEND: noninteractive
     steps:
       - name: Install dependencies
         run: |
@@ -143,6 +145,8 @@ jobs:
     container: ubuntu:latest
     outputs:
       matrix: ${{ steps.generate-ibex-modules.outputs.matrix }}
+    env:
+      DEBIAN_FRONTEND: noninteractive
     steps:
       - name: Install dependencies
         run: |
@@ -175,6 +179,7 @@ jobs:
     env:
       CC: gcc-9
       CXX: g++-9
+      DEBIAN_FRONTEND: noninteractive
       GIT_HTTP_LOW_SPEED_LIMIT: 1
       GIT_HTTP_LOW_SPEED_TIME: 600
       TARGET: uhdm/verilator/test-ast
@@ -218,6 +223,7 @@ jobs:
     env:
       CC: gcc-9
       CXX: g++-9
+      DEBIAN_FRONTEND: noninteractive
       GIT_HTTP_LOW_SPEED_LIMIT: 1
       GIT_HTTP_LOW_SPEED_TIME: 600
       TARGET: uhdm/verilator/test-ast
@@ -263,6 +269,7 @@ jobs:
     env:
       CC: gcc-9
       CXX: g++-9
+      DEBIAN_FRONTEND: noninteractive
       GIT_HTTP_LOW_SPEED_LIMIT: 1
       GIT_HTTP_LOW_SPEED_TIME: 600
 
@@ -309,6 +316,8 @@ jobs:
     container: ubuntu:latest
     outputs:
       matrix: ${{ steps.generate-opentitan-current-modules.outputs.matrix }}
+    env:
+      DEBIAN_FRONTEND: noninteractive
     steps:
       - name: Install dependencies
         run: |
@@ -343,6 +352,7 @@ jobs:
     env:
       CC: gcc-9
       CXX: g++-9
+      DEBIAN_FRONTEND: noninteractive
       GIT_HTTP_LOW_SPEED_LIMIT: 1
       GIT_HTTP_LOW_SPEED_TIME: 600
 
@@ -388,6 +398,8 @@ jobs:
     container: ubuntu:latest
     outputs:
       matrix: ${{ steps.generate-opentitan-210214-modules.outputs.matrix }}
+    env:
+      DEBIAN_FRONTEND: noninteractive
     steps:
       - name: Install dependencies
         run: |
@@ -422,6 +434,7 @@ jobs:
     env:
       CC: gcc-9
       CXX: g++-9
+      DEBIAN_FRONTEND: noninteractive
       GIT_HTTP_LOW_SPEED_LIMIT: 1
       GIT_HTTP_LOW_SPEED_TIME: 600
 
@@ -471,6 +484,7 @@ jobs:
     env:
       CC: gcc-9
       CXX: g++-9
+      DEBIAN_FRONTEND: noninteractive
 
     steps:
 
@@ -528,6 +542,7 @@ jobs:
     env:
       CC: gcc-9
       CXX: g++-9
+      DEBIAN_FRONTEND: noninteractive
 
     steps:
 
@@ -585,6 +600,7 @@ jobs:
     env:
       CC: gcc-9
       CXX: g++-9
+      DEBIAN_FRONTEND: noninteractive
 
     steps:
 
@@ -638,6 +654,7 @@ jobs:
     env:
       CC: gcc-9
       CXX: g++-9
+      DEBIAN_FRONTEND: noninteractive
 
     steps:
 
@@ -675,6 +692,8 @@ jobs:
     container: ubuntu:latest
     outputs:
       matrix: ${{ steps.generate-matrix-vcddiff.outputs.matrix }}
+    env:
+      DEBIAN_FRONTEND: noninteractive
     steps:
       - name: Install dependencies
         run: |
@@ -707,6 +726,7 @@ jobs:
     env:
       CC: gcc-9
       CXX: g++-9
+      DEBIAN_FRONTEND: noninteractive
       GIT_HTTP_LOW_SPEED_LIMIT: 1
       GIT_HTTP_LOW_SPEED_TIME: 600
 
