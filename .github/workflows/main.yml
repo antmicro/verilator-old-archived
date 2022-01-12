@@ -15,6 +15,7 @@ jobs:
       CC: gcc-9
       CXX: g++-9
       CCACHE_DIR: "/root/verilator/verilator/.cache/"
+      DEBIAN_FRONTEND: noninteractive
 
     steps:
 
