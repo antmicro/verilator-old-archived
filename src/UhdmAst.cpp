@@ -2157,7 +2157,6 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                 {
                     vpiModule,
                     vpiContAssign,
-                    vpiProcess,
                     vpiTaskFunc,
                 },
                 obj_h, shared, [&](AstNode* node) {
