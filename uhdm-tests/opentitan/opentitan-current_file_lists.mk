@@ -8,13 +8,11 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /entropy_src_core.sv \
 /entropy_src_reg_top.sv \
 /entropy_src_watermark_reg.sv \
-/keccak_2share.sv \
 /otbn.sv \
 /otp_ctrl_part_buf.sv \
 /otp_ctrl.sv \
 /pinmux_reg_top.sv \
 /pinmux.sv \
-/prim_dom_and_2share.sv \
 /prim_generic_rom.sv \
 /prim_ram_1p_scr.sv \
 /prim_rom_adv.sv \
@@ -30,6 +28,8 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /uart_reg_top.sv \
 
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/keccak_2share.sv \
+/prim_dom_and_2share.sv \
 /kmac_app.sv \
 /dmi_cdc.sv \
 /usbdev.sv \
@@ -81,7 +81,6 @@ VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
 /rv_plic_target.sv \
 /prim_packer.sv \
 /prim_arbiter_ppc.sv \
-/pinmux.sv \
 /pinmux_strap_sampling.sv \
 /pattgen.sv \
 /gpio.sv \
