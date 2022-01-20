@@ -1371,10 +1371,7 @@ AstNode* process_hierPath(vpiHandle obj_h, UhdmShared& shared) {
         bool differentParentName = false;
         vpiHandle parent_h = vpi_handle(vpiParent, actual_h);
         if (parent_h) {
-            // TODO: use vpi_compare_objects() function
-            // when https://github.com/chipsalliance/UHDM/issues/603 will be fixed
-            std::string actualParentName = get_object_name(parent_h, {vpiName, vpiFullName});
-            if (actualParentName != objectName) {
+            if (!vpi_compare_objects(obj_h, parent_h)) {
                 differentParentName = true;
                 AstNode* hierItemp = visit_object(actual_h, shared);
                 if (hierPathp == nullptr)
@@ -2689,10 +2686,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             bool differentParentName = false;
             vpiHandle parent_h = vpi_handle(vpiParent, index_h);
             if (parent_h) {
-                // TODO: use vpi_compare_objects() function
-                // when https://github.com/chipsalliance/UHDM/issues/603 will be fixed
-                std::string indexParentName = get_object_name(parent_h, {vpiName, vpiFullName});
-                if (indexParentName != objectName) {
+                if (!vpi_compare_objects(obj_h, parent_h)) {
                     differentParentName = true;
                     AstNode* bitp = visit_object(index_h, shared);
                     fromp = new AstSelBit(make_fileline(obj_h), fromp, bitp);
