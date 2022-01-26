@@ -336,7 +336,7 @@ jobs:
       - name: Generate matrix
         id: generate-opentitan-current-modules
         run: |
-          matrix="$(cd uhdm-integration && python list.py -d tests/opentitan/opentitan-current/module_tests -s lc_ctrl_fsm pinmux)"
+          matrix="$(cd uhdm-integration && python list.py -d tests/opentitan/opentitan-current/module_tests)"
           echo "::set-output name=matrix::$matrix"
           echo "Matrix: $matrix"
 
