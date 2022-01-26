@@ -9,7 +9,6 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /entropy_src_reg_top.sv \
 /entropy_src_watermark_reg.sv \
 /pinmux_reg_top.sv \
-/pinmux.sv \
 /prim_generic_rom.sv \
 /prim_rom_adv.sv \
 /prim_rom.sv \
@@ -23,6 +22,7 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /uart_reg_top.sv \
 
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/pinmux.sv \
 /prim_subst_perm.sv \
 /prim_ram_1p_scr.sv \
 /otbn.sv \
