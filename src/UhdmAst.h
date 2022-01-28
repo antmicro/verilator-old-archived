@@ -17,6 +17,7 @@ struct UhdmShared {
     std::map<std::string, AstPackage*> package_map;
     std::string package_prefix;
     std::unordered_map<const UHDM::BaseClass*, std::string> visited_types_map;
+    std::unordered_set<std::string> visitedTypes;
     std::unordered_set<const UHDM::BaseClass*> visited_objects;
     // Store parameters here (values can be updated for each instance)
     // Final values will be added in respective module/package
@@ -24,8 +25,7 @@ struct UhdmShared {
     std::stack<std::string> moduleNamesStack;
     std::set<std::tuple<std::string, int, std::string>> coverage_set;
     V3ParseSym* m_symp;
-    // Used to distinguish between task/function calls inside statement hierarchy
-    bool isFunction;
+    AstModule* currentModule = nullptr;
 
     std::map<std::string, AstNodeModule*> top_nodes;
 };

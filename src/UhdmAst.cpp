@@ -169,6 +169,7 @@ bool is_expr_context(vpiHandle obj_h) {
         case vpiAssignStmt:
         case vpiAssignment:
         case vpiContAssign:
+        case vpiSysFuncCall:
         case vpiReturn: {
             return true;
         }
@@ -695,23 +696,7 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
         dtypep = applyPackedRanges(fl, obj_h, dtypep, shared);
         break;
     }
-    case vpiLogicTypespec:
-    case vpiBitTypespec:
-    case vpiIntTypespec:
-    case vpiLongIntTypespec:
-    case vpiIntegerTypespec:
-    case vpiShortIntTypespec:
-    case vpiShortRealTypespec:
-    case vpiByteTypespec:
-    case vpiRealTypespec:
-    case vpiStringTypespec:
-    case vpiChandleTypespec:
-    case vpiTimeTypespec:
-    case vpiArrayTypespec:
-    case vpiPackedArrayTypespec:
-    case vpiStructTypespec:
-    case vpiEnumTypespec:
-    case vpiUnionTypespec: {
+    case vpiEnumTypespec: {
         if (vpiHandle alias_h = vpi_handle(vpiTypedefAlias, obj_h)) {
             return getDType(fl, alias_h, shared);
         }
@@ -739,6 +724,50 @@ AstNodeDType* getDType(FileLine* fl, vpiHandle obj_h, UhdmShared& shared) {
             if (!dtypep) v3error("Unable to handle anonymous vpiTypespec node");
             break;
         }
+    }
+    case vpiLogicTypespec:
+    case vpiBitTypespec:
+    case vpiIntTypespec:
+    case vpiLongIntTypespec:
+    case vpiIntegerTypespec:
+    case vpiShortIntTypespec:
+    case vpiShortRealTypespec:
+    case vpiByteTypespec:
+    case vpiRealTypespec:
+    case vpiStringTypespec:
+    case vpiChandleTypespec:
+    case vpiTimeTypespec:
+    case vpiArrayTypespec:
+    case vpiPackedArrayTypespec:
+    case vpiStructTypespec:
+    case vpiUnionTypespec: {
+        //if (vpiHandle alias_h = vpi_handle(vpiTypedefAlias, obj_h)) {
+        //    return getDType(fl, alias_h, shared);
+        //}
+        //std::string typespec_name = get_object_name(obj_h);
+        //std::string full_type_name;
+        //if (typespec_name != "") {
+        //    auto pos = typespec_name.rfind("::");
+        //    if (pos != std::string::npos) typespec_name = typespec_name.substr(pos + 2);
+
+        //    std::string package_name = "";
+        //    if (vpiHandle instance_h = vpi_handle(vpiInstance, obj_h)) {
+        //        if (vpi_get(vpiType, instance_h) == vpiPackage)
+        //            package_name = get_object_name(instance_h, {vpiDefName});
+        //        vpi_release_handle(instance_h);
+        //    }
+        //    if (package_name != "")
+        //        full_type_name = package_name + "::" + typespec_name;
+        //    else
+        //        full_type_name = typespec_name;
+        //    dtypep = get_type_reference(fl, typespec_name, full_type_name, shared);
+        //    break;
+        //} else {
+            // Typespec without name, construct the type by process_typespec
+            dtypep = VN_CAST(process_typespec(obj_h, shared), NodeDType);
+            if (!dtypep) v3error("Unable to handle anonymous vpiTypespec node");
+            break;
+        //}
     }
     case vpiIntegerNet:
     case vpiTimeNet:
@@ -1169,7 +1198,8 @@ AstNode* process_operation(vpiHandle obj_h, UhdmShared& shared, std::vector<AstN
         }
         auto patternp = new AstPattern(make_fileline(obj_h), itemsp);
         if (auto typespec_h = vpi_handle(vpiTypespec, obj_h)) {
-            AstNodeDType* dtypep = getDType(make_fileline(obj_h), typespec_h, shared);
+            //AstNodeDType* dtypep = getDType(make_fileline(obj_h), typespec_h, shared);
+            AstNodeDType*  dtypep = VN_CAST(process_typespec(typespec_h, shared), NodeDType);
             patternp->childDTypep(dtypep);
             vpi_release_handle(typespec_h);
         }
@@ -1443,9 +1473,17 @@ AstNode* process_parameter(vpiHandle obj_h, UhdmShared& shared, bool get_value) 
         // Surelog sometimes inserts parameter name as typespec name
         // We have to detect it to know if we should treat a typespec
         // as type definition or type reference
-        if (typespecName == objectName)
+        //if (typespecName == objectName)
             dtypep = VN_CAST(process_typespec(typespec_h, shared), NodeDType);
-        else
+        //else
+        //
+        if (shared.visitedTypes.find(dtypep->name()) == shared.visitedTypes.end()) {
+            if (auto* implicit = VN_CAST(dtypep, DefImplicitDType)) {
+                static int counter = 0;
+                implicit->name(implicit->name() + cvtToStr(counter++));
+            }
+        }
+        if (!dtypep)
             dtypep = getDType(make_fileline(typespec_h), typespec_h, shared);
 
         if (!dtypep)
@@ -1528,9 +1566,9 @@ AstMemberDType* process_typespec_member(vpiHandle obj_h, UhdmShared& shared) {
 }
 
 AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
-    if (vpiHandle alias_h = vpi_handle(vpiTypedefAlias, obj_h)) {
-        return getDType(make_fileline(obj_h), alias_h, shared);
-    }
+    //if (vpiHandle alias_h = vpi_handle(vpiTypedefAlias, obj_h)) {
+    //    return getDType(make_fileline(obj_h), alias_h, shared);
+    //}
 
     std::string objectName = get_object_name(obj_h);
     const unsigned int objectType = vpi_get(vpiType, obj_h);
@@ -1600,15 +1638,22 @@ AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
         return applyPackedRanges(fl, obj_h, dtypep, shared);
     }
     case vpiEnumTypespec: {
+        if (vpiHandle alias_h = vpi_handle(vpiTypedefAlias, obj_h)) {
+            return getDType(make_fileline(obj_h), alias_h, shared);
+        }
+        //if (shared.visitedTypes.find(objectName) != shared.visitedTypes.end()) {
+        //    return getDType(make_fileline(obj_h), obj_h, shared);
+        //}
+        shared.visitedTypes.insert(objectName);
         const uhdm_handle* const handle = (const uhdm_handle*)obj_h;
         const UHDM::BaseClass* const object = (const UHDM::BaseClass*)handle->object;
-        if (shared.visited_types_map.find(object) != shared.visited_types_map.end()) {
-            // Already seen this, do not create a duplicate
-            // References are handled using getDType, not in visit_object
-            return nullptr;
-        }
+        //if (shared.visited_types_map.find(object) != shared.visited_types_map.end()) {
+        //    // Already seen this, do not create a duplicate
+        //    // References are handled using getDType, not in visit_object
+        //    return nullptr;
+        //}
 
-        shared.visited_types_map[object] = objectName;
+        //shared.visited_types_map[object] = objectName;
 
         // Use bare name for typespec itself, hierarchy was stored above
         auto pos = objectName.rfind("::");
@@ -1648,12 +1693,12 @@ AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
     case vpiUnionTypespec: {
         const uhdm_handle* const handle = (const uhdm_handle*)obj_h;
         const UHDM::BaseClass* const object = (const UHDM::BaseClass*)handle->object;
-        if (shared.visited_types_map.find(object) != shared.visited_types_map.end()) {
-            UINFO(6, "Object " << objectName << " was already visited" << std::endl);
-            return nullptr;
-        }
+        //if (shared.visited_types_map.find(object) != shared.visited_types_map.end()) {
+        //    UINFO(6, "Object " << objectName << " was already visited" << std::endl);
+        //    return nullptr;
+        //}
 
-        shared.visited_types_map[object] = objectName;
+        //shared.visited_types_map[object] = objectName;
 
         // Use bare name for typespec itself, hierarchy was stored above
         auto pos = objectName.rfind("::");
@@ -1679,8 +1724,9 @@ AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
             if (memberp != nullptr) structOrUnionDTypep->addMembersp(memberp);
         }
 
+        static int counter = 0;
         auto* dtypep
-            = new AstDefImplicitDType(fl, objectName, nullptr, VFlagChildDType(), structOrUnionDTypep);
+            = new AstDefImplicitDType(fl, objectName + cvtToStr(counter++), nullptr, VFlagChildDType(), structOrUnionDTypep);
         return dtypep;
     }
     case vpiUnsupportedTypespec: {
@@ -1708,16 +1754,29 @@ AstNode* process_typedef(vpiHandle obj_h, UhdmShared& shared) {
 
     AstNodeDType* refp = nullptr;
     if (vpiHandle alias_h = vpi_handle(vpiTypedefAlias, obj_h)) {
+        return nullptr;
         refp = getDType(make_fileline(alias_h), alias_h, shared);
         vpi_release_handle(alias_h);
     } else {
+        const uhdm_handle* const handle = (const uhdm_handle*)obj_h;
+        const UHDM::BaseClass* const object = (const UHDM::BaseClass*)handle->object;
+        //if (shared.visited_types_map.find(object) != shared.visited_types_map.end()) {
+        if (shared.visitedTypes.find(objectName) != shared.visitedTypes.end()) {
+            UINFO(7, "Typedef revisited: " << objectName << ", skipping" << std::endl);
+            return nullptr;
+        }
         refp = reinterpret_cast<AstNodeDType*>(process_typespec(obj_h, shared));
+        shared.visited_types_map[object] = objectName;
+        shared.visitedTypes.insert(objectName);
         if (refp == nullptr) {
             UINFO(7, "Typedef revisited: " << objectName << ", skipping" << std::endl);
             return nullptr;
         }
     }
 
+    if (auto* implicit = VN_CAST(refp, DefImplicitDType)) {
+        refp = VN_CAST(implicit->childDTypep()->unlinkFrBack(), NodeDType);
+    }
     AstTypedef* typedefp
         = new AstTypedef(make_fileline(obj_h), objectName, nullptr, VFlagChildDType(), refp);
 
@@ -2022,48 +2081,57 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
     case vpiModule: {
         std::string modDefName = get_object_name(obj_h, {vpiDefName});
         std::string modType = modDefName;
-        shared.moduleNamesStack.push(modDefName);
         remove_scope(modType);
-        AstModule* module;
+        static int module_counter;
+        if (shared.top_nodes[modType]) {
+            modType += "_" + objectName + std::to_string(module_counter++);
+        }
+        shared.moduleNamesStack.push(modDefName);
+        auto* module = new AstModule(new FileLine(modType), modType);
+        //VL_RESTORER(shared.currentModule);
+        //currentModule = module;
+        //auto visitedTypes = std::move(shared.visited_types_map);
+        auto visitedTypes = std::move(shared.visitedTypes);
+        shared.top_nodes[modType] = module;
 
         // Check if we have encountered this object before
-        auto it = shared.top_nodes.find(modType);
-        auto param_it = shared.top_param_map.find(modDefName);
-        if (it != shared.top_nodes.end()) {
+        //auto it = shared.top_nodes.find(modType);
+        //auto param_it = shared.top_param_map.find(modDefName);
+        //if (it != shared.top_nodes.end()) {
             // Was created before, fill missing
-            module = reinterpret_cast<AstModule*>(it->second);
+            //module = reinterpret_cast<AstModule*>(it->second);
 
             // If available, check vpiFullName instead of vpiName, as vpiName can equal vpiDefName
-            std::string fullName = objectName;
-            if (auto* s = vpi_get_str(vpiFullName, obj_h)) {
-                fullName = s;
-                sanitize_str(fullName);
-            }
-            module->user1(false);  // Not partial anymore (potentially)
-            if (fullName != modDefName) { // Not a top module
-                itr = vpi_iterate(vpiParameter, obj_h);
-                while (vpiHandle param_h = vpi_scan(itr)) {
-                    if (!vpi_get(vpiLocalParam, param_h) && !is_imported(param_h)) {
-                        module->user1(true); // Need to set params, mark as partial again
-                        vpi_release_handle(param_h);
-                        break;
-                    }
-                    vpi_release_handle(param_h);
-                }
-                vpi_release_handle(itr);
-            }
-            if (module->user1u().toInt()) { // Is partial
-                static int module_counter;
-                // Create separate node with proper params
-                module = module->cloneTree(false);
-                module->user1(false);  // Not partial anymore
-                module->user4p(nullptr);  // Clear SymEnt
-                // Use more specific name
-                modType += "_" + objectName + std::to_string(module_counter++);
-                module->name(modType);
-            }
+            //std::string fullName = objectName;
+            //if (auto* s = vpi_get_str(vpiFullName, obj_h)) {
+            //    fullName = s;
+            //    sanitize_str(fullName);
+            //}
+            //module->user1(false);  // Not partial anymore (potentially)
+            //if (fullName != modDefName) { // Not a top module
+            //    itr = vpi_iterate(vpiParameter, obj_h);
+            //    while (vpiHandle param_h = vpi_scan(itr)) {
+            //        if (!vpi_get(vpiLocalParam, param_h) && !is_imported(param_h)) {
+            //            module->user1(true); // Need to set params, mark as partial again
+            //            vpi_release_handle(param_h);
+            //            break;
+            //        }
+            //        vpi_release_handle(param_h);
+            //    }
+            //    vpi_release_handle(itr);
+            //}
+            //if (module->user1u().toInt()) { // Is partial
+            //    static int module_counter;
+            //    // Create separate node with proper params
+            //    module = module->cloneTree(false);
+            //    module->user1(false);  // Not partial anymore
+            //    module->user4p(nullptr);  // Clear SymEnt
+            //    // Use more specific name
+            //    modType += "_" + objectName + std::to_string(module_counter++);
+            //    module->name(modType);
+            //}
 
-            if (!module->user2SetOnce()) {  // Only do this once
+            //if (!module->user2SetOnce()) {  // Only do this once
                 shared.m_symp->pushNew(module);
 
                 AstNode* firstNonPortStatementp = module->stmtsp();
@@ -2077,6 +2145,11 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                     }
                 });
 
+                vpiHandle typedef_itr = vpi_iterate(vpiTypedef, obj_h);
+                while (vpiHandle typedef_obj = vpi_scan(typedef_itr)) {
+                    AstNode* typedefp = process_typedef(typedef_obj, shared);
+                    if (typedefp != nullptr) module->addStmtp(typedefp);
+                }
                 visit_one_to_many(
                     {
                         vpiVariables,
@@ -2118,60 +2191,64 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
                         vpiMemory,
                         vpiInternalScope,
                         vpiAttribute,
+
+                        vpiParamAssign,
                     },
                     obj_h, shared, [&](AstNode* node) {
                         if (node != nullptr) module->addStmtp(node);
                     });
                 // Update parameter values using TopModules tree
-                if (param_it != shared.top_param_map.end()) {
-                    auto& param_map = param_it->second;
-                    visit_one_to_many({vpiParamAssign}, obj_h, shared, [&](AstNode* node) {
-                        if (VN_IS(node, Var)) {
-                            AstVar* param_node = VN_CAST(node, Var);
-                            // Global parameters are added as pins, skip them here
-                            if (param_node->varType() == AstVarType::LPARAM)
-                                param_map[node->name()] = node;
-                        }
-                    });
-                    // Add final values of parameters
-                    for (auto& param_p : param_map) {
-                        if (param_p.second != nullptr)
-                            module->addStmtp(param_p.second->cloneTree(false));
-                    }
-                }
-                (shared.top_nodes)[modType] = module;
+                //if (param_it != shared.top_param_map.end()) {
+                //    auto& param_map = param_it->second;
+                //    visit_one_to_many({vpiParamAssign}, obj_h, shared, [&](AstNode* node) {
+                //        if (VN_IS(node, Var)) {
+                //            AstVar* param_node = VN_CAST(node, Var);
+                //            // Global parameters are added as pins, skip them here
+                //            if (param_node->varType() == AstVarType::LPARAM)
+                //                param_map[node->name()] = node;
+                //        }
+                //    });
+                //    // Add final values of parameters
+                //    for (auto& param_p : param_map) {
+                //        if (param_p.second != nullptr)
+                //            module->addStmtp(param_p.second->cloneTree(false));
+                //    }
+                //}
+                //(shared.top_nodes)[modType] = module;
                 shared.m_symp->popScope(module);
-            }
-        } else {
-            // Encountered for the first time
-            module = new AstModule(new FileLine(modType), modType);
-            module->user1(true); // Mark as partial
+            //}
+        //} else {
+        //    // Encountered for the first time
+        //    module = new AstModule(new FileLine(modType), modType);
+        //    module->user1(true); // Mark as partial
 
-            vpiHandle typedef_itr = vpi_iterate(vpiTypedef, obj_h);
-            while (vpiHandle typedef_obj = vpi_scan(typedef_itr)) {
-                AstNode* typedefp = process_typedef(typedef_obj, shared);
-                if (typedefp != nullptr) module->addStmtp(typedefp);
-            }
+        //    //vpiHandle typedef_itr = vpi_iterate(vpiTypedef, obj_h);
+        //    //while (vpiHandle typedef_obj = vpi_scan(typedef_itr)) {
+        //    //    AstNode* typedefp = process_typedef(typedef_obj, shared);
+        //    //    if (typedefp != nullptr) module->addStmtp(typedefp);
+        //    //}
 
-            visit_one_to_many(
-                {
-                    vpiModule,
-                    vpiContAssign,
-                    vpiTaskFunc,
-                },
-                obj_h, shared, [&](AstNode* node) {
-                    if (node != nullptr) module->addStmtp(node);
-                });
+        //    visit_one_to_many(
+        //        {
+        //            //vpiModule,
+        //            //vpiContAssign,
+        //            //vpiTaskFunc,
+        //        },
+        //        obj_h, shared, [&](AstNode* node) {
+        //            if (node != nullptr) module->addStmtp(node);
+        //        });
 
-            NameNodeMap param_map;
-            visit_one_to_many({vpiParamAssign}, obj_h, shared, [&](AstNode* node) {
-                if (node != nullptr) param_map[node->name()] = node;
-            });
-            (shared.top_nodes)[modType] = module;
-            if (v3Global.opt.trace()) { module->modTrace(true); }
-            shared.top_param_map[modDefName] = param_map;
-        }
+        //    //NameNodeMap param_map;
+        //    //visit_one_to_many({vpiParamAssign}, obj_h, shared, [&](AstNode* node) {
+        //    //    if (node != nullptr) param_map[node->name()] = node;
+        //    //});
+        //    (shared.top_nodes)[modType] = module;
+        //    if (v3Global.opt.trace()) { module->modTrace(true); }
+        //    //shared.top_param_map[modDefName] = param_map;
+        //}
         shared.moduleNamesStack.pop();
+        //shared.visited_types_map = std::move(visitedTypes);
+        shared.visitedTypes = std::move(visitedTypes);
 
         // If available, check vpiFullName instead of vpiName, as vpiName can equal vpiDefName
         std::string fullName = objectName;
@@ -2255,6 +2332,7 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             UINFO(8, "Adding cell " << fullname << std::endl);
             AstCell* cell = new AstCell(make_fileline(obj_h), make_fileline(obj_h), objectName,
                                         modType, modPins, modParams, nullptr);
+            //cell->modp(module);
             if (v3Global.opt.trace()) { cell->trace(true); }
             return cell;
         }
@@ -3387,7 +3465,7 @@ std::vector<AstNodeModule*> visit_designs(const std::vector<vpiHandle>& designs,
         visit_one_to_many({UHDM::uhdmallPackages,  // Keep this first, packages need to be defined
                                                    // before any imports
                            // UHDM::uhdmallClasses,
-                           UHDM::uhdmallInterfaces, UHDM::uhdmallModules, UHDM::uhdmtopModules},
+                           UHDM::uhdmallInterfaces, /*UHDM::uhdmallModules,*/ UHDM::uhdmtopModules},
                           design, shared, [&](AstNode* module) {
                               if (module != nullptr) {
                                   // Top level nodes need to be NodeModules (created from design)

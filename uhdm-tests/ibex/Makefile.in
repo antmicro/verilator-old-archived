@@ -53,14 +53,15 @@ prepare-sources:
 			--setup lowrisc:ibex:ibex_simple_system \
 			--RV32E=0 \
 			--RV32M=ibex_pkg::RV32MFast \
-			--verilator_options '--threads $(THREAD_COUNT)' \
+			--verilator_options '--debug --debugi 9 --gdbbt --dump-tree --threads $(THREAD_COUNT)' \
 			)
+			#--verilator_options '--debug --debugi 7 --gdbbt --dump-tree --threads $(THREAD_COUNT)' \
 
 uhdm/verilator/simple-system: clean-build | prepare-sources
 	(export PATH=${root_dir}/../image/bin:${PATH} && \
 		. ${root_dir}/venv-ibex/bin/activate && \
 		cd ${root_dir}/build && \
-		${root_dir}/../image/bin/surelog -parse -sverilog +define+VERILATOR \
+		${root_dir}/../image/bin/surelog -parse -sverilog -elabuhdm +define+VERILATOR \
 			${SURELOG_PARAMETERS} \
 			$(IBEX_INCLUDE) \
 			$(IBEX_SOURCES) && \
