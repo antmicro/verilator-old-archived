@@ -1370,15 +1370,12 @@ AstNode* process_hierPath(vpiHandle obj_h, UhdmShared& shared) {
 
     vpiHandle actual_itr = vpi_iterate(vpiActual, obj_h);
     while (vpiHandle actual_h = vpi_scan(actual_itr)) {
-        // Similar situation like in vpiVarSelect
-        bool differentParentName = false;
+        bool parentNameExists = false;
         vpiHandle parent_h = vpi_handle(vpiParent, actual_h);
         if (parent_h) {
-            // TODO: use vpi_compare_objects() function
-            // when https://github.com/chipsalliance/UHDM/issues/603 will be fixed
             std::string actualParentName = get_object_name(parent_h, {vpiName, vpiFullName});
-            if (actualParentName != objectName) {
-                differentParentName = true;
+            if (actualParentName != "") {
+                parentNameExists = true;
                 AstNode* hierItemp = visit_object(actual_h, shared);
                 if (hierPathp == nullptr)
                     hierPathp = hierItemp;
@@ -1387,7 +1384,7 @@ AstNode* process_hierPath(vpiHandle obj_h, UhdmShared& shared) {
             }
             vpi_release_handle(parent_h);
         }
-        if (not differentParentName) {
+        if (not parentNameExists) {
             auto actual_type = vpi_get(vpiType, actual_h);
             if (actual_type == vpiMethodFuncCall) {
                 hierPathp = process_method_call(actual_h, hierPathp, shared);
