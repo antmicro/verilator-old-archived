@@ -2688,25 +2688,21 @@ AstNode* visit_object(vpiHandle obj_h, UhdmShared& shared) {
             // With current Surelog, index operation inside vpiIndex
             // can mean either the index operation on the root object
             // or the operation nested in index, like a[b[c]].
-            // We distinguish it by checking the name of parent field
-            bool differentParentName = false;
+            // We distinguish it by comparing object with its parent field because
+            // part select nodes store the name of the object they refer to in parent field
+            bool differentParentObject = false;
             vpiHandle parent_h = vpi_handle(vpiParent, index_h);
             if (parent_h) {
-                // TODO: use vpi_compare_objects() function
-                // when https://github.com/chipsalliance/UHDM/issues/603 will be fixed
-                std::string indexParentName = get_object_name(parent_h, {vpiName, vpiFullName});
-                if (indexParentName != objectName) {
-                    differentParentName = true;
+                if (!vpi_compare_objects(obj_h, parent_h)) {
+                    differentParentObject = true;
                     AstNode* bitp = visit_object(index_h, shared);
                     fromp = new AstSelBit(make_fileline(obj_h), fromp, bitp);
                 }
                 vpi_release_handle(parent_h);
             }
-            if (not differentParentName) {
+            if (not differentParentObject) {
                 auto index_type = vpi_get(vpiType, index_h);
-                if (index_type == vpiBitSelect) {
-                    fromp = applyBitSelect(index_h, fromp, shared);
-                } else if (index_type == vpiPartSelect) {
+                if (index_type == vpiPartSelect) {
                     fromp = applyPartSelect(index_h, fromp, shared);
                 } else if (index_type == vpiIndexedPartSelect) {
                     fromp = applyIndexedPartSelect(index_h, fromp, shared);
