@@ -1863,6 +1863,9 @@ AstNode* process_function_task(vpiHandle obj_h, UhdmShared& shared) {
 
     visit_one_to_one({vpiStmt}, obj_h, shared, [&](AstNode* itemp) {
         if (itemp) {
+            if(AstBegin* beginp = VN_CAST(itemp, Begin)) {
+                itemp = beginp->stmtsp()->cloneTree(true);
+            }
             if (statementsp)
                 statementsp->addNextNull(itemp);
             else
