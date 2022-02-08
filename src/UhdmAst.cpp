@@ -162,6 +162,7 @@ bool is_expr_context(vpiHandle obj_h) {
     auto parent_h = vpi_handle(vpiParent, obj_h);
     if (parent_h) {
         auto parent_type = vpi_get(vpiType, parent_h);
+        vpi_release_handle(parent_h);
         switch (parent_type) {
         case vpiOperation:
         case vpiIf:
@@ -169,18 +170,20 @@ bool is_expr_context(vpiHandle obj_h) {
         case vpiAssignStmt:
         case vpiAssignment:
         case vpiContAssign:
+        case vpiFuncCall:
+        case vpiTaskCall:
+        case vpiSysFuncCall:
         case vpiReturn: {
             return true;
         }
         case vpiBegin:
-        case vpiFuncCall:
-        case vpiTaskCall:
         case vpiCaseItem: {
             return false;
         }
         default: {
-            UINFO(3, "Encountered unhandled parent type in " << __FUNCTION__ << std::endl);
-            return false;
+            make_fileline(obj_h)->v3error("Encountered unhandled parent type: "
+                                          << UHDM::VpiTypeName(parent_h)
+                                          << " in " << __FUNCTION__ << std::endl);
         }
         }
     } else {
