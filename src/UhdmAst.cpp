@@ -404,9 +404,12 @@ AstNode* get_value_by_format(vpiHandle obj_h) {
         if (num.width() >= 32 && num.widthMin() <= 32) {
             UINFO(8, "Creating wide constant" << std::endl);
             num.width(32, false);
-            num.isSigned(true);
-            constp = new AstConst(make_fileline(obj_h), num);
         }
+        if (val.format == vpiUIntVal)
+            num.isSigned(false);
+        else
+            num.isSigned(true);
+        constp = new AstConst(make_fileline(obj_h), num);
         return constp;
     }
     case vpiRealVal: {
