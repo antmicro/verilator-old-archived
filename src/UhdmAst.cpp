@@ -1701,19 +1701,22 @@ AstNode* process_typespec(vpiHandle obj_h, UhdmShared& shared) {
         auto pos = objectName.rfind("::");
         if (pos != std::string::npos) objectName = objectName.substr(pos + 2);
 
-        // VSigning below is used in AstStructDtype to indicate
-        // if packed or not
-        VSigning packed;
-        if (vpi_get(vpiPacked, obj_h)) {
-            packed = VSigning::SIGNED;
+        VSigning isSigned;
+        if (vpi_get(vpiSigned, obj_h)) {
+            isSigned = VSigning::SIGNED;
         } else {
-            packed = VSigning::UNSIGNED;
+            isSigned = VSigning::UNSIGNED;
+        }
+        // VSigning::NOSIGN below is used to mark unpacked struct/union
+        // See corresponding Ast*DType for details
+        if (vpi_get(vpiPacked, obj_h) == 0) {
+            isSigned = VSigning::NOSIGN;
         }
         AstNodeUOrStructDType* structOrUnionDTypep = nullptr;
         if (objectType == vpiStructTypespec)
-            structOrUnionDTypep = new AstStructDType(fl, packed);
+            structOrUnionDTypep = new AstStructDType(fl, isSigned);
         else
-            structOrUnionDTypep = new AstUnionDType(fl, packed);
+            structOrUnionDTypep = new AstUnionDType(fl, isSigned);
 
         vpiHandle member_itr = vpi_iterate(vpiTypespecMember, obj_h);
         while (vpiHandle member_obj = vpi_scan(member_itr)) {
