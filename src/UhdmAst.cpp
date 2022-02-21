@@ -374,6 +374,8 @@ AstNode* get_referenceNode(FileLine* fl, string name, UhdmShared& shared) {
 AstNode* get_value_as_node(vpiHandle obj_h, bool need_decompile = false) {
     AstNode* valueNodep = nullptr;
     std::string valStr;
+    int size = -1;  // Treated as "invalid/unavailable" in UHDM
+    size = vpi_get(vpiSize, obj_h);
 
     // Most nodes will have raw value in vpiDecompile, leave deducing the type to Verilator
     if (need_decompile) {
@@ -392,7 +394,7 @@ AstNode* get_value_as_node(vpiHandle obj_h, bool need_decompile = false) {
             } else {
                 valStr = s;
                 if (valStr.find('\'') == std::string::npos) {
-                    if (vpi_get(vpiSize, obj_h) == -1) {
+                    if (size == -1) {
                         std::string actualValStr;
                         if (valStr == "0")
                             actualValStr = "'0";
@@ -404,13 +406,15 @@ AstNode* get_value_as_node(vpiHandle obj_h, bool need_decompile = false) {
                             actualValStr = "'X";
                         else if (valStr == "z" || valStr == "Z")
                             actualValStr = "'Z";
-                        else
-                            v3error("Unexpected value with vpiSize: -1");
+                        else {
+                            v3info("Unexpected value with vpiSize: -1");
+                            actualValStr = valStr;
+                        }
 
                         return new AstConst(make_fileline(obj_h), AstConst::StringToParse(), actualValStr.c_str());
                     }
 
-                    if (int size = vpi_get(vpiSize, obj_h)) {
+                    if (size != -1) {
                         if (type == vpiBinaryConst) valStr = "'b" + valStr;
                         else if (type == vpiOctConst) valStr = "'o" + valStr;
                         else if (type == vpiHexConst) valStr = "'h" + valStr;
@@ -431,10 +435,11 @@ AstNode* get_value_as_node(vpiHandle obj_h, bool need_decompile = false) {
                 }
             }
             return valueNodep;
+        } else {
+            UINFO(7, "Requested vpiDecompile value not found in UHDM" << std::endl);
         }
-    } else {
-        UINFO(7, "Requested vpiDecompile value not found in UHDM" << std::endl);
     }
+    // Fallback - try to recover from UHDM node value
     s_vpi_value val;
     vpi_get_value(obj_h, &val);
     switch (val.format) {
@@ -455,8 +460,10 @@ AstNode* get_value_as_node(vpiHandle obj_h, bool need_decompile = false) {
             break;
         }
 
-        if (int size = vpi_get(vpiSize, obj_h))
+        if (size != -1 && size != 0) {
             valStr = std::to_string(size) + "'d" + valStr;
+        } else
+            valStr = "'d" + valStr;
         auto* constp = new AstConst(make_fileline(obj_h), AstConst::StringToParse(), valStr.c_str());
         auto& num = constp->num();
         if (num.width() >= 32 && num.widthMin() <= 32) {
@@ -490,7 +497,7 @@ AstNode* get_value_as_node(vpiHandle obj_h, bool need_decompile = false) {
             valStr = "'d" + std::string(val.value.str);
         else if (val.format == vpiHexStrVal)
             valStr = "'h" + std::string(val.value.str);
-        if (int size = vpi_get(vpiSize, obj_h))
+        if (size != -1 && size != 0)
             valStr = std::to_string(size) + valStr;
         auto* constp = new AstConst(make_fileline(obj_h), AstConst::StringToParse(), valStr.c_str());
         valueNodep = constp;
