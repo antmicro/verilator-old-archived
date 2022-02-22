@@ -213,6 +213,13 @@ jobs:
       env:
         TEST_CASE: ${{ matrix.TEST_CASE }}
 
+    - name: Upload load graphs
+      uses: actions/upload-artifact@v2
+      with:
+        name: plots
+        path: |
+          **/plot_*.svg
+
   tests-part-2:
     runs-on: [self-hosted, Linux, X64]
     container: ubuntu:latest
@@ -256,6 +263,13 @@ jobs:
       run: ./uhdm-integration/.github/ci.sh
       env:
         TEST_CASE: ${{ matrix.TEST_CASE }}
+
+    - name: Upload load graphs
+      uses: actions/upload-artifact@v2
+      with:
+        name: plots
+        path: |
+          **/plot_*.svg
 
   ibex-module-tests:
     runs-on: [self-hosted, Linux, X64]
@@ -312,6 +326,13 @@ jobs:
       env:
         TEST_CASE: ${{ matrix.TEST_CASE }}
         TARGET: ${{ matrix.TARGET }}
+
+    - name: Upload load graphs
+      uses: actions/upload-artifact@v2
+      with:
+        name: plots
+        path: |
+          **/plot_*.svg
 
   generate-opentitan-current-modules:
     runs-on: [self-hosted, Linux, X64]
@@ -394,6 +415,13 @@ jobs:
       env:
         TEST_CASE: ${{ matrix.TEST_CASE }}
         TARGET: ${{ matrix.TARGET }}
+
+    - name: Upload load graphs
+      uses: actions/upload-artifact@v2
+      with:
+        name: plots
+        path: |
+          **/plot_*.svg
 
   generate-opentitan-210214-modules:
     runs-on: [self-hosted, Linux, X64]
@@ -478,6 +506,13 @@ jobs:
         TOP_TARGET_NAME: systems_top_earlgrey_verilator
         TEST_CASE: ${{ matrix.TEST_CASE }}
         TARGET: ${{ matrix.TARGET }}
+
+    - name: Upload load graphs
+      uses: actions/upload-artifact@v2
+      with:
+        name: plots
+        path: |
+          **/plot_*.svg
 
   opentitan-earlgrey-current:
     runs-on: [self-hosted, Linux, X64]
@@ -689,6 +724,13 @@ jobs:
         TARGET: uhdm/verilator/servant/run
         TEST_CASE: tests/serv
 
+    - name: Upload load graphs
+      uses: actions/upload-artifact@v2
+      with:
+        name: plots
+        path: |
+          **/plot_*.svg
+
   generate-matrix-vcddiff:
     runs-on: [self-hosted, Linux, X64]
     container: ubuntu:latest
@@ -845,4 +887,11 @@ jobs:
       env:
         TEST_CASE: ${{ matrix.TEST_CASE_VCDDIFF }}
         TARGET: uhdm/vcddiff
+
+    - name: Upload load graphs
+      uses: actions/upload-artifact@v2
+      with:
+        name: plots
+        path: |
+          **/plot_*.svg
 
