@@ -213,6 +213,13 @@ jobs:
       env:
         TEST_CASE: ${{ matrix.TEST_CASE }}
 
+    - name: Upload load graphs
+      uses: actions/upload-artifact@v2
+      with:
+        name: plots
+        path: |
+          **/plot_*.svg
+
   tests-part-2:
     runs-on: [self-hosted, Linux, X64]
     container: ubuntu:latest
@@ -256,6 +263,13 @@ jobs:
       run: ./uhdm-integration/.github/ci.sh
       env:
         TEST_CASE: ${{ matrix.TEST_CASE }}
+
+    - name: Upload load graphs
+      uses: actions/upload-artifact@v2
+      with:
+        name: plots
+        path: |
+          **/plot_*.svg
 
   ibex-module-tests:
     runs-on: [self-hosted, Linux, X64]
@@ -312,6 +326,13 @@ jobs:
       env:
         TEST_CASE: ${{ matrix.TEST_CASE }}
         TARGET: ${{ matrix.TARGET }}
+
+    - name: Upload load graphs
+      uses: actions/upload-artifact@v2
+      with:
+        name: plots
+        path: |
+          **/plot_*.svg
 
   generate-opentitan-current-modules:
     runs-on: [self-hosted, Linux, X64]
@@ -394,6 +415,13 @@ jobs:
       env:
         TEST_CASE: ${{ matrix.TEST_CASE }}
         TARGET: ${{ matrix.TARGET }}
+
+    - name: Upload load graphs
+      uses: actions/upload-artifact@v2
+      with:
+        name: plots
+        path: |
+          **/plot_*.svg
 
   generate-opentitan-210214-modules:
     runs-on: [self-hosted, Linux, X64]
@@ -478,6 +506,13 @@ jobs:
         TOP_TARGET_NAME: systems_top_earlgrey_verilator
         TEST_CASE: ${{ matrix.TEST_CASE }}
         TARGET: ${{ matrix.TARGET }}
+
+    - name: Upload load graphs
+      uses: actions/upload-artifact@v2
+      with:
+        name: plots
+        path: |
+          **/plot_*.svg
 
   opentitan-earlgrey-current:
     runs-on: [self-hosted, Linux, X64]
@@ -689,6 +724,13 @@ jobs:
         TARGET: uhdm/verilator/servant/run
         TEST_CASE: tests/serv
 
+    - name: Upload load graphs
+      uses: actions/upload-artifact@v2
+      with:
+        name: plots
+        path: |
+          **/plot_*.svg
+
   generate-matrix-vcddiff:
     runs-on: [self-hosted, Linux, X64]
     container: ubuntu:latest
@@ -712,7 +754,7 @@ jobs:
       - name: Generate matrix (vcddiff)
         id: generate-matrix-vcddiff
         run: |
-          matrix="$(cd uhdm-integration && python list.py -d tests -s 2DeclarationsInFor 2DFunctionArg AnonymousUnion array-copy ArrayInit AssignBitsCallToSubmoduleParameter assignment-pattern BitsCallOnType BitSelectPartSelectInFunction CastClog2ToMinimalSizeOfParamValueFromCommandLine CastInFunctionInGenBlock CastStructArray cmake ConstSizes Continue cs_registers DeclarationInFor Disable DivisionOfSize DpiChandle EnumArray EnumArrayListedElements EnumFirst EnumFirstInInitial EnumParameterInNestedModules ExpressionInIndex Forever Fork ForkJoinTypes fsm_single_always fsm_using_always fsm_using_function FunctionColonReference FunctionExportDPI FunctionOnDesignLevel FunctionOutputArgument FunctionParam FunctionWithOverriddenParameter GetC hello-uvm hier_path ibex ImportedFunctionCallInModuleAndSubmodule ImportedPackageEnumItemInInterface ImportFunction ImportPackageWithFunction IndexedPartSelectOfArrayElement InterfaceAlways InterfaceAsPort InterfaceAsPortAssignValueInSubmodule InterfaceAssign InterfaceInitial InterfaceParameter InterfaceParameterSetValue InterfaceVariable InterfaceWithPort LogicPackedArray MemberSelectOf2DStructPackedArray MixedPatterns MultipleAssignments MultiplePrints NegationOfPatternParameter NegationOfPatternParameterInInstance NestedParamSubstitution NestedStructArrayParameterInitializedByPatternPassedAsPort OneArithShift OneCast OneClass OneImport OneNetInterf OneNetRange OnePackage OneThis opentitan OutputSizeWithParameterOfInstanceInitializedByStructMember ParameterColonReference ParameterDoubleUnderscoreInSvFrontend ParameterInGenScopeInitializedWithLongConstant ParameterOfSizeOfParametrizedPort ParameterOfSizeOfParametrizedPortInSubmodule ParameterOfSizeOfPort ParameterPackedArray ParameterPackedArraySurelogSubstitution ParameterSizeOfInstance ParameterUnpackedArray ParameterUnpackedLogicArray ParameterWithUnderscoreValueDividedPassedFromCommandLine PatternAsParameterOfInstance PatternDefault PatternIndexes PatternInFunction PatternReplication PatternStruct PatternType PkgParamAsFunctionArg PutC RealValue Repeat Replication SelectFromUnpackedInFunction SelectOnMemberSelectedFrom2DArray serv serv-minimal Shortreal StringAssignConcatenation StringAssignment StringLocalParamInitByConcatenation StringWithBackslash StructArrayParameterInitializedByPatternPassedAsPort swerv synthesis SystemFunctions TaskExportDPI TaskImportDPI TaskOutputArgument TaskReturn TypedefAliasInPackage TypedefedRangedFunctionArgument TypedefOnFileLevel TypedefPackedDimensions TypedefStructArray TypedefVariableDimensions unary_op_minus unary_op_not_log unary_op_plus UnitForLoop UnpackedArray UnsizedConstant UnsizedConstantParameter UnsizedConstantParameterInInstance UnsizedConstantsParameterParsing UnsizedConstantsParsing VarInFor VarPassedTo2Submodules VarSelect VoidFunction VoidFunction2Returns VoidFunctionWithoutReturn xor_assignment BindModuleWithInputPortsInGenScope BindModuleWithOutputPorts BitsCallOnParametetrizedTypeFromPackage IndexedPartSelectInFor IndexedPartSelectInUniqueCase NestedPatternPassedAsPort PartSelectInFor SelectGivenBySelectOnParameterInFunction AssignBitSelectPartSelect BitSelectOfParameterPassedToSubmodule NestedGenscopesInModuleWithMultidimensionalPorts BitSelectOfParameterPassedToSubmoduleInGenFor BitSelectOfParameterPassedToSubmoduleInGenForOfSubmodule NestedSelectOnInputPortInGenscope NestedSelectOnVarInGenscope ClogOfParamOfInstanceInitializedByStructMember)"
+          matrix="$(cd uhdm-integration && python list.py -d tests -s 2DeclarationsInFor 2DFunctionArg AnonymousUnion array-copy ArrayInit AssignBitsCallToSubmoduleParameter assignment-pattern BitsCallOnType BitSelectPartSelectInFunction CastClog2ToMinimalSizeOfParamValueFromCommandLine CastInFunctionInGenBlock CastStructArray cmake ConstSizes Continue cs_registers DeclarationInFor Disable DivisionOfSize DpiChandle EnumArray EnumArrayListedElements EnumFirst EnumFirstInInitial EnumParameterInNestedModules ExpressionInIndex Forever Fork ForkJoinTypes fsm_single_always fsm_using_always fsm_using_function FunctionColonReference FunctionExportDPI FunctionOnDesignLevel FunctionOutputArgument FunctionParam FunctionWithOverriddenParameter GetC hello-uvm hier_path ibex ImportedFunctionCallInModuleAndSubmodule ImportedPackageEnumItemInInterface ImportFunction ImportPackageWithFunction IndexedPartSelectOfArrayElement InterfaceAlways InterfaceAsPort InterfaceAsPortAssignValueInSubmodule InterfaceAssign InterfaceInitial InterfaceParameter InterfaceParameterSetValue InterfaceVariable InterfaceWithPort LogicPackedArray MemberSelectOf2DStructPackedArray MixedPatterns MultipleAssignments MultiplePrints NegationOfPatternParameter NegationOfPatternParameterInInstance NestedParamSubstitution NestedStructArrayParameterInitializedByPatternPassedAsPort OneArithShift OneCast OneClass OneImport OneNetInterf OneNetRange OnePackage OneThis opentitan OutputSizeWithParameterOfInstanceInitializedByStructMember ParameterColonReference ParameterDoubleUnderscoreInSvFrontend ParameterInGenScopeInitializedWithLongConstant ParameterOfSizeOfParametrizedPort ParameterOfSizeOfParametrizedPortInSubmodule ParameterOfSizeOfPort ParameterPackedArray ParameterPackedArraySurelogSubstitution ParameterSizeOfInstance ParameterUnpackedArray ParameterUnpackedLogicArray ParameterWithUnderscoreValueDividedPassedFromCommandLine PatternAsParameterOfInstance PatternDefault PatternIndexes PatternInFunction PatternReplication PatternStruct PatternType PkgParamAsFunctionArg PutC RealValue Repeat Replication SelectFromUnpackedInFunction SelectOnMemberSelectedFrom2DArray serv serv-minimal Shortreal StringAssignConcatenation StringAssignment StringLocalParamInitByConcatenation StringWithBackslash StructArrayParameterInitializedByPatternPassedAsPort swerv synthesis SystemFunctions TaskExportDPI TaskImportDPI TaskOutputArgument TaskReturn TypedefAliasInPackage TypedefedRangedFunctionArgument TypedefOnFileLevel TypedefPackedDimensions TypedefStructArray TypedefVariableDimensions unary_op_minus unary_op_not_log unary_op_plus UnitForLoop UnpackedArray UnsizedConstant UnsizedConstantParameter UnsizedConstantParameterInInstance UnsizedConstantsParameterParsing UnsizedConstantsParsing VarInFor VarPassedTo2Submodules VarSelect VoidFunction VoidFunction2Returns VoidFunctionWithoutReturn xor_assignment BindModuleWithInputPortsInGenScope BindModuleWithOutputPorts BitsCallOnParametetrizedTypeFromPackage IndexedPartSelectInFor IndexedPartSelectInUniqueCase NestedPatternPassedAsPort PartSelectInFor SelectGivenBySelectOnParameterInFunction AssignBitSelectPartSelect BitSelectOfParameterPassedToSubmodule NestedGenscopesInModuleWithMultidimensionalPorts BitSelectOfParameterPassedToSubmoduleInGenFor BitSelectOfParameterPassedToSubmoduleInGenForOfSubmodule NestedSelectOnInputPortInGenscope NestedSelectOnVarInGenscope ClogOfParamOfInstanceInitializedByStructMember EnumConcatenatedConst)"
           echo "::set-output name=matrix::$matrix"
           echo "matrix vcddiff: $matrix"
 
@@ -845,4 +887,11 @@ jobs:
       env:
         TEST_CASE: ${{ matrix.TEST_CASE_VCDDIFF }}
         TARGET: uhdm/vcddiff
+
+    - name: Upload load graphs
+      uses: actions/upload-artifact@v2
+      with:
+        name: plots
+        path: |
+          **/plot_*.svg
 
