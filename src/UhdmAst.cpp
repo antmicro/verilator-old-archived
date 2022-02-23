@@ -372,7 +372,6 @@ AstNode* get_referenceNode(FileLine* fl, string name, UhdmShared& shared) {
 }
 
 AstNode* get_value_by_format(vpiHandle obj_h) {
-    AstNode* valueNodep = nullptr;
     std::string valStr;
     int size = -1;  // Treated as "invalid/unavailable" in UHDM
     size = vpi_get(vpiSize, obj_h);
@@ -392,23 +391,23 @@ AstNode* get_value_by_format(vpiHandle obj_h) {
         if (valStr[0] == '-') {
             valStr = valStr.substr(1);
             auto* inner = new AstConst(make_fileline(obj_h), AstConst::StringToParse(), valStr.c_str());
-            valueNodep = new AstNegate(make_fileline(obj_h), inner);
-            break;
+            return new AstNegate(make_fileline(obj_h), inner);
         }
 
         if (size != -1 && size != 0) {
             valStr = std::to_string(size) + "'d" + valStr;
-        } else
+        } else {
             valStr = "'d" + valStr;
+        }
         auto* constp = new AstConst(make_fileline(obj_h), AstConst::StringToParse(), valStr.c_str());
         auto& num = constp->num();
         if (num.width() >= 32 && num.widthMin() <= 32) {
+            UINFO(8, "Creating wide constant" << std::endl);
             num.width(32, false);
             num.isSigned(true);
             constp = new AstConst(make_fileline(obj_h), num);
         }
-        valueNodep = constp;
-        break;
+        return constp;
     }
     case vpiRealVal: {
         valStr = std::to_string(val.value.real);
@@ -417,14 +416,12 @@ AstNode* get_value_by_format(vpiHandle obj_h) {
         double value = VString::parseDouble(valStr, &parseSuccess);
         UASSERT(parseSuccess, "Unable to parse real value: " + valStr);
 
-        valueNodep = new AstConst(make_fileline(obj_h), AstConst::RealDouble(), value);
-        break;
+        return new AstConst(make_fileline(obj_h), AstConst::RealDouble(), value);
     }
     case vpiBinStrVal:
     case vpiOctStrVal:
     case vpiDecStrVal:
     case vpiHexStrVal: {
-        // if vpiDecompile is unavailable i.e. in EnumConst, cast the string
         if (val.format == vpiBinStrVal)
             valStr = "'b" + std::string(val.value.str);
         else if (val.format == vpiOctStrVal)
@@ -435,27 +432,25 @@ AstNode* get_value_by_format(vpiHandle obj_h) {
             valStr = "'h" + std::string(val.value.str);
         if (size != -1 && size != 0)
             valStr = std::to_string(size) + valStr;
-        auto* constp = new AstConst(make_fileline(obj_h), AstConst::StringToParse(), valStr.c_str());
-        valueNodep = constp;
-        break;
+        UINFO(7, "Obtained string is " << valStr << " for type " << val.format << std::endl);
+        return new AstConst(make_fileline(obj_h), AstConst::StringToParse(), valStr.c_str());
     }
     case vpiStringVal: {
         if (auto* s = val.value.str) valStr = std::to_string(*s);
         valStr.assign(val.value.str);
-        valueNodep = new AstConst(make_fileline(obj_h), AstConst::VerilogStringLiteral(),
+        return new AstConst(make_fileline(obj_h), AstConst::VerilogStringLiteral(),
                                   deQuote(make_fileline(obj_h), valStr));
-        break;
     }
     case 0: {
         UINFO(7, "No value; value format is 0" << std::endl);
-        return nullptr;
+        break;
     }
     default: {
         v3error("Encountered unknown value format " << val.format << std::endl);
         break;
     }
     }
-    return valueNodep;
+    return nullptr;
 }
 
 AstNode* get_decompiled_value(vpiHandle obj_h) {
