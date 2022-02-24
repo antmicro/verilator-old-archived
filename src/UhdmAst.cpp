@@ -371,70 +371,10 @@ AstNode* get_referenceNode(FileLine* fl, string name, UhdmShared& shared) {
     return AstDot::newIfPkg(fl, colon_refp, dot_refp);
 }
 
-AstNode* get_value_as_node(vpiHandle obj_h, bool need_decompile = false) {
-    AstNode* valueNodep = nullptr;
+AstNode* get_value_by_format(vpiHandle obj_h) {
     std::string valStr;
-
-    // Most nodes will have raw value in vpiDecompile, leave deducing the type to Verilator
-    if (need_decompile) {
-        if (auto s = vpi_get_str(vpiDecompile, obj_h)) {
-            valStr = s;
-            auto type = vpi_get(vpiConstType, obj_h);
-            if (type == vpiStringConst) {
-                valueNodep = new AstConst(make_fileline(obj_h), AstConst::VerilogStringLiteral(),
-                                          deQuote(make_fileline(obj_h), valStr));
-            } else if (type == vpiRealConst) {
-                bool parseSuccess;
-                double value = VString::parseDouble(valStr, &parseSuccess);
-                UASSERT(parseSuccess, "Unable to parse real value: " + valStr);
-
-                valueNodep = new AstConst(make_fileline(obj_h), AstConst::RealDouble(), value);
-            } else {
-                valStr = s;
-                if (valStr.find('\'') == std::string::npos) {
-                    if (vpi_get(vpiSize, obj_h) == -1) {
-                        std::string actualValStr;
-                        if (valStr == "0")
-                            actualValStr = "'0";
-                        else if (valStr == "1" || valStr == "18446744073709551615")
-                            // Surelog's default constant size is 64
-                            // 18446744073709551615 is 2^64 - 1
-                            actualValStr = "'1";
-                        else if (valStr == "x" || valStr == "X")
-                            actualValStr = "'X";
-                        else if (valStr == "z" || valStr == "Z")
-                            actualValStr = "'Z";
-                        else
-                            v3error("Unexpected value with vpiSize: -1");
-
-                        return new AstConst(make_fileline(obj_h), AstConst::StringToParse(), actualValStr.c_str());
-                    }
-
-                    if (int size = vpi_get(vpiSize, obj_h)) {
-                        if (type == vpiBinaryConst) valStr = "'b" + valStr;
-                        else if (type == vpiOctConst) valStr = "'o" + valStr;
-                        else if (type == vpiHexConst) valStr = "'h" + valStr;
-                        else valStr = "'d" + valStr;
-                        valStr = std::to_string(size) + valStr;
-                    }
-                    auto* constp = new AstConst(make_fileline(obj_h), AstConst::StringToParse(), valStr.c_str());
-                    auto& num = constp->num();
-                    if (num.width() >= 32 && num.widthMin() <= 32) {
-                        num.width(32, false);
-                        num.isSigned(true);
-                        constp = new AstConst(make_fileline(obj_h), num);
-                    }
-                    valueNodep = constp;
-                } else {
-                    auto* constp = new AstConst(make_fileline(obj_h), AstConst::StringToParse(), valStr.c_str());
-                    valueNodep = constp;
-                }
-            }
-            return valueNodep;
-        }
-    } else {
-        UINFO(7, "Requested vpiDecompile value not found in UHDM" << std::endl);
-    }
+    int size = -1;  // Treated as "invalid/unavailable" in UHDM
+    size = vpi_get(vpiSize, obj_h);
     s_vpi_value val;
     vpi_get_value(obj_h, &val);
     switch (val.format) {
@@ -451,21 +391,23 @@ AstNode* get_value_as_node(vpiHandle obj_h, bool need_decompile = false) {
         if (valStr[0] == '-') {
             valStr = valStr.substr(1);
             auto* inner = new AstConst(make_fileline(obj_h), AstConst::StringToParse(), valStr.c_str());
-            valueNodep = new AstNegate(make_fileline(obj_h), inner);
-            break;
+            return new AstNegate(make_fileline(obj_h), inner);
         }
 
-        if (int size = vpi_get(vpiSize, obj_h))
+        if (size != -1 && size != 0) {
             valStr = std::to_string(size) + "'d" + valStr;
+        } else {
+            valStr = "'d" + valStr;
+        }
         auto* constp = new AstConst(make_fileline(obj_h), AstConst::StringToParse(), valStr.c_str());
         auto& num = constp->num();
         if (num.width() >= 32 && num.widthMin() <= 32) {
+            UINFO(8, "Creating wide constant" << std::endl);
             num.width(32, false);
             num.isSigned(true);
             constp = new AstConst(make_fileline(obj_h), num);
         }
-        valueNodep = constp;
-        break;
+        return constp;
     }
     case vpiRealVal: {
         valStr = std::to_string(val.value.real);
@@ -474,14 +416,12 @@ AstNode* get_value_as_node(vpiHandle obj_h, bool need_decompile = false) {
         double value = VString::parseDouble(valStr, &parseSuccess);
         UASSERT(parseSuccess, "Unable to parse real value: " + valStr);
 
-        valueNodep = new AstConst(make_fileline(obj_h), AstConst::RealDouble(), value);
-        break;
+        return new AstConst(make_fileline(obj_h), AstConst::RealDouble(), value);
     }
     case vpiBinStrVal:
     case vpiOctStrVal:
     case vpiDecStrVal:
     case vpiHexStrVal: {
-        // if vpiDecompile is unavailable i.e. in EnumConst, cast the string
         if (val.format == vpiBinStrVal)
             valStr = "'b" + std::string(val.value.str);
         else if (val.format == vpiOctStrVal)
@@ -490,29 +430,107 @@ AstNode* get_value_as_node(vpiHandle obj_h, bool need_decompile = false) {
             valStr = "'d" + std::string(val.value.str);
         else if (val.format == vpiHexStrVal)
             valStr = "'h" + std::string(val.value.str);
-        if (int size = vpi_get(vpiSize, obj_h))
+        if (size != -1 && size != 0)
             valStr = std::to_string(size) + valStr;
-        auto* constp = new AstConst(make_fileline(obj_h), AstConst::StringToParse(), valStr.c_str());
-        valueNodep = constp;
-        break;
+        UINFO(7, "Obtained string is " << valStr << " for type " << val.format << std::endl);
+        return new AstConst(make_fileline(obj_h), AstConst::StringToParse(), valStr.c_str());
     }
     case vpiStringVal: {
         if (auto* s = val.value.str) valStr = std::to_string(*s);
         valStr.assign(val.value.str);
-        valueNodep = new AstConst(make_fileline(obj_h), AstConst::VerilogStringLiteral(),
+        return new AstConst(make_fileline(obj_h), AstConst::VerilogStringLiteral(),
                                   deQuote(make_fileline(obj_h), valStr));
-        break;
     }
     case 0: {
         UINFO(7, "No value; value format is 0" << std::endl);
-        return nullptr;
+        break;
     }
     default: {
         v3error("Encountered unknown value format " << val.format << std::endl);
         break;
     }
     }
-    return valueNodep;
+    return nullptr;
+}
+
+AstNode* get_decompiled_value(vpiHandle obj_h) {
+    std::string valStr;
+    int size = vpi_get(vpiSize, obj_h);
+    if (auto s = vpi_get_str(vpiDecompile, obj_h)) {
+        valStr = s;
+        auto type = vpi_get(vpiConstType, obj_h);
+        if (type == vpiStringConst) {
+            UINFO(8, "Decompiled vpiStringConst: " << valStr << std::endl);
+            return new AstConst(make_fileline(obj_h), AstConst::VerilogStringLiteral(),
+                                deQuote(make_fileline(obj_h), valStr));
+        } else if (type == vpiRealConst) {
+            bool parseSuccess;
+            double value = VString::parseDouble(valStr, &parseSuccess);
+            UASSERT(parseSuccess, "Unable to parse real value: " + valStr);
+
+            UINFO(8, "Decompiled vpiRealConst: " << valStr << std::endl);
+            return new AstConst(make_fileline(obj_h), AstConst::RealDouble(), value);
+        } else {
+            valStr = s;
+            if (valStr.find('\'') == std::string::npos) {
+                if (size == -1) {
+                    if (valStr == "0")
+                        valStr = "'0";
+                    else if (valStr == "1" || valStr == "18446744073709551615")
+                        // Surelog's default constant size is 64
+                        // 18446744073709551615 is 2^64 - 1
+                        valStr = "'1";
+                    else if (valStr == "x" || valStr == "X")
+                        valStr = "'X";
+                    else if (valStr == "z" || valStr == "Z")
+                        valStr = "'Z";
+                    else {
+                        UINFO(7, "Unexpected value with vpiSize -1: " << valStr << std::endl);
+                        return nullptr;
+                    }
+
+                    UINFO(8, "Decompiled special value: " << valStr << std::endl);
+                    return new AstConst(make_fileline(obj_h), AstConst::StringToParse(), valStr.c_str());
+                } else {
+                    if (type == vpiBinaryConst) valStr = "'b" + valStr;
+                    else if (type == vpiOctConst) valStr = "'o" + valStr;
+                    else if (type == vpiHexConst) valStr = "'h" + valStr;
+                    else valStr = "'d" + valStr;
+                    valStr = std::to_string(size) + valStr;
+                    UINFO(8, "Decompiled value with recovered size: " << valStr << std::endl);
+                    auto* constp = new AstConst(make_fileline(obj_h), AstConst::StringToParse(), valStr.c_str());
+                    auto& num = constp->num();
+                    if (num.width() >= 32 && num.widthMin() <= 32) {
+                        UINFO(8, "Creating wide constant" << std::endl);
+                        num.width(32, false);
+                        num.isSigned(true);
+                        return new AstConst(make_fileline(obj_h), num);
+                    } else {
+                        return constp;
+                    }
+                }
+            } else {
+                UINFO(8, "Decompiled value: " << valStr << std::endl);
+                return new AstConst(make_fileline(obj_h), AstConst::StringToParse(), valStr.c_str());
+            }
+        }
+    } else {
+        UINFO(8, "Failed to get vpiDecompile" << std::endl);
+    }
+    return nullptr;
+}
+
+AstNode* get_value_as_node(vpiHandle obj_h, bool need_decompile = false) {
+    // Most nodes will have raw value in vpiDecompile, leave deducing the type to Verilator
+    if (need_decompile) {
+        if (AstNode* valuep = get_decompiled_value(obj_h))
+            return valuep;
+        else {
+            UINFO(7, "Requested vpiDecompile value not found in UHDM" << std::endl);
+            // Fallback - try to recover from UHDM node value
+        }
+    }
+    return get_value_by_format(obj_h);
 }
 
 AstRefDType* get_type_reference(FileLine* fl, std::string objectName, std::string fullTypeName,
