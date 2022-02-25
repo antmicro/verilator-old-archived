@@ -2,13 +2,8 @@
 
 VERILATOR_ONLY_SOURCE_FILENAMES=\
 /sram_ctrl.sv \
-/sram_ctrl_regs_reg_top.sv \
-/csrng_reg_top.sv \
-/edn_reg_top.sv \
 /entropy_src_core.sv \
-/entropy_src_reg_top.sv \
 /entropy_src_watermark_reg.sv \
-/pinmux_reg_top.sv \
 /prim_generic_rom.sv \
 /prim_rom_adv.sv \
 /prim_rom.sv \
@@ -17,11 +12,16 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /rom_ctrl_mux.sv \
 /rom_ctrl_scrambled_rom.sv \
 /rom_ctrl.sv \
-/rv_core_ibex_cfg_reg_top.sv \
 /top_earlgrey.sv \
-/uart_reg_top.sv \
 
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/sram_ctrl_regs_reg_top.sv \
+/csrng_reg_top.sv \
+/edn_reg_top.sv \
+/entropy_src_reg_top.sv \
+/pinmux_reg_top.sv \
+/rv_core_ibex_cfg_reg_top.sv \
+/uart_reg_top.sv \
 /pinmux.sv \
 /prim_subst_perm.sv \
 /prim_ram_1p_scr.sv \
