@@ -3,15 +3,15 @@
 VERILATOR_ONLY_SOURCE_FILENAMES=\
 /entropy_src_core.sv \
 /entropy_src_watermark_reg.sv \
-/prim_generic_rom.sv \
-/prim_rom_adv.sv \
-/prim_rom.sv \
 /rom_ctrl_counter.sv \
 /rom_ctrl_fsm.sv \
-/rom_ctrl_mux.sv \
 /rom_ctrl_scrambled_rom.sv \
 
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/rom_ctrl_mux.sv \
+/prim_generic_rom.sv \
+/prim_rom_adv.sv \
+/prim_rom.sv \
 /sram_ctrl.sv \
 /rom_ctrl.sv \
 /top_earlgrey.sv \
