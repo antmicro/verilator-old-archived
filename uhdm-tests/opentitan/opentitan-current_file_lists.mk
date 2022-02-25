@@ -1,7 +1,6 @@
 # Filenames starting with / to avoid false matches by suffix
 
 VERILATOR_ONLY_SOURCE_FILENAMES=\
-/sram_ctrl.sv \
 /entropy_src_core.sv \
 /entropy_src_watermark_reg.sv \
 /prim_generic_rom.sv \
@@ -11,10 +10,11 @@ VERILATOR_ONLY_SOURCE_FILENAMES=\
 /rom_ctrl_fsm.sv \
 /rom_ctrl_mux.sv \
 /rom_ctrl_scrambled_rom.sv \
-/rom_ctrl.sv \
-/top_earlgrey.sv \
 
 VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
+/sram_ctrl.sv \
+/rom_ctrl.sv \
+/top_earlgrey.sv \
 /sram_ctrl_regs_reg_top.sv \
 /csrng_reg_top.sv \
 /edn_reg_top.sv \
@@ -25,7 +25,6 @@ VERILATOR_AND_SURELOG_SOURCE_FILENAMES=\
 /pinmux.sv \
 /prim_subst_perm.sv \
 /prim_ram_1p_scr.sv \
-/otbn.sv \
 /otp_ctrl_part_buf.sv \
 /otp_ctrl.sv \
 /keccak_2share.sv \
