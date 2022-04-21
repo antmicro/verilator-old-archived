@@ -378,6 +378,9 @@ void V3Options::addVFile(const string& filename) {
     // in a specific order and multiple of them.
     m_vFiles.push_back(filename);
 }
+void V3Options::addVHDLFile(const string& filename) {
+    m_vhdFiles.push_back(filename);
+}
 void V3Options::addForceInc(const string& filename) { m_forceIncs.push_back(filename); }
 
 void V3Options::addArg(const string& arg) { m_impp->m_allArgs.push_back(arg); }
@@ -866,8 +869,9 @@ void V3Options::parseOpts(FileLine* fl, int argc, char** argv) {
     // Default certain options and error check
     // Detailed error, since this is what we often get when run with minimal arguments
     const V3StringList& vFilesList = vFiles();
-    if (vFilesList.empty()) {
-        v3fatal("verilator: No Input Verilog file specified on command line, "
+    const V3StringList& vhdFilesList = vhdFiles();
+    if (vFilesList.empty() && vhdFilesList.empty()) {
+        v3fatal("verilator: No Input Verilog or VHDL file specified on command line, "
                 "see verilator --help for more information\n");
     }
 
@@ -876,6 +880,8 @@ void V3Options::parseOpts(FileLine* fl, int argc, char** argv) {
         m_prefix = string("V") + AstNode::encodeName(topModule());
     if (prefix() == "" && vFilesList.size() >= 1)
         m_prefix = string("V") + AstNode::encodeName(V3Os::filenameNonExt(*(vFilesList.begin())));
+    if (prefix() == "" && vhdFilesList.size()>=1)
+        m_prefix = string("V") + AstNode::encodeName(V3Os::filenameNonExt(*(vhdFilesList.begin())));
     if (modPrefix() == "") m_modPrefix = prefix();
 
     // Find files in makedir
@@ -1498,6 +1504,9 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
                        || suffixed(filename, ".o")  //
                        || suffixed(filename, ".so")) {
                 V3Options::addLdLibs(filename);
+            } else if (suffixed(filename, ".vhd")
+                       || suffixed(filename, ".vhdl")) {
+                V3Options::addVHDLFile(filename);
             } else {
                 V3Options::addVFile(filename);
             }

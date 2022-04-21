@@ -25,6 +25,7 @@
 #include "V3Parse.h"
 #include "V3ParseSym.h"
 #include "V3Stats.h"
+#include "V3VhdlFrontend.h"
 
 //######################################################################
 // V3 Class -- top level
@@ -58,7 +59,9 @@ void V3Global::readFiles() {
         parser.parseFile(new FileLine(FileLine::commandLineFilename()), filename, false,
                          "Cannot find file containing module: ");
     }
-
+    V3VhdlFrontend vhdFrontend(&parseSyms);
+    // Read top VHDL module
+    vhdFrontend.parseFiles();
     // Read libraries
     // To be compatible with other simulators,
     // this needs to be done after the top file is read
