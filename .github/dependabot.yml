@@ -1,12 +1,12 @@
-version: 2
-updates:
-- package-ecosystem: gitsubmodule
-  directory: "/"
-  ignore:
-    # Working "golden" copy of Opentitan
-    - dependency-name: "opentitan-210214"
-  schedule:
-    interval: weekly
-    day: sunday
-    time: '18:00'
-  open-pull-requests-limit: 10
+#version: 2
+#updates:
+#- package-ecosystem: gitsubmodule
+#  directory: "/"
+#  ignore:
+#    # Working "golden" copy of Opentitan
+#    - dependency-name: "opentitan-210214"
+#  schedule:
+#    interval: weekly
+#    day: sunday
+#    time: '18:00'
+#  open-pull-requests-limit: 10
