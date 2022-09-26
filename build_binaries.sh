@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -ex
 export SURELOG_INSTALL_DIR=$PWD/image
 cd Surelog && make PREFIX=$SURELOG_INSTALL_DIR release install -j $(nproc) && cd ..
